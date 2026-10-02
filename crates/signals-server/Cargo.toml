@@ -20,28 +20,28 @@ serde_json.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
 uuid.workspace = true
-argon2 = "0.5"
-async-stream = "0.3"
-clap = { version = "4", features = ["derive", "env"] }
-constant_time_eq = "0.4"
-hex = "0.4"
-hmac = "0.12"
-mime_guess = "2"
-rand = "0.8"
-rust-embed = "8"
-sha2 = "0.10"
-tower-http = { version = "0.7", features = ["compression-gzip", "decompression-gzip", "limit", "timeout", "request-id", "cors", "trace"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-url = "2"
-utoipa = { version = "5", features = ["chrono", "uuid", "axum_extras"] }
-opentelemetry = "0.33"
-opentelemetry_sdk = { version = "0.33", features = ["trace"] }
-opentelemetry-otlp = { version = "0.33", features = ["grpc-tonic", "http-proto", "reqwest-blocking-client", "tls-ring", "gzip-tonic", "gzip-http"] }
-tracing-opentelemetry = "0.34"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+argon2 = "0.6.0"
+async-stream = "0.3.6"
+clap = { version = "4.6.7", features = ["derive", "env"] }
+constant_time_eq = "0.6.1"
+hex = "0.4.3"
+hmac = "0.13.0"
+mime_guess = "2.0.5"
+rand = "0.10.3"
+rust-embed = "8.12.0"
+sha2 = "0.11.0"
+tower-http = { version = "0.7.1", features = ["compression-gzip", "decompression-gzip", "limit", "timeout", "request-id", "cors", "trace"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+url = "2.5.8"
+utoipa = { version = "6.0.0", features = ["chrono", "uuid", "axum_extras"] }
+opentelemetry = "0.33.0"
+opentelemetry_sdk = { version = "0.33.0", features = ["trace"] }
+opentelemetry-otlp = { version = "0.33.0", features = ["grpc-tonic", "http-proto", "reqwest-blocking-client", "tls-ring", "gzip-tonic", "gzip-http"] }
+tracing-opentelemetry = "0.34.0"
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls"] }
 
 [dev-dependencies]
-tower = { version = "0.5", features = ["util"] }
-http-body-util = "0.1"
-proptest = "1"
+tower = { version = "0.5.3", features = ["util"] }
+http-body-util = "0.1.5"
+proptest = "1.11.0"

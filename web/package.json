@@ -20,25 +20,28 @@
   },
   "dependencies": {
     "@mcpramen/signals-ui": "*",
-    "@fontsource-variable/manrope": "^5.2.0",
-    "@fontsource-variable/unbounded": "^5.2.0",
-    "@fontsource/ibm-plex-mono": "^5.2.0",
-    "lucide-react": "^1.46.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource-variable/unbounded": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "lucide-react": "^1.50.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "eslint": "^9.0.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "typescript": "^5.0.0",
-    "typescript-eslint": "^8.0.0",
-    "vite": "^7.0.0",
-    "postcss": "^8.5.0"
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.0",
+    "vite": "^8.3.2",
+    "postcss": "^8.5.28"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

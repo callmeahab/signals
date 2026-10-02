@@ -26,6 +26,8 @@
 
 Compose forwards variables from `.env` into the collector and overrides `DATABASE_URL` with the internal Postgres hostname. Add CORS and standard OTEL settings there when using Compose.
 
+The local environment template and setup script allow both `http://localhost:8300` (the public URL) and `http://127.0.0.1:8300` (an explicit additional origin). Browser login and cookie-authenticated writes require an exact allowed origin, including scheme and port. If you use another hostname or a separate development frontend, add its origin to `SIGNALS_CORS_ORIGINS`; an “Origin is not allowed” response means it is missing from this list. The collector does not trust arbitrary Host or forwarded headers to expand the list.
+
 All replicas must share the same database and session secret. Each project starts with 30-day raw retention, 600 events/min/key, and 5,242,880 bytes/min/key. Owners can update these settings in the dashboard.
 
 Ingest has a 1 MiB decompressed body limit, 1,000-event batch limit, and 10-second HTTP timeout. Oversize batches return 413; per-key budget exhaustion returns 429 with `Retry-After: 60`. The raw peer IP is converted to a tenant-salted HMAC; forwarded headers are not trusted. Deployments using a proxy should understand that anonymous network identities will correspond to the proxy unless trusted-proxy handling is added. Prefer SDK-supplied key or subject identities.

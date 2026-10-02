@@ -10,3 +10,6 @@ web/artifacts
 examples/next-host/node_modules
 examples/next-host/.next
 bench/artifacts
+
+backups
+*.backup

@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS web
+FROM node:24-bookworm-slim AS web
 WORKDIR /build/web
 COPY LICENSE /build/LICENSE
 COPY web/package*.json ./
@@ -13,7 +13,7 @@ COPY examples/README.md /build/examples/README.md
 COPY spec/README.md /build/spec/README.md
 RUN npm run build
 
-FROM rust:1-bookworm AS rust
+FROM rust:1.99.0-bookworm AS rust
 WORKDIR /build
 COPY Cargo.toml Cargo.lock ./
 COPY .sqlx/ .sqlx/

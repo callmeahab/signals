@@ -9,7 +9,7 @@ chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
-jsonschema = { version = "0.56", default-features = false }
+jsonschema = { version = "0.58.4", default-features = false }
 
 [dev-dependencies]
-proptest = "1"
+proptest = "1.11.0"

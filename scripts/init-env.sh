@@ -19,6 +19,7 @@ import os, secrets, json
 from pathlib import Path
 values = dict(DATABASE_URL='postgres://signals:signals@localhost:8432/signals',
               SIGNALS_BIND='0.0.0.0:8300', SIGNALS_PUBLIC_URL='http://localhost:8300',
+              SIGNALS_CORS_ORIGINS='http://127.0.0.1:8300',
               SIGNALS_ADMIN_TOKEN=secrets.token_hex(32), SIGNALS_SESSION_SECRET=secrets.token_hex(32),
               SIGNALS_BOOTSTRAP_EMAIL=os.environ['signals_email'],
               SIGNALS_BOOTSTRAP_PASSWORD=os.environ['signals_password'])

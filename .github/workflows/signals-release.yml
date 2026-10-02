@@ -49,8 +49,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - uses: dtolnay/rust-toolchain@stable
+        with: {node-version: '24'}
+      - uses: dtolnay/rust-toolchain@1.99.0
         with: {targets: '${{ matrix.target }}'}
       - run: sudo apt-get update && sudo apt-get install -y musl-tools
       - run: npm ci --no-audit --no-fund && npm run build
@@ -89,7 +89,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: '22', registry-url: 'https://registry.npmjs.org'}
+        with: {node-version: '24', registry-url: 'https://registry.npmjs.org'}
       - run: npm install --global npm@latest
       - run: npm ci --no-audit --no-fund && npm run build:ui
         working-directory: web

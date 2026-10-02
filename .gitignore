@@ -33,6 +33,7 @@ venv/
 
 # Local database volumes/backups and runtime logs.
 /pgdata/
+/backups/
 *.backup
 *.dump
 *.log

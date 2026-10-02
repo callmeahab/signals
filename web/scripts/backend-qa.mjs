@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
+import { checkLoginStyles } from './login-styles.mjs';
 
 const docker=process.argv.includes('--docker');
 const base=process.env.SIGNALS_URL??(docker?'http://127.0.0.1:8350':'http://127.0.0.1:8300');
@@ -10,6 +11,7 @@ const password=process.env.SIGNALS_TEST_PASSWORD??'signals-test-password';
 const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL??'chrome'});
 mkdirSync('artifacts',{recursive:true});
 try{
+ await checkLoginStyles(browser,base);
  const context=await browser.newContext({viewport:{width:1440,height:1000}});
  const page=await context.newPage();const failures=[];page.on('pageerror',e=>failures.push(e.message));
  await page.goto(base);

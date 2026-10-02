@@ -23,13 +23,13 @@ services:
     init: true
     stop_grace_period: 15s
   postgres:
-    image: postgres:16
+    image: postgres:18.6-bookworm
     environment:
       POSTGRES_USER: signals
       POSTGRES_PASSWORD: signals
       POSTGRES_DB: signals
     ports: ["127.0.0.1:8432:5432"]
-    volumes: [pgdata:/var/lib/postgresql/data]
+    volumes: [pgdata18:/var/lib/postgresql]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U signals"]
       interval: 5s
@@ -50,4 +50,5 @@ services:
     command: ["--config=/etc/otel.yml"]
     volumes: ["./docker/otel.yml:/etc/otel.yml:ro"]
 volumes:
-  pgdata: {}
+  # PostgreSQL 18 uses a new volume; keep existing pgdata volumes for recovery.
+  pgdata18: {}

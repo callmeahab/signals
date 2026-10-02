@@ -13,6 +13,8 @@ bash scripts/init-env.sh
 docker compose up --build
 ```
 
+Existing PostgreSQL 16 installations must follow the [database upgrade steps](docs/upgrading.md#postgresql-16-to-18) before starting the updated stack. New installations use PostgreSQL 18.6.
+
 Open **http://localhost:8300** and sign in with the email and password you supplied. A fresh database gets a default tenant, a project, and an owner. The database is exposed on localhost port **8432** for development. Both ports are separate from mcpflux’s existing services.
 
 Create an ingest key in **Settings**, save the secret in `SIGNALS_API_KEY`, and use the **Setup** screen to send your first event. The **Live** view shows committed events immediately; summaries and sessions update within 60 seconds.
@@ -21,7 +23,7 @@ Keep `.env` private. For a public installation, set `SIGNALS_PUBLIC_URL` to its 
 
 ## Develop locally
 
-Node 22+, a current stable Rust toolchain, and Postgres 16+ are required.
+Node 24+, Rust 1.99.0 (pinned in `rust-toolchain.toml`), and Postgres 18.6 are the tested development versions.
 
 ```sh
 cd web
@@ -110,4 +112,4 @@ The 60-second load run acknowledged 300,000 events with p99 10.87 ms and no fail
 
 Node/Python [MCP example servers](examples/README.md) implement the 2026-07-28 per-request model and emit the provisional Signals envelope. The official SDK setup snippets remain pending Plan 1.
 
-Documentation is built into the binary at `/docs/`. See [configuration](docs/config.md), [API](docs/api.md), [self-hosting](docs/self-hosting.md), [upgrading](docs/upgrading.md), and [maintenance](docs/maintenance.md).
+Documentation is built into the binary at `/docs/`. See [configuration](docs/config.md), [API](docs/api.md), [self-hosting](docs/self-hosting.md), [upgrading](docs/upgrading.md), [dependency versions](docs/dependency-upgrade.md), and [maintenance](docs/maintenance.md).

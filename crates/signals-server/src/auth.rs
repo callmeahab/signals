@@ -1,11 +1,11 @@
 use crate::{App, Error, Result};
 use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    password_hash::{phc::PasswordHash, PasswordHasher, PasswordVerifier},
     Argon2,
 };
 use axum::http::{header, HeaderMap};
 use chrono::{DateTime, Utc};
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use serde::Serialize;
 use sha2::Sha256;
 use signals_store::{checked_query, checked_query_as};
@@ -38,9 +38,8 @@ pub fn password_hash(password: &str) -> anyhow::Result<String> {
         password.len() >= 12,
         "Password must have at least 12 characters"
     );
-    let salt = SaltString::generate(&mut rand::rngs::OsRng);
     Ok(Argon2::default()
-        .hash_password(password.as_bytes(), &salt)
+        .hash_password(password.as_bytes())
         .map_err(|e| anyhow::anyhow!(e.to_string()))?
         .to_string())
 }
@@ -241,4 +240,37 @@ pub fn parse_event_cursor(value: Option<&str>) -> Result<Option<(DateTime<Utc>, 
             ))
         })
         .transpose()
+}
+
+#[cfg(test)]
+mod upgrade_tests {
+    use super::*;
+
+    #[test]
+    fn verifies_existing_argon2_05_password_hashes() {
+        // Generated with argon2 0.5.3: upgrades must preserve existing logins.
+        let encoded = "$argon2id$v=19$m=19456,t=2,p=1$c2lnbmFscy11cGdyYWRlLXRlc3Qtc2FsdA$D8TjQvxGmNp/hNoLxvtvIPFtGS7PBMS8NT9oBalFBg4";
+        let parsed = PasswordHash::new(encoded).unwrap();
+        assert!(Argon2::default()
+            .verify_password(b"signals-upgrade-test-password", &parsed)
+            .is_ok());
+        assert!(Argon2::default()
+            .verify_password(b"incorrect-password", &parsed)
+            .is_err());
+        let fresh = password_hash("signals-upgrade-test-password").unwrap();
+        assert!(Argon2::default()
+            .verify_password(
+                b"signals-upgrade-test-password",
+                &PasswordHash::new(&fresh).unwrap()
+            )
+            .is_ok());
+    }
+
+    #[test]
+    fn preserves_hmac_sha256_identity() {
+        assert_eq!(
+            network_identity(b"signals-upgrade-test-key", "127.0.0.1"),
+            "457f47b897d7d7595554229fc85c3a1f0783a4301fb06147a00394036b0e9b2b"
+        );
+    }
 }

@@ -6,7 +6,7 @@ pub mod workers;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use rand::RngCore;
+use rand::TryRng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::{postgres::PgPoolOptions, FromRow, PgPool};
@@ -45,7 +45,9 @@ pub struct ApiKey {
 }
 pub fn random_secret() -> String {
     let mut bytes = [0; 32];
-    rand::rngs::OsRng.fill_bytes(&mut bytes);
+    rand::rngs::SysRng
+        .try_fill_bytes(&mut bytes)
+        .expect("System random source unavailable");
     hex::encode(bytes)
 }
 pub fn hash(secret: &str) -> Vec<u8> {
