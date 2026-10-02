@@ -1,0 +1,53 @@
+services:
+  signals:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://signals:signals@postgres/signals
+      SIGNALS_BIND: 0.0.0.0:8300
+      SIGNALS_PUBLIC_URL: ${SIGNALS_PUBLIC_URL:-http://localhost:8300}
+      SIGNALS_ADMIN_TOKEN: ${SIGNALS_ADMIN_TOKEN:?Set SIGNALS_ADMIN_TOKEN in .env}
+      SIGNALS_SESSION_SECRET: ${SIGNALS_SESSION_SECRET:?Set SIGNALS_SESSION_SECRET in .env}
+      SIGNALS_BOOTSTRAP_EMAIL: ${SIGNALS_BOOTSTRAP_EMAIL:?Set SIGNALS_BOOTSTRAP_EMAIL in .env}
+      SIGNALS_BOOTSTRAP_PASSWORD: ${SIGNALS_BOOTSTRAP_PASSWORD:?Set SIGNALS_BOOTSTRAP_PASSWORD in .env}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-grpc}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-signals}
+      RUST_LOG: ${RUST_LOG:-signals_server=info}
+    ports: ["127.0.0.1:8300:8300"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: signals
+      POSTGRES_PASSWORD: signals
+      POSTGRES_DB: signals
+    ports: ["127.0.0.1:8432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U signals"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [monitoring]
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports: ["127.0.0.1:9090:9090"]
+    depends_on: [signals]
+  otel:
+    image: otel/opentelemetry-collector:0.131.0
+    profiles: [tracing]
+    command: ["--config=/etc/otel.yml"]
+    volumes: ["./docker/otel.yml:/etc/otel.yml:ro"]
+volumes:
+  pgdata: {}

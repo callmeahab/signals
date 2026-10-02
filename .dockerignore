@@ -1,0 +1,12 @@
+target
+web/node_modules
+web/dist
+web/packages/ui/dist
+web/artifacts
+.env
+.env.*
+.git
+
+examples/next-host/node_modules
+examples/next-host/.next
+bench/artifacts

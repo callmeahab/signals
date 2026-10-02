@@ -1,0 +1,96 @@
+[
+  {
+    "name": "valid and replay",
+    "batch": {
+      "sent_at": "{{NOW}}",
+      "events": [
+        {
+          "id": "{{UUID:a}}",
+          "ts": "{{NOW}}",
+          "type": "tool.call",
+          "tool": "fixture"
+        }
+      ]
+    },
+    "status": 202,
+    "expected": {
+      "accepted": 1,
+      "duplicates": 0,
+      "rejected": []
+    },
+    "replay": {
+      "accepted": 0,
+      "duplicates": 1,
+      "rejected": []
+    }
+  },
+  {
+    "name": "individual validation",
+    "batch": {
+      "sent_at": "{{NOW}}",
+      "events": [
+        {
+          "id": "{{UUID:a}}",
+          "ts": "{{NOW}}",
+          "type": "tool.call",
+          "tool": "fixture"
+        },
+        {
+          "id": "{{UUID:a}}",
+          "ts": "{{NOW}}",
+          "type": "tool.call",
+          "tool": "fixture"
+        },
+        {
+          "id": "{{UUID:f}}",
+          "ts": "{{FUTURE}}",
+          "type": "tool.call",
+          "tool": "fixture"
+        },
+        {
+          "id": "{{UUID:o}}",
+          "ts": "{{OLD}}",
+          "type": "tool.call",
+          "tool": "fixture"
+        },
+        {
+          "id": "{{UUID:bad}}"
+        },
+        {
+          "id": "{{UUID:nul}}",
+          "ts": "{{NOW}}",
+          "type": "tool.call",
+          "tool": "fixture",
+          "attrs": {
+            "message": "bad\u0000value"
+          }
+        }
+      ]
+    },
+    "status": 202,
+    "expected": {
+      "accepted": 1,
+      "duplicates": 0,
+      "rejected_reasons": [
+        "duplicate_in_batch",
+        "ts_future",
+        "ts_too_old",
+        "schema_invalid",
+        "schema_invalid"
+      ]
+    }
+  },
+  {
+    "name": "empty batch",
+    "batch": {
+      "sent_at": "{{NOW}}",
+      "events": []
+    },
+    "status": 202,
+    "expected": {
+      "accepted": 0,
+      "duplicates": 0,
+      "rejected": []
+    }
+  }
+]

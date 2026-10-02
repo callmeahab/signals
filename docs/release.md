@@ -1,0 +1,9 @@
+# Release and ownership
+
+Source lives in `~/signals`; GitHub publishing is intentionally unconfigured. License: Apache-2.0. The workflow derives its image namespace from the future GitHub repository owner: `ghcr.io/<owner>/signals`. Prepared npm package name follows the plan: `@mcpramen/signals-ui`; the namespace must be owned or approved by its owner before publishing.
+
+The release workflow listens to `signals-vMAJOR.MINOR.PATCH` tags. It verifies the active official spec manifest, matching Cargo/UI versions, generates types, runs checked SQL and database tests, builds multi-arch linux/amd64 + linux/arm64 GHCR images with major/minor/patch tags, attaches x86_64/aarch64 static musl binaries and SHA-256 sums, and publishes the UI with npm provenance. Tags do not authorize publication of a provisional SDK contract: stable release is blocked until Plan 1 conformance and the acceptance evidence are supplied. Repository `signals-release` environment protections can add the final operator review.
+
+After selecting a GitHub repository and setting the package repository metadata, configure npm trusted publishing for that owner/repository, workflow `signals-release.yml` and environment `signals-release`; this needs npm package ownership and a supported GitHub runner. Follow the [npm trusted publishing documentation](https://docs.npmjs.com/trusted-publishers/). GHCR uses the workflow's scoped `GITHUB_TOKEN`. If a namespace changes, update the package, examples, README and workflow together before tagging.
+
+Before 1.0, attach measured load/EXPLAIN reports, forced DB failure and replica tests, and an independent developer's quickstart report to the release review. The workflow and local test suite cannot manufacture this external review. No public image, release or npm package is published by local implementation work.

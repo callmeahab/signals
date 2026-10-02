@@ -1,0 +1,44 @@
+{
+  "name": "signals-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/ui",
+    "apps/dashboard"
+  ],
+  "scripts": {
+    "dev": "vite --config apps/dashboard/vite.config.ts --host 127.0.0.1",
+    "build": "npm run build:ui && tsc --noEmit && vite build --config apps/dashboard/vite.config.ts && npm run build:docs",
+    "check": "npm run build:ui && tsc --noEmit && eslint .",
+    "qa": "node scripts/visual-qa.mjs",
+    "qa:backend": "node scripts/backend-qa.mjs",
+    "build:ui": "tsc -p packages/ui/tsconfig.build.json && node scripts/copy-ui.mjs",
+    "test": "node scripts/test.mjs",
+    "build:docs": "node scripts/build-docs.mjs",
+    "test:next": "node scripts/test-next-host.mjs"
+  },
+  "dependencies": {
+    "@mcpramen/signals-ui": "*",
+    "@fontsource-variable/manrope": "^5.2.0",
+    "@fontsource-variable/unbounded": "^5.2.0",
+    "@fontsource/ibm-plex-mono": "^5.2.0",
+    "lucide-react": "^1.46.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.0.0",
+    "vite": "^7.0.0",
+    "postcss": "^8.5.0"
+  }
+}

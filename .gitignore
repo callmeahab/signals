@@ -1,0 +1,46 @@
+# Rust build output. Cargo.lock, .sqlx metadata, migrations and generated
+# schema types are source artifacts and should be committed.
+target/
+
+# Node dependencies, dashboard/UI bundles and Next.js build output.
+node_modules/
+dist/
+.next/
+out/
+.turbo/
+.vite/
+*.tsbuildinfo
+*.tgz
+
+# Local environment files; keep example templates available.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Browser, coverage and performance test output.
+artifacts/
+coverage/
+playwright-report/
+test-results/
+
+# Python tooling.
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local database volumes/backups and runtime logs.
+/pgdata/
+*.backup
+*.dump
+*.log
+
+# Editor temporary files and macOS metadata.
+*.swp
+*.swo
+*~
+.DS_Store
+
+.sqlx

@@ -1,0 +1,55 @@
+openapi: 3.1.0
+info:
+  title: Signals provisional ingest API
+  version: 0.1.0
+  description: Development contract; not the unavailable official signals-spec v1.
+x-signals-contract: provisional
+paths:
+  /v1/events:
+    post:
+      security: [{ingestKey: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [sent_at, events]
+              properties:
+                sent_at: {type: string, format: date-time}
+                events:
+                  type: array
+                  maxItems: 1000
+                  items: {$ref: './events.schema.json'}
+      responses:
+        '202':
+          description: Committed batch; valid peers survive per-event rejection.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted, duplicates, rejected]
+                properties:
+                  accepted: {type: integer}
+                  duplicates: {type: integer}
+                  rejected:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        index: {type: integer}
+                        id: {type: [string, 'null']}
+                        reason: {type: string}
+        '400': {description: Invalid envelope}
+        '401': {description: Invalid or revoked key}
+        '403': {description: Missing ingest scope}
+        '413': {description: Over 1 MiB after decompression or over 1000 events}
+        '429':
+          description: Per-key minute budget exhausted
+          headers:
+            Retry-After: {schema: {type: integer}, description: Seconds until retry}
+        '500': {description: Uncommitted batch; retry immutable IDs and timestamps}
+components:
+  securitySchemes:
+    ingestKey: {type: http, scheme: bearer}

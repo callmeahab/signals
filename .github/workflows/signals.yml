@@ -1,0 +1,66 @@
+name: Signals checks
+on: [push, pull_request, workflow_call]
+permissions: {contents: read}
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: signals, POSTGRES_PASSWORD: signals, POSTGRES_DB: signals_test}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd 'pg_isready -U signals' --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://signals:signals@127.0.0.1:5432/signals_test
+      TEST_DATABASE_URL: postgres://signals:signals@127.0.0.1:5432/signals_test
+      PLAYWRIGHT_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm, cache-dependency-path: web/package-lock.json}
+      - uses: dtolnay/rust-toolchain@stable
+        with: {components: 'rustfmt, clippy'}
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci --no-audit --no-fund
+        working-directory: web
+      - run: npm run check && npm run build
+        working-directory: web
+      - run: npx playwright install --with-deps chromium
+        working-directory: web
+      - run: npm test
+        working-directory: web
+      - run: python3 examples/smoke.py
+      - run: cargo fmt --all --check
+      - run: cargo run --locked -p signals-xtask -- --check
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo test --locked --workspace
+      - run: cargo build --locked --bin signals
+      - run: target/debug/signals migrate
+      - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f .sqlx/dev.sql
+      - run: cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features rustls,postgres
+      - run: cargo sqlx prepare --check --workspace -- --all-targets
+      - run: cargo test --locked -p signals-server --test integration --test rollup_properties -- --ignored --test-threads=1
+      - run: python3 scripts/ci-conformance.py
+      - run: npm run test:next
+        working-directory: web
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: signals-browser-artifacts, path: web/artifacts}
+  operations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -p signals-ci-qa -f docker/qa.compose.yml up --build -d
+      - run: python3 scripts/runtime-qa.py --project signals-ci-qa
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: signals-runtime-evidence, path: bench/artifacts}
+      - run: docker compose -p signals-ci-qa -f docker/qa.compose.yml logs --no-color > /tmp/signals-qa.log
+        if: always()
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: signals-operations-log, path: /tmp/signals-qa.log}
+      - run: docker compose -p signals-ci-qa -f docker/qa.compose.yml down -v
+        if: always()

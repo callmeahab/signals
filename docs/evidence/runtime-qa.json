@@ -1,0 +1,14 @@
+{
+  "fixture": "isolated runtime QA",
+  "started_at": "2026-10-02T10:48:04.410041+00:00",
+  "proxy_live_replicas": 2,
+  "db_kill": {
+    "acknowledged_events": 100,
+    "unacknowledged_batches": 39,
+    "unique_after_retries": 4000
+  },
+  "replica_failover": true,
+  "shutdown_seconds": 0.239,
+  "prometheus_up": true,
+  "otlp_export": true
+}

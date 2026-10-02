@@ -1,0 +1,6 @@
+body {margin:0;background:var(--background);color:var(--foreground);font-family:system-ui;font-size:16px;}
+.host-banner {padding:20px;border-bottom:1px solid var(--border);font-size:18px;}
+main {max-width:1200px;margin:auto;padding:24px;}
+.host-screen-controls {display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;}
+.host-screen-controls button {padding:8px 12px;border-radius:8px;}
+.signals-ui {--primary:oklch(0.6839 0.2069 33.86);}

@@ -1,0 +1,23 @@
+groups:
+  - name: signals
+    rules:
+      - alert: SignalsCollectorDown
+        expr: up{job="signals"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: 'Signals collector is unavailable'}
+      - alert: SignalsRollupLag
+        expr: signals_rollup_lag_seconds > 180
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: 'Signals summaries are over three minutes behind'}
+      - alert: SignalsDefaultPartitionRows
+        expr: signals_default_partition_rows > 0
+        for: 15m
+        labels: {severity: warning}
+        annotations: {summary: 'Signals default partition is not draining'}
+      - alert: SignalsIngestRejections
+        expr: rate(signals_ingest_rejected_total[5m]) / clamp_min(rate(signals_ingest_events_total[5m]) + rate(signals_ingest_rejected_total[5m]), 1) > 0.05
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: 'Signals rejects over 5% of submitted events'}

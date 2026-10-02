@@ -1,0 +1,47 @@
+[package]
+name = "signals-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+default-run = "signals"
+
+[[bin]]
+name = "signals"
+path = "src/main.rs"
+
+[dependencies]
+signals-core = { path = "../signals-core" }
+signals-store = { path = "../signals-store" }
+anyhow.workspace = true
+axum.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+argon2 = "0.5"
+async-stream = "0.3"
+clap = { version = "4", features = ["derive", "env"] }
+constant_time_eq = "0.4"
+hex = "0.4"
+hmac = "0.12"
+mime_guess = "2"
+rand = "0.8"
+rust-embed = "8"
+sha2 = "0.10"
+tower-http = { version = "0.7", features = ["compression-gzip", "decompression-gzip", "limit", "timeout", "request-id", "cors", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"
+utoipa = { version = "5", features = ["chrono", "uuid", "axum_extras"] }
+opentelemetry = "0.33"
+opentelemetry_sdk = { version = "0.33", features = ["trace"] }
+opentelemetry-otlp = { version = "0.33", features = ["grpc-tonic", "http-proto", "reqwest-blocking-client", "tls-ring", "gzip-tonic", "gzip-http"] }
+tracing-opentelemetry = "0.34"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+proptest = "1"
