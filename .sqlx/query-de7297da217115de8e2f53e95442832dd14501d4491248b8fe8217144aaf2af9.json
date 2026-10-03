@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT received_at_watermark FROM rollup_cursor WHERE name='hourly' FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "received_at_watermark",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "rollup_cursor",
+            "name": "received_at_watermark"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "de7297da217115de8e2f53e95442832dd14501d4491248b8fe8217144aaf2af9"
+}

@@ -1,0 +1,91 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT tool,hour,calls,errors,duration_hist,last_called FROM rollup_tool_hourly WHERE project_id=$1 AND ($2::text[] IS NULL OR tool=ANY($2)) AND hour>=$3 AND hour<$4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tool",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "rollup_tool_hourly",
+            "name": "tool"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "hour",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "rollup_tool_hourly",
+            "name": "hour"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "calls",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "rollup_tool_hourly",
+            "name": "calls"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "errors",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "rollup_tool_hourly",
+            "name": "errors"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "duration_hist",
+        "type_info": "Int8Array",
+        "origin": {
+          "Table": {
+            "table": "rollup_tool_hourly",
+            "name": "duration_hist"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "last_called",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "rollup_tool_hourly",
+            "name": "last_called"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "44119f37590b04b843df17ab811f3eb1039ee372f9b6f897be6352ba824a71ec"
+}

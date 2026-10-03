@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs) FROM events WHERE project_id=$1 AND id=$2 AND ts=$3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "jsonb_build_object",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6c45ef543384438ca8c53edfbef30e16ddafcb659c272a580cd810d577848fe1"
+}

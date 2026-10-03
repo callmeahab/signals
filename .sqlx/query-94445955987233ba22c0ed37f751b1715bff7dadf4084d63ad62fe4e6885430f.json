@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT caller_id,calls,errors,session_ids,clients FROM rollup_caller_daily WHERE project_id=$1 AND day>=$4::timestamptz::date AND day<$5::timestamptz::date UNION ALL SELECT caller_id,count(*) FILTER(WHERE type NOT LIKE 'session.%') AS calls,count(*) FILTER(WHERE type NOT LIKE 'session.%' AND is_error) AS errors,coalesce(array_agg(DISTINCT session_id) FILTER(WHERE session_id IS NOT NULL),'{}') AS session_ids,coalesce(array_agg(DISTINCT client_name) FILTER(WHERE client_name IS NOT NULL),'{}') AS clients FROM events WHERE project_id=$1 AND ts>=$2 AND ts<$3 AND (ts<$4 OR ts>=$5) AND caller_id IS NOT NULL GROUP BY caller_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "caller_id",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "calls",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "errors",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "session_ids",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "clients",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "94445955987233ba22c0ed37f751b1715bff7dadf4084d63ad62fe4e6885430f"
+}

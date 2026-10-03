@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(client_name,'Unknown') AS client,count(*) AS n FROM events WHERE project_id=$1 AND ts>=$2 AND ts<$3 AND type NOT LIKE 'session.%' GROUP BY client_name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "client",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "n",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "cd74631e7394d28e16dc452358975835198cef7a49277fb81fbc77d810d47a78"
+}

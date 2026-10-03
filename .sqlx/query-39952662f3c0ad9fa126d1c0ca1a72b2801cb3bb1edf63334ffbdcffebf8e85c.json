@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ts,id,jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs) AS event FROM events WHERE project_id=$1 AND ts>=$2 AND (ts,id)<($3,$4) AND ($5::text IS NULL OR type=$5) AND ($6::text IS NULL OR tool=$6) AND ($7::text IS NULL OR tool ILIKE '%'||$7||'%' OR attrs->>'message' ILIKE '%'||$7||'%' OR attrs->>'error_message' ILIKE '%'||$7||'%') AND ($8::bigint IS NULL OR caller_id=$8) AND ($9::boolean IS NULL OR is_error=$9) ORDER BY ts DESC,id DESC LIMIT 101",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ts",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "ts"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "event",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "39952662f3c0ad9fa126d1c0ca1a72b2801cb3bb1edf63334ffbdcffebf8e85c"
+}

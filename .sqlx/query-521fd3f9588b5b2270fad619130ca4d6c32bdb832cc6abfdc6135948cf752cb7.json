@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM rollup_caller_daily WHERE day<current_date-400",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "521fd3f9588b5b2270fad619130ca4d6c32bdb832cc6abfdc6135948cf752cb7"
+}

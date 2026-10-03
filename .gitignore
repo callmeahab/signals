@@ -35,5 +35,3 @@ venv/
 *.swo
 *~
 .DS_Store
-
-.sqlx

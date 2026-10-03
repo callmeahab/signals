@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) FILTER(WHERE type NOT LIKE 'session.%') AS requests,count(*) FILTER(WHERE type NOT LIKE 'session.%' AND is_error) AS errors,count(*) FILTER(WHERE type='tool.call') AS calls,coalesce(array_agg(DISTINCT session_id) FILTER(WHERE session_id IS NOT NULL),'{}') AS session_ids,coalesce(array_agg(DISTINCT caller_id) FILTER(WHERE caller_id IS NOT NULL),'{}') AS caller_ids FROM events WHERE project_id=$1 AND ts>=$2 AND ts<$3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "requests",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "errors",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "calls",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "session_ids",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "caller_ids",
+        "type_info": "Int8Array",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "abf721153aa22e231d4f6241eb3fae8d414ccca58818b331ec269f79bcf65e27"
+}

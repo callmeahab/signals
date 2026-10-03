@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO rollup_caller_daily SELECT project_id,ts::date,caller_id,count(*) FILTER(WHERE type NOT LIKE 'session.%'),count(*) FILTER(WHERE type NOT LIKE 'session.%' AND is_error),coalesce(array_agg(DISTINCT session_id) FILTER(WHERE session_id IS NOT NULL),'{}'),coalesce(array_agg(DISTINCT client_name) FILTER(WHERE client_name IS NOT NULL),'{}'),max(ts) FROM events WHERE project_id=$1 AND ts>=$2::timestamptz AND ts<$2::timestamptz+interval '1 day' AND caller_id IS NOT NULL GROUP BY project_id,ts::date,caller_id ON CONFLICT(project_id,day,caller_id) DO UPDATE SET calls=EXCLUDED.calls,errors=EXCLUDED.errors,session_ids=EXCLUDED.session_ids,clients=EXCLUDED.clients,last_seen=EXCLUDED.last_seen",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "25b0e80301ecc64a0c9c823eddd635cbac580cdff91a3b6a4018adfc96570883"
+}

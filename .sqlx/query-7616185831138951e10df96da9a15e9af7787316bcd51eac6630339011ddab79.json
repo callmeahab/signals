@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT tool,CASE WHEN duration_ms IS NULL THEN -1 ELSE LEAST(width_bucket(duration_ms-1,ARRAY[1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10946,17711,28657,46368,60000]),23) END AS bucket,count(*) AS calls,count(*) FILTER(WHERE is_error) AS errors,coalesce(sum(duration_ms),0)::bigint AS duration_sum,coalesce(max(duration_ms),0) AS duration_max,max(ts) AS last_called FROM events WHERE project_id=$1 AND ts>=$2 AND ts<$3 AND type='tool.call' AND tool IS NOT NULL GROUP BY tool,bucket",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tool",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "tool"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "bucket",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "calls",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "errors",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "duration_sum",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "duration_max",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "last_called",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "7616185831138951e10df96da9a15e9af7787316bcd51eac6630339011ddab79"
+}

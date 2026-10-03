@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT LEAST(width_bucket(duration_ms-1,ARRAY[1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10946,17711,28657,46368,60000]),23) AS bucket,count(*) AS n FROM events WHERE project_id=$1 AND ts>=$2 AND ts<$3 AND type NOT LIKE 'session.%' AND duration_ms IS NOT NULL GROUP BY bucket",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "n",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "81f7d1913be5cb5ef588e96faaf392c5028cf17f1f40ef8ab08c2828d32c927e"
+}

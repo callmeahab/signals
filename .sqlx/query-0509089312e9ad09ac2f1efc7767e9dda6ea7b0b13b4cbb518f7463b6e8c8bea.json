@@ -1,0 +1,126 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM rollup_project_hourly WHERE project_id=$1 AND hour>=$2 AND hour<$3 ORDER BY hour",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "project_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "rollup_project_hourly",
+            "name": "project_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "hour",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "rollup_project_hourly",
+            "name": "hour"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "requests",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "rollup_project_hourly",
+            "name": "requests"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "errors",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "rollup_project_hourly",
+            "name": "errors"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "tool_calls",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "rollup_project_hourly",
+            "name": "tool_calls"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "session_ids",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "rollup_project_hourly",
+            "name": "session_ids"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "caller_ids",
+        "type_info": "Int8Array",
+        "origin": {
+          "Table": {
+            "table": "rollup_project_hourly",
+            "name": "caller_ids"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "by_client",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "rollup_project_hourly",
+            "name": "by_client"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "duration_hist",
+        "type_info": "Int8Array",
+        "origin": {
+          "Table": {
+            "table": "rollup_project_hourly",
+            "name": "duration_hist"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0509089312e9ad09ac2f1efc7767e9dda6ea7b0b13b4cbb518f7463b6e8c8bea"
+}

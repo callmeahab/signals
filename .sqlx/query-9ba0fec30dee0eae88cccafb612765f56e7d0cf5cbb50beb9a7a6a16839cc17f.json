@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT day::timestamptz AS bucket,calls,errors,cardinality(session_ids)::bigint AS sessions FROM rollup_caller_daily WHERE $5 AND project_id=$1 AND caller_id=$2 AND day>=$6::timestamptz::date AND day<$7::timestamptz::date UNION ALL SELECT date_trunc(CASE WHEN $5 THEN 'day' ELSE 'hour' END,ts) AS bucket,count(*) FILTER(WHERE type NOT LIKE 'session.%') AS calls,count(*) FILTER(WHERE type NOT LIKE 'session.%' AND is_error) AS errors,count(DISTINCT session_id) AS sessions FROM events WHERE project_id=$1 AND caller_id=$2 AND ts>=$3 AND ts<$4 AND (NOT $5 OR ts<$6 OR ts>=$7) GROUP BY bucket",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "calls",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "errors",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "sessions",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Timestamptz",
+        "Timestamptz",
+        "Bool",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "9ba0fec30dee0eae88cccafb612765f56e7d0cf5cbb50beb9a7a6a16839cc17f"
+}

@@ -1,0 +1,57 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO callers(project_id,kind,external_id,label,first_seen,last_seen) SELECT $1,u.* FROM unnest($2::text[],$3::text[],$4::text[],$5::timestamptz[],$6::timestamptz[]) u ON CONFLICT(project_id,kind,external_id) DO UPDATE SET first_seen=LEAST(callers.first_seen,EXCLUDED.first_seen),last_seen=GREATEST(callers.last_seen,EXCLUDED.last_seen) RETURNING id,kind,external_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "callers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "callers",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "external_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "callers",
+            "name": "external_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TimestamptzArray",
+        "TimestamptzArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f093fe793b82635dbd8b595f8bd020505556818b3641cee3ea1753ff6b5b3948"
+}

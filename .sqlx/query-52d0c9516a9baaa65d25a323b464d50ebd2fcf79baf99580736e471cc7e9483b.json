@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH doomed AS (SELECT tableoid,ctid FROM events WHERE project_id=$1 AND ts<date_trunc('day',clock_timestamp()-make_interval(days=>$2)) LIMIT 10000) DELETE FROM events e USING doomed d WHERE e.tableoid=d.tableoid AND e.ctid=d.ctid",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "52d0c9516a9baaa65d25a323b464d50ebd2fcf79baf99580736e471cc7e9483b"
+}

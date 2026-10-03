@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT tool FROM (SELECT tool,calls FROM rollup_tool_hourly WHERE project_id=$1 AND hour>=$4 AND hour<$5 UNION ALL SELECT tool,1 AS calls FROM events WHERE project_id=$1 AND type='tool.call' AND tool IS NOT NULL AND ts>=$2 AND ts<$3 AND (ts<$4 OR ts>=$5)) totals GROUP BY tool ORDER BY sum(calls) DESC,tool LIMIT 5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tool",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "06410c95274e7412f170e1c57c446ceffb09c52e1fc5d22ed8808976412c09f1"
+}

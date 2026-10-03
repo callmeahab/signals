@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO rollup_project_hourly VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(project_id,hour) DO UPDATE SET requests=EXCLUDED.requests,errors=EXCLUDED.errors,tool_calls=EXCLUDED.tool_calls,session_ids=EXCLUDED.session_ids,caller_ids=EXCLUDED.caller_ids,by_client=EXCLUDED.by_client,duration_hist=EXCLUDED.duration_hist",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Int8",
+        "Int8",
+        "Int8",
+        "TextArray",
+        "Int8Array",
+        "Jsonb",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "80eb7f1d8f32d882f7206e112c194ff0c4d076b735f374b27adde6dac4e9e584"
+}

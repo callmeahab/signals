@@ -1,0 +1,51 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.started_at,s.session_id,jsonb_build_object('session_id',s.session_id,'client_name',s.client_name,'caller_label',coalesce(c.label,'Unknown'),'started_at',s.started_at,'ended_at',s.ended_at,'calls',s.calls,'errors',s.errors,'transport',s.transport) AS session FROM sessions s LEFT JOIN callers c ON c.id=s.caller_id WHERE s.project_id=$1 AND (s.started_at,s.session_id)<($2,$3) AND ($4::bigint IS NULL OR s.caller_id=$4) AND ($5::text IS NULL OR s.client_name=$5) ORDER BY s.started_at DESC,s.session_id DESC LIMIT 51",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "started_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "started_at"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "session_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "session",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Text",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "84951150bf4935c46bdf22b22f449d7aa576c82c9cc24391a3630ef990c1f2ba"
+}

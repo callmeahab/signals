@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE sessions SET ended_at=last_seen WHERE ended_at IS NULL AND last_seen<clock_timestamp()-interval '30 minutes'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "9b93ce1b428164f05e931ac66ae9f59929eb8b2565c8b1a98b188a74d342086c"
+}

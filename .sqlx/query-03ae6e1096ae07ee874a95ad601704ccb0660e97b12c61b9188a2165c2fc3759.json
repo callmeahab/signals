@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH doomed AS (SELECT ctid FROM sessions WHERE project_id=$1 AND started_at<clock_timestamp()-make_interval(days=>$2) LIMIT 10000) DELETE FROM sessions s USING doomed d WHERE s.ctid=d.ctid",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "03ae6e1096ae07ee874a95ad601704ccb0660e97b12c61b9188a2165c2fc3759"
+}

@@ -1,0 +1,51 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ts,id,jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs) AS event FROM events WHERE project_id=$1 AND session_id=$2 AND ts>=$3 AND (ts,id)>($4,$5) ORDER BY ts,id LIMIT 201",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ts",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "ts"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "event",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "b6c3cf0924a1d555fbaa6cce6994cab06ffa76932af0c5c60a303c6373fbf83e"
+}

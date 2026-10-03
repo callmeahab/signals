@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM rollup_project_hourly WHERE hour<clock_timestamp()-interval '400 days'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "92366b88572ff1b420ceca1a520685c7bacec2215183f411ab873a090c2bbc94"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE callers c SET first_seen=LEAST(c.first_seen,u.first_seen),last_seen=GREATEST(c.last_seen,u.last_seen) FROM unnest($1::bigint[],$2::timestamptz[],$3::timestamptz[]) u(id,first_seen,last_seen) WHERE c.id=u.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "TimestamptzArray",
+        "TimestamptzArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2d26a637dba34ccf9f4d350eaae2d29fb1c5937e5ceb652d20d390731a8e31ff"
+}

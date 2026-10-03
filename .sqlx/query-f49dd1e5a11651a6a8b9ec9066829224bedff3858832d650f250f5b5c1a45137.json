@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "CREATE TEMP TABLE ingest_stage (LIKE events INCLUDING DEFAULTS) ON COMMIT DROP",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "f49dd1e5a11651a6a8b9ec9066829224bedff3858832d650f250f5b5c1a45137"
+}
