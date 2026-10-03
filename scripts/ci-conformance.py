@@ -21,7 +21,7 @@ with open(root/"target/ci-server.log","w") as log:
   tenant=provision("tenants",{"slug":"conformance","name":"Conformance"});project=provision("projects",{"tenant_id":tenant["id"],"slug":"fixtures","name":"Fixtures"});key=provision("keys",{"project_id":project["id"],"label":"Fixtures","scopes":["ingest"]})["secret"]
   manifest=json.loads((root/"spec/manifest.json").read_text());fixture=root/(manifest.get("fixtures") or "spec/fixtures/development.json")
   subprocess.run(["python3",str(root/"scripts/conformance.py"),"--url",base,"--fixtures",str(fixture)],env={**os.environ,"SIGNALS_API_KEY":key},check=True)
-  subprocess.run(["npm","run","qa:backend"],cwd=root/"web",env={**os.environ,"SIGNALS_URL":base},check=True)
+  subprocess.run(["bun","run","qa:backend"],cwd=root/"web",env={**os.environ,"SIGNALS_URL":base},check=True)
  finally:
   server.terminate()
   try:server.wait(timeout=15)

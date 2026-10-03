@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "build": "next build",
-    "start": "next start -p 3331"
+    "build": "bun --bun next build",
+    "start": "bun --bun next start -p 3331"
   },
   "dependencies": {
     "@mcpramen/signals-ui": "file:../../web/packages/ui",
@@ -19,6 +19,7 @@
     "typescript": "~6.0.3"
   },
   "engines": {
-    "node": ">=24.0.0"
-  }
+    "bun": ">=1.4.2"
+  },
+  "packageManager": "bun@1.4.2"
 }

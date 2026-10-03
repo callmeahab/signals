@@ -16,25 +16,25 @@ Create an ingest key in **Settings**, then follow **Setup** to send events.
 
 ## Develop
 
-Requires Node 24+, Python 3, and the Rust toolchain in `rust-toolchain.toml`.
+Requires Bun (version in `.bun-version`), Python 3, and the pinned Rust toolchain.
 
 ```sh
 bash scripts/init-env.sh
 docker compose up -d postgres
-npm --prefix web ci
-npm --prefix web run build
+bun install --cwd web --frozen-lockfile
+bun run --cwd web build
 bash scripts/dev.sh
 ```
 
 Build the frontend before compiling Rust. Configuration is in `.env`.
-For a frontend demo with hot reload: `VITE_DEMO=1 npm --prefix web run dev`
+For a frontend demo with hot reload: `VITE_DEMO=1 bun run --cwd web dev`
 (http://127.0.0.1:3300).
 
 ## Test
 
 ```sh
-npm --prefix web run check
-npm --prefix web test
+bun run --cwd web check
+bun run --cwd web test
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 cargo test --locked --workspace

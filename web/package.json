@@ -8,14 +8,14 @@
     "apps/dashboard"
   ],
   "scripts": {
-    "dev": "vite --config apps/dashboard/vite.config.ts --host 127.0.0.1",
-    "build": "npm run build:ui && tsc --noEmit && vite build --config apps/dashboard/vite.config.ts",
-    "check": "npm run build:ui && tsc --noEmit && eslint .",
-    "qa": "node scripts/visual-qa.mjs",
-    "qa:backend": "node scripts/backend-qa.mjs",
-    "build:ui": "tsc -p packages/ui/tsconfig.build.json && node scripts/copy-ui.mjs",
-    "test": "node scripts/test.mjs",
-    "test:next": "node scripts/test-next-host.mjs"
+    "dev": "bun --bun vite --config apps/dashboard/vite.config.ts --host 127.0.0.1",
+    "build": "bun run build:ui && bun --bun tsc --noEmit && bun --bun vite build --config apps/dashboard/vite.config.ts",
+    "check": "bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .",
+    "qa": "bun scripts/visual-qa.mjs",
+    "qa:backend": "bun scripts/backend-qa.mjs",
+    "build:ui": "bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs",
+    "test": "bun scripts/test.mjs",
+    "test:next": "bun scripts/test-next-host.mjs"
   },
   "dependencies": {
     "@mcpramen/signals-ui": "*",
@@ -41,6 +41,7 @@
     "postcss": "^8.5.28"
   },
   "engines": {
-    "node": ">=24.0.0"
-  }
+    "bun": ">=1.4.2"
+  },
+  "packageManager": "bun@1.4.2"
 }

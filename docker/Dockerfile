@@ -1,12 +1,12 @@
-FROM node:24-bookworm-slim AS web
+FROM oven/bun:1.4.2 AS web
 WORKDIR /build/web
 COPY LICENSE /build/LICENSE
-COPY web/package*.json ./
+COPY web/package.json web/bun.lock ./
 COPY web/apps/dashboard/package.json apps/dashboard/package.json
 COPY web/packages/ui/package.json packages/ui/package.json
-RUN npm ci --no-audit --no-fund
+RUN bun install --frozen-lockfile
 COPY web/ ./
-RUN npm run build
+RUN bun run build
 
 FROM rust:1.99.0-bookworm AS rust
 WORKDIR /build
