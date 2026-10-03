@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Destructive fault tests, restricted to a named disposable Signals QA compose stack."""
 import argparse, concurrent.futures, datetime, gzip, http.cookiejar, json, os, queue, subprocess, threading, time, urllib.request, urllib.error, uuid
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument("--compose",type=Path,default=Path(__file__).resolve().parents[1]/"docker/qa.compose.yml");p.add_argument("--project",default="signals-qa");p.add_argument("--skip-faults",action="store_true");a=p.parse_args()
@@ -31,14 +30,11 @@ mint=request("/v1/projects/"+pid+"/keys","POST",{"label":"Runtime QA","scopes":[
 now=lambda:datetime.datetime.now(datetime.timezone.utc).isoformat()
 def batch(n,tool="runtime-qa"):
  ts=now();return {"sent_at":ts,"events":[{"id":str(uuid.uuid4()),"ts":ts,"type":"tool.call","tool":tool,"duration_ms":42,"attrs":{},"caller":{"subject":"runtime-qa"}} for _ in range(n)]}
-# Replay and schema fixtures run against the actual compressed HTTP endpoint.
 subprocess.run(["python3",str(root/"scripts/conformance.py"),"--url",one],env={**os.environ,"SIGNALS_API_KEY":key},check=True)
 request_id=str(uuid.uuid4());status,headers,_=request("/healthz",headers={"X-Request-ID":request_id},raw=True);assert status==200 and headers.get("x-request-id",headers.get("X-Request-ID"))==request_id
 assert request("/v1/events","POST",gzip.compress(json.dumps({"sent_at":now(),"events":[{"attrs":{"message":"x"*2097152}}]}).encode()),key=key,headers={"Content-Encoding":"gzip"})[0]==413
 cors=request("/v1/events","OPTIONS",headers={"Origin":"http://127.0.0.1:8350","Access-Control-Request-Method":"POST","Access-Control-Request-Headers":"authorization,content-type"},raw=True);assert cors[0] in (200,204);assert any(k.lower()=="access-control-allow-origin" for k in cors[1])
 assert request("/v1/events.schema.json")[0]==200;assert request("/v1/ingest.openapi.yaml",raw=True)[0]==200
-assert request("/docs/",raw=True)[0]==200
-# A live stream routed by the proxy must observe commits on both replicas.
 received=queue.Queue();done=threading.Event();live_tool="replica-live-"+uuid.uuid4().hex
 def tail():
  try:
@@ -55,14 +51,11 @@ for url in [one,two]:
 seen={received.get(timeout=10),received.get(timeout=10)};done.set();assert seen==ids,(seen,ids)
 backends={request("/healthz",raw=True)[1].get("X-Signals-Backend") for _ in range(12)};assert len(backends)==2,backends
 report["proxy_live_replicas"]=2
-# Immediate cross-replica key revocation, including a previously warmed cache.
 assert request("/v1/whoami",key=key,url=two)[0]==200
 assert request("/v1/projects/"+pid+"/keys/"+mint["key"]["id"],"DELETE")[0]==204
 assert request("/v1/whoami",key=key,url=two)[0]==401
 mint=request("/v1/projects/"+pid+"/keys","POST",{"label":"Fault QA","scopes":["ingest","read"]})[2];key=mint["secret"]
 if not a.skip_faults:
- # Send concurrent batches, SIGKILL Postgres while requests are active, then
- # compare every acknowledged event id with committed rows after recovery.
  token="fault-"+uuid.uuid4().hex;batches=[batch(100,token) for _ in range(40)];acked=[];failed=[]
  assert request("/v1/events","POST",batches[0],key,one)[0]==202;acked.append(batches[0])
  def ingest(b):
@@ -95,16 +88,12 @@ if not a.skip_faults:
  expected={e["id"] for b in acked for e in b["events"]}
  query=f"SELECT id::text FROM events WHERE project_id='{pid}'::uuid AND tool='{token}' ORDER BY id"
  durable=set(docker("exec","-T","postgres","psql","-U","signals","-d","signals_test","-At","-c",query).splitlines());assert expected<=durable,"Acknowledged events lost"
- # Retry every original byte-equivalent envelope: committed writes dedupe,
- # unacknowledged work converges without loss or double counting.
  for b in batches:assert request("/v1/events","POST",b,key,one)[0]==202
  count=int(docker("exec","-T","postgres","psql","-U","signals","-d","signals_test","-At","-c",f"SELECT count(*) FROM events WHERE project_id='{pid}'::uuid AND tool='{token}'").strip());assert count==4000,count
  report["db_kill"]={"acknowledged_events":len(expected),"unacknowledged_batches":len(failed),"unique_after_retries":count}
  docker("stop","-t","10","replica");wait_ready();assert request("/v1/events","POST",batch(1,"failover"),key)[0]==202
  docker("start","replica");wait_ready(two);report["replica_failover"]=True
- # Graceful termination while an SSE stream is present.
  started=time.monotonic();docker("stop","-t","15","signals");report["shutdown_seconds"]=round(time.monotonic()-started,3);assert report["shutdown_seconds"]<15;docker("start","signals");wait_ready(one)
-# Verify actual Prometheus scraping rather than parsing the endpoint alone.
 for _ in range(30):
  try:
   result=request('/api/v1/query?query=up%7Bjob%3D%22signals%22%7D',url='http://127.0.0.1:19090')[2]["data"]["result"]

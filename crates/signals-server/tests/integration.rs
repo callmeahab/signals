@@ -13,6 +13,47 @@ use tokio::sync::{broadcast, watch};
 use tower::ServiceExt;
 use uuid::Uuid;
 
+#[tokio::test]
+#[ignore = "Requires an isolated Postgres database in TEST_DATABASE_URL"]
+async fn migration_comment_cleanup_preserves_existing_databases() {
+    let url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    assert!(url.contains("127.0.0.1") || url.contains("localhost"));
+    let store = Store::connect(&url).await.unwrap();
+    store.migrate().await.unwrap();
+    assert!(store.migrations_current().await.unwrap());
+    let checksum: Vec<u8> =
+        sqlx::query_scalar("SELECT checksum FROM _sqlx_migrations WHERE version=2")
+            .fetch_one(&store.pool)
+            .await
+            .unwrap();
+    let legacy = hex::decode("bc172fa86f15bd6da8fae1fe203cef5ace66a50147d371931d16c3f2c496dff11b0a9ed0cfb438437d48502a043e5f79").unwrap();
+    sqlx::query("UPDATE _sqlx_migrations SET checksum=$1 WHERE version=2")
+        .bind(legacy)
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    let legacy_current = store.migrations_current().await;
+    let legacy_migration = store.migrate().await;
+    sqlx::query("UPDATE _sqlx_migrations SET checksum=$1 WHERE version=2")
+        .bind(vec![0_u8; 48])
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    let invalid_current = store.migrations_current().await;
+    let invalid_migration = store.migrate().await;
+    sqlx::query("UPDATE _sqlx_migrations SET checksum=$1 WHERE version=2")
+        .bind(checksum)
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    assert!(legacy_current.unwrap());
+    legacy_migration.unwrap();
+    assert!(!invalid_current.unwrap());
+    assert!(invalid_migration.is_err());
+    assert!(store.migrations_current().await.unwrap());
+    store.migrate().await.unwrap();
+}
+
 async fn call(
     app: &axum::Router,
     method: &str,
@@ -100,7 +141,6 @@ async fn collector_replays_late_rollups_tenant_isolation_and_keys() {
         1
     );
     store.rollup().await.unwrap();
-    // Arrivals across old event-time buckets must advance summaries even after the watermark moved.
     let mut late = Vec::new();
     let mut expected_errors = 0;
     for i in 0..120 {
@@ -157,7 +197,6 @@ async fn collector_replays_late_rollups_tenant_isolation_and_keys() {
         .0,
         StatusCode::FORBIDDEN
     );
-    // Partial validation never rejects already-valid peers in a batch.
     let result=call(&app,"POST","/v1/events",Some(&key),json!({"sent_at":now,"events":[{}, {"id":Uuid::new_v4(),"ts":now+Duration::minutes(6),"type":"tool.call"}]})).await;
     assert_eq!(result.0, StatusCode::ACCEPTED);
     assert_eq!(result.1["rejected"].as_array().unwrap().len(), 2);

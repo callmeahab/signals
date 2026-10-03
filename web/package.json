@@ -9,13 +9,12 @@
   ],
   "scripts": {
     "dev": "vite --config apps/dashboard/vite.config.ts --host 127.0.0.1",
-    "build": "npm run build:ui && tsc --noEmit && vite build --config apps/dashboard/vite.config.ts && npm run build:docs",
+    "build": "npm run build:ui && tsc --noEmit && vite build --config apps/dashboard/vite.config.ts",
     "check": "npm run build:ui && tsc --noEmit && eslint .",
     "qa": "node scripts/visual-qa.mjs",
     "qa:backend": "node scripts/backend-qa.mjs",
     "build:ui": "tsc -p packages/ui/tsconfig.build.json && node scripts/copy-ui.mjs",
     "test": "node scripts/test.mjs",
-    "build:docs": "node scripts/build-docs.mjs",
     "test:next": "node scripts/test-next-host.mjs"
   },
   "dependencies": {

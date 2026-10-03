@@ -23,8 +23,6 @@ impl Store {
         )
         .fetch_one(&mut *tx)
         .await?;
-        // A short commit barrier ensures every older received_at is durable.
-        // Release it before aggregation, so ingest continues while rollups run.
         let mut barrier = self.pool.begin().await?;
         checked_query!("SELECT pg_advisory_xact_lock($1)", INGEST_LOCK)
             .execute(&mut *barrier)
@@ -105,8 +103,6 @@ impl Store {
             ensure_partition(&mut tx, date).await?;
         }
         tx.commit().await?;
-        // Each chunk commits independently. The coordinator lock prevents a
-        // second worker, while ingest remains free to commit during retention.
         let projects = checked_query!("SELECT id,retention_days FROM projects")
             .fetch_all(&self.pool)
             .await?;

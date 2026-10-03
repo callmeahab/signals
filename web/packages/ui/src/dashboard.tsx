@@ -13,15 +13,20 @@ function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[])
   const [state, setState] = useState<{ value?: T; error?: string; loading: boolean }>({ loading: true });
   const loader = useRef(load);
   loader.current = load;
+  const previousDeps = useRef(deps);
+  const revision = useRef(0);
+  if (deps.length !== previousDeps.current.length || deps.some((value, index) => !Object.is(value, previousDeps.current[index]))) {
+    previousDeps.current = deps;
+    revision.current += 1;
+  }
+  const dependencyVersion = revision.current;
   const [refresh, setRefresh] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
     setState({ loading: true });
     loader.current(controller.signal).then(value => { if (!controller.signal.aborted) setState({ value, loading: false }); }, error => { if (!controller.signal.aborted) setState({ error: error instanceof Error ? error.message : 'Could not load data.', loading: false }); });
     return () => controller.abort();
-    // Callers specify the identity of a query separately from its function.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, refresh]);
+  }, [dependencyVersion, refresh]);
   return { ...state, reload: () => setRefresh(n => n + 1) };
 }
 

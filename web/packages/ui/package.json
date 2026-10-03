@@ -20,7 +20,6 @@
   "module": "./dist/index.js",
   "files": [
     "dist",
-    "README.md",
     "LICENSE"
   ],
   "publishConfig": {

@@ -25,7 +25,6 @@ try{
  const batch={sent_at:first.ts,events};
  const response=await page.request.post(`${base}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:batch});assert.equal(response.status(),202);assert.equal((await response.json()).accepted,25);
  const replay=await page.request.post(`${base}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:batch});assert.equal(replay.status(),202);assert.equal((await replay.json()).accepted,0);
- // Exercise actual read routes, filters and project cookie authorization.
  for(const route of ['events','sessions','keys','callers?range=24h','tools?range=24h','timeseries?range=24h']){const result=await page.request.get(`${base}/v1/projects/${project.id}/${route}`);assert.equal(result.status(),200,route);}
  const found=await page.request.get(`${base}/v1/projects/${project.id}/events?tool=search_documents`);assert((await found.json()).items.every(e=>e.tool==='search_documents'));
  await page.goto(`${base}/#live`);await page.getByText('Streaming',{exact:true}).waitFor();
@@ -36,7 +35,6 @@ try{
  const csrf=await page.request.patch(`${base}/v1/projects/${project.id}`,{headers:{Origin:'https://untrusted.invalid'},data:{...project,name:'CSRF'}});assert.equal(csrf.status(),403);
  const userResponse=await page.request.post(`${base}/v1/projects/${project.id}/users`,{data:{email:`viewer-${Date.now()}@signals.test`,password:'viewer-test-password',role:'viewer'}});assert.equal(userResponse.status(),200);
  const usersResponse=await page.request.get(`${base}/v1/projects/${project.id}/users`);assert.equal(usersResponse.status(),200);assert((await usersResponse.json()).length>=2);
- // The worker interval is 60 seconds. Poll until this batch appears in its rollups.
  await page.goto(`${base}/#overview`);
  for(let attempt=0;attempt<65;attempt++) {
    const summary=await page.request.get(`${base}/v1/projects/${project.id}/overview`);

@@ -176,8 +176,6 @@ impl Store {
     ) -> Result<Summary> {
         let (full_from, full_to) = full_bounds(from, to, false);
         let mut total = Summary::default();
-        // Merge directly into the range total: materializing a unique set for
-        // every hour only to merge those sets again is costly on long ranges.
         for row in checked_query!("SELECT * FROM rollup_project_hourly WHERE project_id=$1 AND hour>=$2 AND hour<$3 ORDER BY hour",project,full_from,full_to).fetch_all(&self.pool).await? {
             total.add(&row);
         }

@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 
-// Use the real standalone login with only its initial account request mocked.
-// No deployment credentials or database writes are needed for these checks.
 export async function checkLoginStyles(browser, base) {
   mkdirSync('artifacts', { recursive: true });
   for (const theme of ['light', 'dark']) {

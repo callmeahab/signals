@@ -6,8 +6,6 @@ import '@fontsource-variable/manrope';
 import '@fontsource-variable/unbounded';
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
-// The standalone app also owns the document theme and shell/login controls.
-// The package stylesheet is scoped for components embedded in another app.
 import '../../../packages/ui/src/styles.css';
 import './shell.css';
 import { auth, client } from './client';

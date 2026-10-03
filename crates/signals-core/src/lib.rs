@@ -16,7 +16,6 @@ pub struct CallerIdentity {
     pub key_id: Option<String>,
     pub subject: Option<String>,
 }
-/// Internal normalized event. Wire deserialization uses the generated `wire` module.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Event {

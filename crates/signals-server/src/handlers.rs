@@ -802,17 +802,8 @@ pub async fn assets(uri: Uri) -> Response {
             .into_response();
     }
     let path = if path.is_empty() { "index.html" } else { path };
-    let path_owned;
-    let path = if path == "docs" || path == "docs/" {
-        "docs/index.html"
-    } else if path.starts_with("docs/") && !path.contains('.') {
-        path_owned = format!("{path}.html");
-        &path_owned
-    } else {
-        path
-    };
     match Assets::get(path).or_else(|| {
-        if !path.contains('.') && !path.starts_with("docs/") {
+        if !path.contains('.') {
             Assets::get("index.html")
         } else {
             None

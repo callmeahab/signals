@@ -1,4 +1,3 @@
-// Minimal stdio MCP example using the provisional collector envelope.
 import { createInterface } from 'node:readline';
 import { randomUUID } from 'node:crypto';
 const endpoint=process.env.SIGNALS_URL??'http://localhost:8300',key=process.env.SIGNALS_API_KEY;
@@ -7,7 +6,7 @@ let chain=Promise.resolve();
 function emit(client,type,fields={}) {
  if(!key)return;
  const ts=new Date().toISOString(),batch={sent_at:ts,events:[{id:randomUUID(),ts,type,client_name:String(client.name).slice(0,128),client_version:String(client.version).slice(0,128),caller:{subject:'node-example'},attrs:{transport:'stdio'},...fields}]};
- chain=chain.then(async()=>{for(let n=0;n<3;n++){try{const response=await fetch(`${endpoint}/v1/events`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify(batch),signal:AbortSignal.timeout(5000)});if(response.status===202){const result=await response.json();if(result.rejected.length)console.error('Signals rejected example events');return;}if(response.status<500&&response.status!==429)break;}catch{/* Retry the same IDs and timestamps. */}await new Promise(resolve=>setTimeout(resolve,100*2**n));}console.error('Signals telemetry could not be delivered');});
+ chain=chain.then(async()=>{for(let n=0;n<3;n++){try{const response=await fetch(`${endpoint}/v1/events`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify(batch),signal:AbortSignal.timeout(5000)});if(response.status===202){const result=await response.json();if(result.rejected.length)console.error('Signals rejected example events');return;}if(response.status<500&&response.status!==429)break;}catch{}await new Promise(resolve=>setTimeout(resolve,100*2**n));}console.error('Signals telemetry could not be delivered');});
 }
 function handle(request){
  const validId=request && (typeof request.id==='string' || (Number.isInteger(request.id)&&typeof request.id==='number'));

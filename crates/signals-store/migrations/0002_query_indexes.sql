@@ -1,8 +1,5 @@
--- Dirty-bucket discovery has a global received-time predicate; project-first
--- indexes cannot serve that scan efficiently.
 CREATE INDEX events_received_at_idx ON events(received_at) INCLUDE(project_id,ts);
 CREATE INDEX events_caller_time_idx ON events(project_id,caller_id,ts DESC) WHERE caller_id IS NOT NULL;
--- INCLUDE columns let dashboard rollup reads use covering indexes after vacuum.
 CREATE INDEX project_rollup_cover_idx ON rollup_project_hourly(project_id,hour)
  INCLUDE(requests,errors,tool_calls,duration_hist);
 CREATE INDEX tool_rollup_cover_idx ON rollup_tool_hourly(project_id,hour,tool)

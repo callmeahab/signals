@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Minimal stdio MCP example, independent of the unavailable Signals SDK."""
 import datetime, json, math, os, queue, sys, threading, time, urllib.request, urllib.error, uuid
 version="2026-07-28";server_info={"name":"signals-python-example","version":"0.1.0"};key=os.getenv("SIGNALS_API_KEY");endpoint=os.getenv("SIGNALS_URL","http://localhost:8300");events=queue.Queue()
 def deliver():

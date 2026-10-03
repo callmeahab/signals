@@ -3,9 +3,6 @@ use opentelemetry::trace::TracerProvider;
 use opentelemetry_sdk::{trace::SdkTracerProvider, Resource};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-/// All exporter settings (endpoint, headers, timeout, TLS and resource attributes)
-/// are read by the OTLP SDK. Application fields never contain client IPs, bodies,
-/// passwords or Authorization headers.
 pub fn init() -> Result<Option<SdkTracerProvider>> {
     let enabled = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").is_ok_and(|v| !v.trim().is_empty())
         || std::env::var("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT").is_ok_and(|v| !v.trim().is_empty());

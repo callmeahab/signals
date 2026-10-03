@@ -12,7 +12,6 @@ export type User = { id: string; email: string; role: 'owner' | 'viewer' };
 export type Page<T> = { items: T[]; next_cursor: string | null };
 export type EventFilter = { type?: string; tool?: string; q?: string; cursor?: string; caller?: string; since?: string; is_error?: boolean };
 
-/** UI screens receive a typed adapter. Transport, routing, and credentials belong to the host. */
 export interface SignalsClient {
   ingestUrl: string;
   toolTimeseries(project: string, tool: string, range: Range, signal?: AbortSignal): Promise<Point[]>;

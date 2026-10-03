@@ -18,8 +18,6 @@ pub struct IngestOutcome {
     pub duplicates: usize,
     pub rejected: Vec<(Uuid, String)>,
 }
-/// The common path does not take the partition DDL lock. Missing partitions are
-/// checked again under the lock so two replicas cannot create the same child.
 pub async fn ensure_partition(tx: &mut Transaction<'_, Postgres>, date: NaiveDate) -> Result<()> {
     let name = format!("events_{}", date.format("%Y_%m_%d"));
     if checked_query_scalar!(<_, bool>"SELECT to_regclass($1) IS NOT NULL AS exists" ,&name)
@@ -153,7 +151,6 @@ impl Store {
         let received: DateTime<Utc> = checked_query_scalar!("SELECT clock_timestamp()")
             .fetch_one(&mut *tx)
             .await?;
-        // Resolve distinct identities in bulk; cache only committed caller IDs.
         let mut identities = BTreeMap::new();
         for (e, k, x, l) in &events {
             identities

@@ -6,8 +6,6 @@ use serde_json::Value;
 use signals_core::Event;
 use uuid::Uuid;
 
-/// Event storage and all rollup reads are independent of the HTTP transport.
-/// Postgres remains the tenant/auth control plane when another event backend is used.
 #[async_trait]
 pub trait EventStore: Send + Sync {
     async fn ingest(

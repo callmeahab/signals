@@ -1,4 +1,3 @@
-"""Read the Compose-compatible dotenv file without executing it as shell code."""
 import json
 import os
 from pathlib import Path

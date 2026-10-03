@@ -6,11 +6,6 @@ COPY web/apps/dashboard/package.json apps/dashboard/package.json
 COPY web/packages/ui/package.json packages/ui/package.json
 RUN npm ci --no-audit --no-fund
 COPY web/ ./
-COPY README.md /build/README.md
-COPY docs/ /build/docs/
-COPY bench/README.md /build/bench/README.md
-COPY examples/README.md /build/examples/README.md
-COPY spec/README.md /build/spec/README.md
 RUN npm run build
 
 FROM rust:1.99.0-bookworm AS rust

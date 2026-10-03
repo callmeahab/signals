@@ -53,6 +53,15 @@ pub fn random_secret() -> String {
 pub fn hash(secret: &str) -> Vec<u8> {
     Sha256::digest(secret.as_bytes()).to_vec()
 }
+fn migration_checksum_matches(migration: &sqlx::migrate::Migration, checksum: &[u8]) -> bool {
+    migration.checksum.as_ref() == checksum
+        || (migration.version == 2
+            && hex::encode(migration.checksum.as_ref())
+                == "ad2d732bb9d7abbe8721dc170a8d096e9a08bbb1a0de3a8ac28bc8fbf00da8f7f0b5dad33819b748a9925f1d4da96152"
+            && hex::encode(checksum)
+                == "bc172fa86f15bd6da8fae1fe203cef5ace66a50147d371931d16c3f2c496dff11b0a9ed0cfb438437d48502a043e5f79")
+}
+
 impl Store {
     pub async fn connect(url: &str) -> Result<Self> {
         Ok(Self {
@@ -81,13 +90,36 @@ impl Store {
             && migrator.iter().all(|m| {
                 rows.iter().any(|r| {
                     r.get::<i64, _>("version") == m.version
-                        && r.get::<Vec<u8>, _>("checksum").as_slice() == m.checksum.as_ref()
+                        && migration_checksum_matches(m, &r.get::<Vec<u8>, _>("checksum"))
                 })
             }))
     }
     pub async fn migrate(&self) -> Result<()> {
-        sqlx::migrate!("./migrations").run(&self.pool).await?;
-        Ok(())
+        use sqlx::migrate::Migrate;
+        let mut connection = self.pool.acquire().await?;
+        connection.lock().await?;
+        let result: Result<()> = async {
+            connection
+                .ensure_migrations_table("_sqlx_migrations")
+                .await?;
+            let applied = connection
+                .list_applied_migrations("_sqlx_migrations")
+                .await?;
+            let mut migrator = sqlx::migrate!("./migrations");
+            for migration in migrator.migrations.to_mut() {
+                if let Some(previous) = applied.iter().find(|previous| {
+                    previous.version == migration.version
+                        && migration_checksum_matches(migration, previous.checksum.as_ref())
+                }) {
+                    migration.checksum = previous.checksum.clone();
+                }
+            }
+            migrator.set_locking(false).run(&mut *connection).await?;
+            Ok(())
+        }
+        .await;
+        connection.unlock().await?;
+        result
     }
     pub async fn tenant(&self, slug: &str, name: &str, external: Option<&str>) -> Result<Uuid> {
         let salt = hash(&random_secret());

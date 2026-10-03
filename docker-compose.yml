@@ -50,5 +50,4 @@ services:
     command: ["--config=/etc/otel.yml"]
     volumes: ["./docker/otel.yml:/etc/otel.yml:ro"]
 volumes:
-  # PostgreSQL 18 uses a new volume; keep existing pgdata volumes for recovery.
   pgdata18: {}

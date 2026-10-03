@@ -4,7 +4,6 @@ use signals_store::{ingest::ensure_partition, read::EventQuery, Store};
 use sqlx::Row;
 use uuid::Uuid;
 
-/// Opt-in seeded query measurements. This is a capacity fixture, not a unit test.
 #[tokio::test]
 #[ignore = "Seeds a million rows in disposable TEST_DATABASE_URL; writes bench/artifacts"]
 async fn thirty_day_dashboard_measurements() {
@@ -180,8 +179,6 @@ async fn thirty_day_dashboard_measurements() {
             json!({"median_ms":samples[5],"p95_ms":samples[9],"samples_ms":samples}),
         );
     }
-    // Representative source SQL includes unbounded arrays/JSON. Preserve plans
-    // honestly: a heap-backed Index Scan is not an Index Only Scan.
     let queries=[
         ("project_rollup","SELECT * FROM rollup_project_hourly WHERE project_id=$1 AND hour>=$2 AND hour<$3 ORDER BY hour"),
         ("tool_rollup","SELECT tool,hour,calls,errors,duration_hist,last_called FROM rollup_tool_hourly WHERE project_id=$1 AND hour>=$2 AND hour<$3"),

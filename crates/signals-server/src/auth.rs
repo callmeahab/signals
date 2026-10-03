@@ -248,7 +248,6 @@ mod upgrade_tests {
 
     #[test]
     fn verifies_existing_argon2_05_password_hashes() {
-        // Generated with argon2 0.5.3: upgrades must preserve existing logins.
         let encoded = "$argon2id$v=19$m=19456,t=2,p=1$c2lnbmFscy11cGdyYWRlLXRlc3Qtc2FsdA$D8TjQvxGmNp/hNoLxvtvIPFtGS7PBMS8NT9oBalFBg4";
         let parsed = PasswordHash::new(encoded).unwrap();
         assert!(Argon2::default()
