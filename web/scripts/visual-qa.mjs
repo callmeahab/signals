@@ -52,6 +52,10 @@ try {
       await page.getByRole('heading',{name:/Activity history/}).waitFor();
       check(await page.getByRole('dialog').locator('svg[role="img"]').count()===1,'caller history chart');
       await page.keyboard.press('Escape');
+      await page.getByRole('button', {name:'Network a18c72',exact:true}).click();
+      await page.getByText('Network hash', {exact:true}).waitFor();
+      check(await page.getByRole('dialog').locator('dd').filter({hasText:/^a18c72[0]{58}$/}).count()===1, 'network caller stored hash visible');
+      await page.keyboard.press('Escape');
       await page.goto(`${base}/#live`);
       await page.getByRole('button', {name:'Pause', exact:true}).click();
       check(await page.getByText('Paused', {exact:true}).isVisible(), 'live tail pauses');

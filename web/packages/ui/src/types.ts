@@ -14,7 +14,7 @@ export type EventAttrs = Record<string, unknown> & {
   args?: Record<string, unknown>; fields?: Record<string, unknown>; props?: Record<string, unknown>;
 };
 // Read responses attach collector identity and batch source to the spec event envelope.
-export type SignalEvent = { id: string; ts: string; type: EventType; session_id?: string | null; caller_id?: string | null; client?: ClientInfo; caller?: { key_id?: string | null; subject?: string | null; user_agent?: string | null }; source?: Source; attrs: EventAttrs };
+export type SignalEvent = { id: string; ts: string; type: EventType; session_id?: string | null; caller_id?: string | null; client?: ClientInfo; caller?: { key_id?: string | null; subject?: string | null; ip_hash?: string | null; user_agent?: string | null }; source?: Source; attrs: EventAttrs };
 export type Tool = { tool: string; calls: number; errors: number; p50: number; p95: number; p99?: number; last_called: string; trend: number[] };
 export type Caller = { id: string; kind: string; label: string; calls: number; errors: number; sessions: number; clients: string[]; first_seen: string; last_seen: string };
 export type Session = { session_id: string; client?: ClientInfo; caller_label: string; started_at: string; ended_at: string | null; calls: number; errors: number; transport: string };

@@ -20,6 +20,16 @@ for (const client of [demoClient,hostClient]) {
     assert(event.source.sdk && event.source.instance_id);
     assert(!('tool' in event) && !('is_error' in event) && !('duration_ms' in event));
   }
+  const networkCallers=(await client.callers('demo','24h')).filter(c=>c.kind==='network');
+  assert(networkCallers.length>0);
+  for(const caller of networkCallers) {
+    const {items:events}=await client.events('demo',{caller:caller.id});
+    assert(events.length>0);
+    for(const event of events) {
+      assert.match(event.caller.ip_hash,/^[0-9a-f]{64}$/);
+      assert(!('ip' in event.caller), 'stored caller must not expose raw IP');
+    }
+  }
   const {items:logs}=await client.events('demo',{type:'log',q:'document index'});
   assert(logs.length>0 && logs.every(e=>e.type==='log'));
   const {items:errors}=await client.events('demo',{is_error:true});

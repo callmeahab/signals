@@ -281,3 +281,61 @@ PASS test servers stopped on ports 23019, 23330, 23331
 - Chrome is absent on this host; all successful browser runs used the supported
   `PLAYWRIGHT_CHANNEL=chromium` override.
 - Nothing was pushed or published; no dependency or lockfile changes were needed.
+
+## Fix pass r1
+
+Addressed review S1 with these changes:
+
+- `web/packages/ui/src/types.ts`: `SignalEvent.caller` now declares the four
+  stored-form keys, including `ip_hash?: string | null`; raw `ip` is not declared.
+- `web/apps/dashboard/src/demo.ts` and `examples/next-host/app/fixture.ts`:
+  network callers' events carry a deterministic 64-character `caller.ip_hash`
+  matching the network row's label prefix, without a raw IP address.
+- `web/packages/ui/src/dashboard.tsx`: the existing network caller details panel
+  shows a Network hash row, read from the caller's loaded events when available.
+  This uses the existing event response rather than adding a summary API field.
+- `web/scripts/spec-qa.mjs`: checks both fixtures' network events have stored
+  hashes and no raw IP field.
+- `web/scripts/visual-qa.mjs`: opens the network caller and checks that its full
+  hash is visible in the details panel, in the existing mobile/desktop and
+  light/dark browser runs.
+
+Verification commands and final output (all exited 0):
+
+```text
+$ node reports/review-r1/field-audit-probe.mjs
+PASS field audit: every attrs/client/caller/source field read by web/ and examples/ is spec-defined
+  attrs keys read:  duration_ms, error_message, is_error, level, message, method, name, prompt, tool, uri
+  client keys read: name, protocol_version, version
+  caller keys read: ip_hash
+  source keys read: instance_id, sdk
+EventType is exactly the spec enum (10 types).
+SignalEvent.caller declares [key_id, subject, ip_hash, user_agent]; stored-form keys not declared: [none]
+
+$ cd web && PATH="$HOME/.bun/bin:$PATH" bun run check
+$ bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+
+$ cd web && PATH="$HOME/.bun/bin:$PATH" bun run build
+dist/assets/index-DoKKUJNP.css  36.65 kB | gzip: 11.40 kB
+dist/assets/index-CKjSEsWH.js   274.09 kB | gzip: 84.31 kB
+✓ built in 1.49s
+
+$ cd web && PATH="$HOME/.bun/bin:$PATH" PLAYWRIGHT_CHANNEL=chromium bun run test
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+VITE v8.3.2 ready in 99 ms
+Local: http://127.0.0.1:23330/
+Visual QA passed: 7 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+
+$ git diff --check
+(no output)
+```
+
+No requested fix remains. The original live-backend verification boundary remains
+unchanged. Demo events are stored read-model data: `caller.ip_hash` is not an
+allowed wire-ingest caller key. Inspection of
+`cat reports/review-r1/demo-fixture-probe.mjs` shows that the historical review
+probe removes only `caller_id` and `source` before ingesting fixtures; it would
+need to remove the stored-only hash too if reused. That review artifact was not
+modified or rerun in this fix pass; the requested field audit and web suite above
+verify the stored form instead.

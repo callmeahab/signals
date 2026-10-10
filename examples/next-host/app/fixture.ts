@@ -25,7 +25,7 @@ function event(i:number):SignalEvent {
     custom: {name:'document.indexed',props:{collection:'support'}},
     'session.ended': {duration_ms:7200,reason:'client'},
   };
-  return {id:`019a0000-0000-7000-8000-${i.toString(16).padStart(12,'0')}`,ts:ts(i*.002),type,session_id:sessionRows[i%12].session_id,caller_id:String(i%6+1),client:{name:clients[i%4],version:'1.0',protocol_version:'2025-03-26'},source:{sdk:'demo',sdk_version:'1',server_name:'Northwind MCP',server_version:'1.0',instance_id:'demo-1',hostname:'demo.local'},attrs:attrs[type]};
+  return {id:`019a0000-0000-7000-8000-${i.toString(16).padStart(12,'0')}`,ts:ts(i*.002),type,session_id:sessionRows[i%12].session_id,caller_id:String(i%6+1),...(callerRows[i%6].kind==='network'?{caller:{ip_hash:'a18c72'+ '0'.repeat(58)}}:{}),client:{name:clients[i%4],version:'1.0',protocol_version:'2025-03-26'},source:{sdk:'demo',sdk_version:'1',server_name:'Northwind MCP',server_version:'1.0',instance_id:'demo-1',hostname:'demo.local'},attrs:attrs[type]};
 }
 let keys:Key[] = [{id:'demo-key',key_id:'7f23ac10',label:'Production',scopes:['ingest'],created_at:ts(24*5),last_used_at:ts(.1),revoked_at:null}];
 let demoUsers:User[]=[{id:'demo-owner',email:'you@northwind.dev',role:'owner'}];
