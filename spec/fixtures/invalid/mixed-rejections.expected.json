@@ -1,0 +1,22 @@
+{
+  "status": 202,
+  "accepted": 2,
+  "rejected": [
+    {
+      "index": 1,
+      "reason": "unknown_type"
+    },
+    {
+      "index": 2,
+      "reason": "schema"
+    },
+    {
+      "index": 3,
+      "reason": "duplicate_in_batch"
+    },
+    {
+      "index": 4,
+      "reason": "ts_future"
+    }
+  ]
+}

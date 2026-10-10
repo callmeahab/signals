@@ -1,0 +1,14 @@
+{
+  "status": 202,
+  "accepted": 1,
+  "rejected": [
+    {
+      "index": 0,
+      "reason": "ts_future"
+    },
+    {
+      "index": 2,
+      "reason": "ts_future"
+    }
+  ]
+}

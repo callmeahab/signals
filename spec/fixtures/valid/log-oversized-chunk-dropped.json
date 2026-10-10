@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sdk": "node",
+    "sdk_version": "0.1.0",
+    "server_name": "orders-mcp",
+    "server_version": "1.4.2",
+    "instance_id": "i_7f3a2c9d1e",
+    "hostname": "pod-7"
+  },
+  "sent_at": "2026-10-01T12:00:02.000Z",
+  "dropped": 0,
+  "events": [
+    {
+      "id": "01a0f757-5d52-77d0-abfc-2f6a47335b2c",
+      "ts": "2026-10-01T12:01:33.010Z",
+      "type": "log",
+      "attrs": {
+        "level": "info",
+        "message": "before the oversized chunk"
+      }
+    },
+    {
+      "id": "01a0f757-5d53-77d1-bc1b-2f6a47337a1b",
+      "ts": "2026-10-01T12:01:33.011Z",
+      "type": "log",
+      "attrs": {
+        "level": "warn",
+        "message": "dropped an oversized log chunk",
+        "fields": {
+          "dropped_chunk": true,
+          "chunk_length": 100663330
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5d54-77d2-8c3a-2f6a4733990a",
+      "ts": "2026-10-01T12:01:33.012Z",
+      "type": "log",
+      "attrs": {
+        "level": "info",
+        "message": "after the oversized chunk"
+      }
+    }
+  ]
+}

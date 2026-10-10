@@ -1,0 +1,10 @@
+{
+  "status": 202,
+  "accepted": 2,
+  "rejected": [
+    {
+      "index": 1,
+      "reason": "schema"
+    }
+  ]
+}

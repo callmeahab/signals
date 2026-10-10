@@ -4,7 +4,7 @@ use anyhow::Result;
 use bytes::{BufMut, BytesMut};
 use chrono::{DateTime, NaiveDate, Utc};
 use signals_core::{Event, INGEST_LOCK, PARTITION_LOCK};
-use sqlx::{Acquire, Postgres, Row, Transaction};
+use sqlx::{Postgres, Row, Transaction};
 use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
 
@@ -80,7 +80,7 @@ pub fn copy_binary(
     b.put_i32(0);
     for row in events {
         let e = &row.event;
-        b.put_i16(13);
+        b.put_i16(16);
         field(&mut b, Some(project.as_bytes()));
         timestamp(&mut b, e.ts);
         timestamp(&mut b, received);
@@ -99,15 +99,14 @@ pub fn copy_binary(
         let mut json = vec![1];
         json.extend(serde_json::to_vec(&e.attrs)?);
         field(&mut b, Some(&json));
+        for value in [&e.source, &e.client, &serde_json::to_value(&e.caller)?] {
+            let mut json = vec![1];
+            json.extend(serde_json::to_vec(value)?);
+            field(&mut b, Some(&json));
+        }
     }
     b.put_i16(-1);
     Ok(b)
-}
-fn data_error(error: &sqlx::Error) -> bool {
-    error
-        .as_database_error()
-        .and_then(|e| e.code())
-        .is_some_and(|c| c.starts_with("22") || matches!(c.as_ref(), "23514" | "23502" | "54000"))
 }
 async fn copy_insert(
     tx: &mut Transaction<'_, Postgres>,
@@ -122,7 +121,7 @@ async fn copy_insert(
     .await?;
     let payload =
         copy_binary(project, received, events).map_err(|e| sqlx::Error::Protocol(e.to_string()))?;
-    let mut copy=tx.copy_in_raw("COPY ingest_stage(project_id,ts,received_at,id,type,session_id,caller_id,tool,duration_ms,is_error,client_name,client_version,attrs) FROM STDIN WITH (FORMAT binary)").await?;
+    let mut copy=tx.copy_in_raw("COPY ingest_stage(project_id,ts,received_at,id,type,session_id,caller_id,tool,duration_ms,is_error,client_name,client_version,attrs,source,client,caller) FROM STDIN WITH (FORMAT binary)").await?;
     copy.send(payload.freeze()).await?;
     copy.finish().await?;
     let rows=checked_query!("INSERT INTO events SELECT * FROM ingest_stage ON CONFLICT(project_id,ts,id) DO NOTHING RETURNING id,ts").fetch_all(&mut **tx).await?;
@@ -205,54 +204,7 @@ impl Store {
                 caller_id: ids[&(k, x)],
             })
             .collect();
-        let mut inserted = Vec::new();
-        let mut rejected = Vec::new();
-        let mut fallback = false;
-        for attempt in 0..2 {
-            let mut savepoint = tx.begin().await?;
-            match copy_insert(&mut savepoint, project, received, &enriched).await {
-                Ok(rows) => {
-                    inserted = rows;
-                    savepoint.commit().await?;
-                    break;
-                }
-                Err(e) if data_error(&e) => {
-                    savepoint.rollback().await?;
-                    if attempt == 1 {
-                        fallback = true;
-                    } else {
-                        for date in enriched
-                            .iter()
-                            .map(|r| r.event.ts.date_naive())
-                            .collect::<BTreeSet<_>>()
-                        {
-                            ensure_partition(&mut tx, date).await?;
-                        }
-                    }
-                }
-                Err(e) => return Err(e.into()),
-            }
-        }
-        if fallback {
-            for row in &enriched {
-                let e = &row.event;
-                let mut sp = tx.begin().await?;
-                let result=checked_query!("INSERT INTO events(project_id,ts,received_at,id,type,session_id,caller_id,tool,duration_ms,is_error,client_name,client_version,attrs) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT(project_id,ts,id) DO NOTHING RETURNING id,ts" ,project,e.ts,received,e.id,&e.event_type,e.session_id.as_deref(),row.caller_id,e.tool.as_deref(),e.duration_ms,e.is_error,e.client_name.as_deref(),e.client_version.as_deref(),serde_json::json!(e.attrs)).fetch_optional(&mut *sp).await;
-                match result {
-                    Ok(row) => {
-                        if let Some(row) = row {
-                            inserted.push((row.get("id"), row.get("ts")));
-                        }
-                        sp.commit().await?;
-                    }
-                    Err(err) if data_error(&err) => {
-                        sp.rollback().await?;
-                        rejected.push((e.id, "storage_invalid".into()));
-                    }
-                    Err(err) => return Err(err.into()),
-                }
-            }
-        }
+        let inserted = copy_insert(&mut tx, project, received, &enriched).await?;
         for chunk in inserted.chunks(50) {
             let notice = serde_json::json!({"project":project,"events":chunk.iter().map(|(id,ts)|serde_json::json!({"id":id,"ts":ts})).collect::<Vec<_>>()});
             checked_query!("SELECT pg_notify('signals_live',$1)", notice.to_string())
@@ -268,8 +220,8 @@ impl Store {
         }
         Ok(IngestOutcome {
             accepted: inserted.len(),
-            duplicates: enriched.len() - inserted.len() - rejected.len(),
-            rejected,
+            duplicates: enriched.len() - inserted.len(),
+            rejected: Vec::new(),
         })
     }
 }

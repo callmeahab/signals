@@ -17,9 +17,7 @@ use std::sync::{
     Arc,
 };
 use tokio::sync::{broadcast, watch};
-use tower_http::{
-    compression::CompressionLayer, decompression::RequestDecompressionLayer, timeout::TimeoutLayer,
-};
+use tower_http::{compression::CompressionLayer, timeout::TimeoutLayer};
 
 pub type LoginLimits =
     Arc<tokio::sync::Mutex<std::collections::HashMap<Vec<u8>, (std::time::Instant, u32)>>>;
@@ -110,6 +108,66 @@ impl IntoResponse for Error {
         response
     }
 }
+// Ingest errors are isolated from the existing admin/session API error shape.
+pub struct IngestError {
+    status: StatusCode,
+    code: &'static str,
+    message: String,
+}
+impl IngestError {
+    pub fn code(code: &'static str) -> Self {
+        let status = match code {
+            "body_too_large" | "too_many_events" => StatusCode::PAYLOAD_TOO_LARGE,
+            "unsupported_media_type" => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            _ => StatusCode::BAD_REQUEST,
+        };
+        Self {
+            status,
+            code,
+            message: code.replace('_', " "),
+        }
+    }
+}
+impl From<Error> for IngestError {
+    fn from(e: Error) -> Self {
+        let code = match e.status {
+            StatusCode::UNAUTHORIZED => "unauthorized",
+            StatusCode::FORBIDDEN => "forbidden",
+            StatusCode::TOO_MANY_REQUESTS => "rate_limited",
+            _ => "internal",
+        };
+        Self {
+            status: e.status,
+            code,
+            message: e.message,
+        }
+    }
+}
+impl From<sqlx::Error> for IngestError {
+    fn from(e: sqlx::Error) -> Self {
+        Error::internal(e).into()
+    }
+}
+impl From<anyhow::Error> for IngestError {
+    fn from(e: anyhow::Error) -> Self {
+        Error::internal(e).into()
+    }
+}
+impl IntoResponse for IngestError {
+    fn into_response(self) -> Response {
+        let mut response = (
+            self.status,
+            Json(json!({"error":self.code,"message":self.message})),
+        )
+            .into_response();
+        if self.status == StatusCode::TOO_MANY_REQUESTS {
+            response
+                .headers_mut()
+                .insert("retry-after", "60".parse().unwrap());
+        }
+        response
+    }
+}
 pub fn router(app: App) -> Router {
     use handlers::*;
     let timed = Router::new()
@@ -161,7 +219,7 @@ pub fn router(app: App) -> Router {
         .route("/v1/ingest.openapi.yaml", get(openapi::ingest_document))
         .route("/v1/events.schema.json", get(openapi::event_schema))
         .layer(TimeoutLayer::with_status_code(
-            StatusCode::REQUEST_TIMEOUT,
+            StatusCode::SERVICE_UNAVAILABLE,
             std::time::Duration::from_secs(10),
         ));
     let cors = tower_http::cors::CorsLayer::new()
@@ -189,7 +247,6 @@ pub fn router(app: App) -> Router {
         .route("/v1/projects/{project}/live", get(live))
         .fallback(assets)
         .layer(axum::extract::DefaultBodyLimit::max(signals_core::MAX_BODY))
-        .layer(RequestDecompressionLayer::new())
         .layer(CompressionLayer::new())
         .layer(cors)
         .layer(axum::middleware::from_fn_with_state(

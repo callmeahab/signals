@@ -1,0 +1,14 @@
+{
+  "status": 202,
+  "accepted": 1,
+  "rejected": [
+    {
+      "index": 1,
+      "reason": "ts_too_old"
+    },
+    {
+      "index": 2,
+      "reason": "ts_too_old"
+    }
+  ]
+}

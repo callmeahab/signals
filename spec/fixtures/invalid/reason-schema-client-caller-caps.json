@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sdk": "node",
+    "sdk_version": "0.1.0",
+    "server_name": "orders-mcp",
+    "server_version": "1.4.2",
+    "instance_id": "i_7f3a2c9d1e",
+    "hostname": "pod-7"
+  },
+  "sent_at": "2026-10-01T12:00:02.000Z",
+  "dropped": 0,
+  "events": [
+    {
+      "id": "01a0f757-519a-7c18-a0b4-2f6a45c8da64",
+      "ts": "2026-10-01T12:01:30.010Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false
+      },
+      "client": {
+        "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+      }
+    },
+    {
+      "id": "01a0f757-519b-7c19-b0d3-2f6a45c8f953",
+      "ts": "2026-10-01T12:01:30.011Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false
+      },
+      "client": {
+        "version": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      }
+    },
+    {
+      "id": "01a0f757-519c-7c1a-80f2-2f6a45c91842",
+      "ts": "2026-10-01T12:01:30.012Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false
+      },
+      "client": {
+        "protocol_version": "ppppppppppppppppppppppppppppppppp"
+      }
+    },
+    {
+      "id": "01a0f757-519d-7c1b-9111-2f6a45c93731",
+      "ts": "2026-10-01T12:01:30.013Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false
+      },
+      "caller": {
+        "key_id": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+      }
+    },
+    {
+      "id": "01a0f757-519e-7c1c-a130-2f6a45c95620",
+      "ts": "2026-10-01T12:01:30.014Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false
+      },
+      "caller": {
+        "subject": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      }
+    },
+    {
+      "id": "01a0f757-519f-7c1d-b14f-2f6a45c9750f",
+      "ts": "2026-10-01T12:01:30.015Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false
+      },
+      "caller": {
+        "user_agent": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+      }
+    },
+    {
+      "id": "01a0f757-51a0-7c1e-816e-2f6a45c993fe",
+      "ts": "2026-10-01T12:01:30.016Z",
+      "type": "mcp.initialize",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "requested_protocol_version": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "client_capabilities": [
+          "roots"
+        ],
+        "server_capabilities": [
+          "tools"
+        ]
+      }
+    },
+    {
+      "id": "01a0f757-51a1-7c1f-918d-2f6a45c9b2ed",
+      "ts": "2026-10-01T12:01:30.017Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false
+      },
+      "caller": {
+        "subject": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      }
+    },
+    {
+      "id": "01a0f757-51a2-7c20-a1ac-2f6a45c9d1dc",
+      "ts": "2026-10-01T12:01:30.018Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false
+      },
+      "client": {
+        "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+        "version": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv",
+        "protocol_version": "pppppppppppppppppppppppppppppppp"
+      },
+      "caller": {
+        "key_id": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+        "subject": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
+        "user_agent": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+      }
+    },
+    {
+      "id": "01a0f757-51a3-7c21-b1cb-2f6a45c9f0cb",
+      "ts": "2026-10-01T12:01:30.019Z",
+      "type": "mcp.initialize",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "requested_protocol_version": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "client_capabilities": [
+          "roots"
+        ],
+        "server_capabilities": [
+          "tools"
+        ]
+      }
+    },
+    {
+      "id": "01a0f757-51a4-7c22-81ea-2f6a45ca0fba",
+      "ts": "2026-10-01T12:01:30.020Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false
+      },
+      "caller": {
+        "ip": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "01a0f757-51a5-7c23-9209-2f6a45ca2ea9",
+      "ts": "2026-10-01T12:01:30.021Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false
+      },
+      "caller": {
+        "ip": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      }
+    }
+  ]
+}

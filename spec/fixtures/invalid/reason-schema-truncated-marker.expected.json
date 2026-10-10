@@ -1,0 +1,38 @@
+{
+  "status": 202,
+  "accepted": 4,
+  "rejected": [
+    {
+      "index": 0,
+      "reason": "schema"
+    },
+    {
+      "index": 1,
+      "reason": "schema"
+    },
+    {
+      "index": 2,
+      "reason": "schema"
+    },
+    {
+      "index": 3,
+      "reason": "schema"
+    },
+    {
+      "index": 4,
+      "reason": "schema"
+    },
+    {
+      "index": 5,
+      "reason": "schema"
+    },
+    {
+      "index": 6,
+      "reason": "schema"
+    },
+    {
+      "index": 7,
+      "reason": "schema"
+    }
+  ]
+}

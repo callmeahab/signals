@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signals.mcpramen.dev/schemas/v1/batch.schema.json",
+  "title": "Signals batch envelope (schema_version 1)",
+  "description": "The body of `POST /v1/events` as `application/json`. For `application/x-ndjson` the first line is this object without `events` and every following non-empty line is one event. Limits that JSON Schema cannot express: the body is at most 1 MB (1,048,576 bytes) after decompression and each event is at most 16 KB (16,384 bytes) serialised; collectors answer 413 for the body limit and reject single events with `too_large`. Whole-batch precedence is decoded body size, event count, then JSON/envelope validity; JSON parsing is needed to determine its count, while NDJSON counts non-empty event lines first.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "description": "Integer schema version. Additive changes keep it; a breaking change bumps it and collectors accept the previous version for twelve months.",
+      "type": "integer",
+      "const": 1
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "sent_at": {
+      "description": "SDK clock at send time (RFC 3339); SDKs emit YYYY-MM-DDTHH:MM:SS.sssZ. Collectors must accept the canonical form and may reject other RFC 3339 forms. The reference mock rejects leap seconds as malformed_envelope. The collector derives clock skew as `received_at - sent_at`.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([Zz]|[+-]\\d{2}:\\d{2})$"
+    },
+    "dropped": {
+      "description": "Events discarded by the SDK since its last successful flush (queue overflow). Defaults to 0 when omitted.",
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    },
+    "events": {
+      "description": "Event objects, in emission order. At most 1000 per batch; collectors answer 413 above that.",
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "./events.schema.json"
+      }
+    }
+  },
+  "required": ["schema_version", "source", "sent_at", "events"],
+  "additionalProperties": false,
+  "$defs": {
+    "source": {
+      "description": "The emitting SDK and process. All strings must be non-empty after trimming; SDKs trim before sending. `hostname` is optional; every other key is required.",
+      "type": "object",
+      "properties": {
+        "sdk": {
+          "description": "SDK identifier: `node`, `python`, or another identifier registered later.",
+          "type": "string",
+          "minLength": 1, "pattern": "\\S",
+          "maxLength": 64
+        },
+        "sdk_version": { "type": "string", "minLength": 1, "pattern": "\\S", "maxLength": 64 },
+        "server_name": {
+          "description": "MCP server info name when available, else the host package / distribution name when the SDK can determine it, else the SDK's own name. `SIGNALS_SERVICE_NAME` overrides. A blank (empty or whitespace-only) or non-string value at any layer is treated as absent and the fallback chain continues.",
+          "type": "string",
+          "minLength": 1, "pattern": "\\S",
+          "maxLength": 256
+        },
+        "server_version": {
+          "description": "MCP server info version when available, else the host package / distribution version when the SDK can determine it, else `0.0.0`. `SIGNALS_SERVICE_VERSION` overrides. A blank (empty or whitespace-only) or non-string value at any layer is treated as absent and the fallback chain continues.",
+          "type": "string",
+          "minLength": 1, "pattern": "\\S",
+          "maxLength": 128
+        },
+        "instance_id": {
+          "description": "Random per process.",
+          "type": "string",
+          "minLength": 1, "pattern": "\\S",
+          "maxLength": 128
+        },
+        "hostname": {
+          "description": "Optional. When present, a string non-empty after trimming of at most 256 code points; an SDK omits the key instead of sending a blank value and truncates a longer hostname to 256.",
+          "type": "string",
+          "minLength": 1, "pattern": "\\S",
+          "maxLength": 256
+        }
+      },
+      "required": ["sdk", "sdk_version", "server_name", "server_version", "instance_id"],
+      "additionalProperties": false
+    }
+  }
+}

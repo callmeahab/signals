@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sdk": "node",
+    "sdk_version": "0.1.0",
+    "server_name": "orders-mcp",
+    "server_version": "1.4.2",
+    "instance_id": "i_7f3a2c9d1e",
+    "hostname": "pod-7"
+  },
+  "sent_at": "2026-10-01T12:00:02.000Z",
+  "dropped": 0,
+  "events": [
+    {
+      "id": "01a0f757-51b8-7c36-8456-2f6a45cc7a66",
+      "ts": "2026-10-01T12:01:30.040Z",
+      "type": "tool.called",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "tool": "render",
+        "duration_ms": 3,
+        "is_error": false,
+        "input_bytes": 40,
+        "output_bytes": 12,
+        "output_kinds": [
+          "text"
+        ],
+        "cancelled": false,
+        "args": {
+          "_truncated_user_user": true,
+          "_bytes_user_user": 5000,
+          "_truncated_user": "caller",
+          "_bytes_user": "caller",
+          "mode": "fast"
+        }
+      }
+    },
+    {
+      "id": "01a0f757-51b9-7c37-9475-2f6a45cc9955",
+      "ts": "2026-10-01T12:01:30.041Z",
+      "type": "log",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "level": "debug",
+        "message": "dump",
+        "fields": {
+          "_truncated_user_user_user": 1,
+          "_truncated_user_user": 2,
+          "_truncated_user": 3,
+          "_bytes_user_user_user": 1,
+          "_bytes_user_user": 2,
+          "_bytes_user": 3
+        }
+      }
+    },
+    {
+      "id": "01a0f757-51ba-7c38-a494-2f6a45ccb844",
+      "ts": "2026-10-01T12:01:30.042Z",
+      "type": "custom",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "name": "big",
+        "props": {
+          "_truncated_user_user": {
+            "_truncated": true,
+            "_bytes": 1
+          },
+          "_bytes_user_user": [
+            0
+          ],
+          "_truncated_user": null,
+          "_bytes_user": 0
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sdk": "node",
+    "sdk_version": "0.1.0",
+    "server_name": "orders-mcp",
+    "server_version": "1.4.2",
+    "instance_id": "i_7f3a2c9d1e",
+    "hostname": "pod-7"
+  },
+  "sent_at": "2026-10-01T12:00:02.000Z",
+  "dropped": 0,
+  "events": [
+    {
+      "id": "01a0f757-5d48-77c6-8ac6-2f6a473225d6",
+      "ts": "2026-10-01T12:01:33.000Z",
+      "type": "tool.called",
+      "attrs": {
+        "tool": "shared",
+        "duration_ms": 1,
+        "is_error": false,
+        "input_bytes": 0,
+        "output_bytes": 0,
+        "output_kinds": [],
+        "cancelled": false,
+        "args": {
+          "a": {
+            "a": 1,
+            "next": {
+              "b": 2,
+              "next": "[cycle]"
+            }
+          },
+          "b": {
+            "b": 2,
+            "next": "[cycle]"
+          }
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5d49-77c7-9ae5-2f6a473244c5",
+      "ts": "2026-10-01T12:01:33.001Z",
+      "type": "log",
+      "attrs": {
+        "level": "debug",
+        "message": "shared",
+        "fields": {
+          "a": {
+            "a": 1,
+            "next": {
+              "b": 2,
+              "next": "[cycle]"
+            }
+          },
+          "b": {
+            "b": 2,
+            "next": "[cycle]"
+          }
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5d4a-77c8-ab04-2f6a473263b4",
+      "ts": "2026-10-01T12:01:33.002Z",
+      "type": "custom",
+      "attrs": {
+        "name": "shared",
+        "props": {
+          "a": {
+            "a": 1,
+            "next": {
+              "b": 2,
+              "next": "[cycle]"
+            }
+          },
+          "b": {
+            "b": 2,
+            "next": "[cycle]"
+          }
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5d4b-77c9-bb23-2f6a473282a3",
+      "ts": "2026-10-01T12:01:33.003Z",
+      "type": "tool.called",
+      "attrs": {
+        "tool": "shared",
+        "duration_ms": 1,
+        "is_error": false,
+        "input_bytes": 0,
+        "output_bytes": 0,
+        "output_kinds": [],
+        "cancelled": false,
+        "args": {
+          "a": {
+            "a": 1,
+            "next": {
+              "b": 2,
+              "next": {
+                "_truncated": true,
+                "_bytes": 0
+              }
+            }
+          },
+          "b": {
+            "b": 2,
+            "next": {
+              "_truncated": true,
+              "_bytes": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5d4c-77ca-8b42-2f6a4732a192",
+      "ts": "2026-10-01T12:01:33.004Z",
+      "type": "log",
+      "attrs": {
+        "level": "debug",
+        "message": "shared",
+        "fields": {
+          "a": {
+            "a": 1,
+            "next": {
+              "b": 2,
+              "next": {
+                "_truncated": true,
+                "_bytes": 0
+              }
+            }
+          },
+          "b": {
+            "b": 2,
+            "next": {
+              "_truncated": true,
+              "_bytes": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5d4d-77cb-9b61-2f6a4732c081",
+      "ts": "2026-10-01T12:01:33.005Z",
+      "type": "custom",
+      "attrs": {
+        "name": "shared",
+        "props": {
+          "a": {
+            "a": 1,
+            "next": {
+              "b": 2,
+              "next": {
+                "_truncated": true,
+                "_bytes": 0
+              }
+            }
+          },
+          "b": {
+            "b": 2,
+            "next": {
+              "_truncated": true,
+              "_bytes": 0
+            }
+          }
+        }
+      }
+    }
+  ]
+}

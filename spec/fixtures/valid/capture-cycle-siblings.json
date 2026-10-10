@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sdk": "node",
+    "sdk_version": "0.1.0",
+    "server_name": "orders-mcp",
+    "server_version": "1.4.2",
+    "instance_id": "i_7f3a2c9d1e",
+    "hostname": "pod-7"
+  },
+  "sent_at": "2026-10-01T12:00:02.000Z",
+  "dropped": 0,
+  "events": [
+    {
+      "id": "01a0f757-5960-73de-81ae-2f6a46b9503e",
+      "ts": "2026-10-01T12:01:32.000Z",
+      "type": "tool.called",
+      "attrs": {
+        "tool": "cycle",
+        "duration_ms": 1,
+        "is_error": false,
+        "input_bytes": 0,
+        "output_bytes": 0,
+        "output_kinds": [],
+        "cancelled": false,
+        "args": {
+          "userId": 42,
+          "self": "[cycle]"
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5961-73df-91cd-2f6a46b96f2d",
+      "ts": "2026-10-01T12:01:32.001Z",
+      "type": "log",
+      "attrs": {
+        "level": "debug",
+        "message": "cycle",
+        "fields": {
+          "userId": 42,
+          "self": "[cycle]"
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5962-73e0-a1ec-2f6a46b98e1c",
+      "ts": "2026-10-01T12:01:32.002Z",
+      "type": "custom",
+      "attrs": {
+        "name": "cycle",
+        "props": {
+          "userId": 42,
+          "self": "[cycle]"
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5963-73e1-b20b-2f6a46b9ad0b",
+      "ts": "2026-10-01T12:01:32.003Z",
+      "type": "tool.called",
+      "attrs": {
+        "tool": "cycle",
+        "duration_ms": 1,
+        "is_error": false,
+        "input_bytes": 0,
+        "output_bytes": 0,
+        "output_kinds": [],
+        "cancelled": false,
+        "args": {
+          "userId": 42,
+          "self": {
+            "_truncated": true,
+            "_bytes": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5964-73e2-822a-2f6a46b9cbfa",
+      "ts": "2026-10-01T12:01:32.004Z",
+      "type": "log",
+      "attrs": {
+        "level": "debug",
+        "message": "cycle",
+        "fields": {
+          "userId": 42,
+          "self": {
+            "_truncated": true,
+            "_bytes": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "01a0f757-5965-73e3-9249-2f6a46b9eae9",
+      "ts": "2026-10-01T12:01:32.005Z",
+      "type": "custom",
+      "attrs": {
+        "name": "cycle",
+        "props": {
+          "userId": 42,
+          "self": {
+            "_truncated": true,
+            "_bytes": 0
+          }
+        }
+      }
+    }
+  ]
+}

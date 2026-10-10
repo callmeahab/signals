@@ -200,26 +200,13 @@ pub async fn read_document() -> Json<utoipa::openapi::OpenApi> {
 #[folder = "../../spec/"]
 struct Spec;
 pub async fn ingest_document() -> impl IntoResponse {
-    let official = Spec::get("ingest.openapi.yaml");
-    let is_official = official.is_some();
-    let asset = official
-        .or_else(|| Spec::get("development.ingest.openapi.yaml"))
-        .expect("development OpenAPI bundled");
+    let asset = Spec::get("ingest.openapi.yaml").expect("official OpenAPI bundled");
     (
-        [
-            (header::CONTENT_TYPE, "application/yaml"),
-            (
-                header::HeaderName::from_static("x-signals-contract"),
-                if is_official {
-                    "signals-spec"
-                } else {
-                    "provisional"
-                },
-            ),
-        ],
+        [(header::CONTENT_TYPE, "application/yaml")],
         asset.data.into_owned(),
     )
 }
+
 pub async fn event_schema() -> impl IntoResponse {
     let asset = Spec::get("events.schema.json").expect("event schema bundled");
     (

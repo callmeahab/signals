@@ -44,11 +44,13 @@ pub fn password_hash(password: &str) -> anyhow::Result<String> {
         .to_string())
 }
 fn bearer(headers: &HeaderMap) -> Option<&str> {
-    headers
-        .get(header::AUTHORIZATION)?
-        .to_str()
-        .ok()?
-        .strip_prefix("Bearer ")
+    let value = headers.get(header::AUTHORIZATION)?.to_str().ok()?;
+    let split = value.find(char::is_whitespace)?;
+    if !value[..split].eq_ignore_ascii_case("bearer") {
+        return None;
+    }
+    let token = value[split..].trim_start_matches(char::is_whitespace);
+    (!token.is_empty()).then_some(token)
 }
 pub fn admin(app: &App, headers: &HeaderMap) -> Result<()> {
     if bearer(headers).is_some_and(|v| {
@@ -136,7 +138,7 @@ pub async fn key(app: &App, headers: &HeaderMap, scope: &str) -> Result<KeyAuth>
     if !constant_time_eq::constant_time_eq(&cached.secret_hash, &hash(secret)) {
         return Err(Error::unauthorized());
     }
-    if !cached.scopes.iter().any(|s| s == scope) {
+    if !scope.is_empty() && !cached.scopes.iter().any(|s| s == scope) {
         return Err(Error::forbidden("Key does not have the required scope"));
     }
     if !from_cache {

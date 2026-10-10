@@ -71,7 +71,7 @@ async fn thirty_day_dashboard_measurements() {
                 .unwrap();
         }
         let callers:Vec<i64>=sqlx::query_scalar("INSERT INTO callers(project_id,kind,external_id,label,first_seen,last_seen) SELECT $1,'subject','bench-'||n,'Caller '||n,$2,$3 FROM generate_series(1,100) n RETURNING id").bind(project.id).bind(from).bind(to).fetch_all(&mut *tx).await.unwrap();
-        sqlx::query("INSERT INTO events SELECT $1,$2+(g-1)%720*interval '1 hour'+((g-1)/720)%3600*interval '1 second',clock_timestamp(),gen_random_uuid(),'tool.call','bench-session-'||(((g-1)/720)%200),($4::bigint[])[1+(((g-1)/720)%100)::int],'bench-tool-'||(((g-1)/720)%20),(g%6000)::int,g%97=0,'Bench client','1','{}'::jsonb FROM generate_series(1,$3::bigint) g").bind(project.id).bind(from).bind(count).bind(&callers).execute(&mut *tx).await.unwrap();
+        sqlx::query("INSERT INTO events(project_id,ts,received_at,id,type,session_id,caller_id,tool,duration_ms,is_error,client_name,client_version,attrs) SELECT $1,$2+(g-1)%720*interval '1 hour'+((g-1)/720)%3600*interval '1 second',clock_timestamp(),gen_random_uuid(),'tool.called','bench-session-'||(((g-1)/720)%200),($4::bigint[])[1+(((g-1)/720)%100)::int],'bench-tool-'||(((g-1)/720)%20),(g%6000)::int,g%97=0,'Bench client','1','{}'::jsonb FROM generate_series(1,$3::bigint) g").bind(project.id).bind(from).bind(count).bind(&callers).execute(&mut *tx).await.unwrap();
         tx.commit().await.unwrap();
         (project.id, from, to, count, callers)
     };

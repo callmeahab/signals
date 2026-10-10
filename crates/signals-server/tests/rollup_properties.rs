@@ -39,14 +39,14 @@ fn random_lateness_matches_brute_force_sql() {
         let tenant=store.tenant(&Uuid::new_v4().simple().to_string(),"Property test",None).await.unwrap();let p=store.project(tenant,"server","Property server").await.unwrap();
         let now=Utc::now().with_minute(0).unwrap().with_second(0).unwrap().with_nanosecond(0).unwrap();
         for (batch_no,chunk) in input.chunks(13).enumerate(){
-            let events=chunk.iter().map(|(hours,caller,session,duration,error,kind)|{let identity=format!("caller-{caller}");let event=Event{id:Uuid::new_v4(),ts:now-Duration::hours(i64::from(*hours)),event_type:if *kind==0{"session.start".into()}else if *kind==1{"request".into()}else{"tool.call".into()},session_id:Some(format!("session-{session}")),caller:Some(CallerIdentity{key_id:None,subject:Some(identity.clone())}),tool:Some(format!("tool-{}",caller%4)),duration_ms:Some(*duration),is_error:*error,client_name:Some(format!("client-{}",caller%3)),client_version:None,attrs:Default::default()};(event,"subject".into(),identity.clone(),identity)}).collect();
+            let events=chunk.iter().map(|(hours,caller,session,duration,error,kind)|{let identity=format!("caller-{caller}");let event=Event{id:Uuid::new_v4(),ts:now-Duration::hours(i64::from(*hours)),event_type:if *kind==0{"session.started".into()}else if *kind==1{"mcp.request".into()}else{"tool.called".into()},session_id:Some(format!("session-{session}")),caller:Some(CallerIdentity{key_id:None,subject:Some(identity.clone()),..Default::default()}),tool:Some(format!("tool-{}",caller%4)),duration_ms:Some(*duration),is_error:*error,client_name:Some(format!("client-{}",caller%3)),client_version:None,attrs:Default::default(),..Default::default()};(event,"subject".into(),identity.clone(),identity)}).collect();
             let result=store.ingest(p.id,events).await.unwrap();prop_assert_eq!(result.accepted,chunk.len());if batch_no%2==0{store.rollup().await.unwrap();}
         }
         store.rollup().await.unwrap();store.rollup().await.unwrap();
-        let raw=sqlx::query("SELECT count(*) FILTER(WHERE type NOT LIKE 'session.%') AS requests,count(*) FILTER(WHERE type NOT LIKE 'session.%' AND is_error) AS errors,count(*) FILTER(WHERE type='tool.call') AS calls,count(DISTINCT session_id) AS sessions,count(DISTINCT caller_id) AS callers FROM events WHERE project_id=$1").bind(p.id).fetch_one(&store.pool).await.unwrap();
+        let raw=sqlx::query("SELECT count(*) FILTER(WHERE type NOT LIKE 'session.%') AS requests,count(*) FILTER(WHERE type NOT LIKE 'session.%' AND is_error) AS errors,count(*) FILTER(WHERE type='tool.called') AS calls,count(DISTINCT session_id) AS sessions,count(DISTINCT caller_id) AS callers FROM events WHERE project_id=$1").bind(p.id).fetch_one(&store.pool).await.unwrap();
         let summary=store.overview(p.id,now-Duration::days(30),now+Duration::hours(1)).await.unwrap();
         for (api,column)in [("requests","requests"),("errors","errors"),("tool_calls","calls"),("sessions","sessions"),("unique_callers","callers")]{prop_assert_eq!(summary[api].as_i64().unwrap(),raw.get::<i64,_>(column),"metric {}",api);}
-        let drift:i64=sqlx::query_scalar("SELECT count(*) FROM rollup_project_hourly r WHERE r.project_id=$1 AND (r.requests,r.errors,r.tool_calls)!=(SELECT count(*) FILTER(WHERE e.type NOT LIKE 'session.%'),count(*) FILTER(WHERE e.type NOT LIKE 'session.%' AND e.is_error),count(*) FILTER(WHERE e.type='tool.call') FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour AND e.ts<r.hour+interval '1 hour')").bind(p.id).fetch_one(&store.pool).await.unwrap();prop_assert_eq!(drift,0);
+        let drift:i64=sqlx::query_scalar("SELECT count(*) FROM rollup_project_hourly r WHERE r.project_id=$1 AND (r.requests,r.errors,r.tool_calls)!=(SELECT count(*) FILTER(WHERE e.type NOT LIKE 'session.%'),count(*) FILTER(WHERE e.type NOT LIKE 'session.%' AND e.is_error),count(*) FILTER(WHERE e.type='tool.called') FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour AND e.ts<r.hour+interval '1 hour')").bind(p.id).fetch_one(&store.pool).await.unwrap();prop_assert_eq!(drift,0);
         let durations:Vec<i32>=sqlx::query_scalar("SELECT duration_ms FROM events WHERE project_id=$1 AND type NOT LIKE 'session.%' AND duration_ms IS NOT NULL").bind(p.id).fetch_all(&store.pool).await.unwrap();
         let hist=signals_core::histogram(durations);prop_assert_eq!(summary["p95"].as_f64().unwrap(),signals_core::percentile(&hist,0.95));
         let callers=store.callers(p.id,now-Duration::days(30),now+Duration::hours(1)).await.unwrap();let calls:i64=callers.as_array().unwrap().iter().map(|v|v["calls"].as_i64().unwrap()).sum();prop_assert_eq!(calls,raw.get::<i64,_>("requests"));
@@ -79,7 +79,7 @@ async fn copy_fallback_and_unlimited_session_history() {
     let event = |duration| Event {
         id: Uuid::new_v4(),
         ts: now,
-        event_type: "tool.call".into(),
+        event_type: "tool.called".into(),
         session_id: Some("long-session".into()),
         caller: None,
         tool: Some("test".into()),
@@ -88,6 +88,7 @@ async fn copy_fallback_and_unlimited_session_history() {
         client_name: None,
         client_version: None,
         attrs: Default::default(),
+        ..Default::default()
     };
     let outcome = store
         .ingest(
@@ -164,7 +165,7 @@ async fn worker_exclusion_partial_ranges_and_retained_caller_history() {
             Event {
                 id: Uuid::new_v4(),
                 ts,
-                event_type: "tool.call".into(),
+                event_type: "tool.called".into(),
                 session_id: Some("boundary".into()),
                 caller: None,
                 tool: Some("boundary-tool".into()),
@@ -173,6 +174,7 @@ async fn worker_exclusion_partial_ranges_and_retained_caller_history() {
                 client_name: Some("Fixture".into()),
                 client_version: None,
                 attrs: Default::default(),
+                ..Default::default()
             },
             "subject".into(),
             "boundary-caller".into(),

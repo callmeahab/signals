@@ -1,0 +1,121 @@
+{
+  "name": "basic-stateless",
+  "description": "The same client sequence as `basic`, against a stateless Streamable HTTP example server (a fresh MCP server instance per request, sessionIdGenerator undefined). No real session callbacks exist, so the SDK synthesises one session: session.started with transport `synthetic` before the first event, and session.ended with reason `shutdown` when the process exits after the client disconnects. See README.md in this directory.",
+  "transport": "synthetic",
+  "sdk_settings": {
+    "SIGNALS_SAMPLE_REQUESTS": "1",
+    "SIGNALS_CAPTURE_ARGS": "false",
+    "SIGNALS_TRUST_PROXY": "false"
+  },
+  "server": {
+    "name": "signals-conformance-example",
+    "pattern": "stateless: a fresh server instance per HTTP request, sessionIdGenerator undefined",
+    "tools": {
+      "echo": "arguments {message: string}; returns one text content `echo: <message>`",
+      "fail": "no arguments; returns an isError result with one text content `boom`",
+      "slow": "arguments {ms: integer}; sleeps for `ms` milliseconds honouring cancellation, then returns one text content `done`"
+    },
+    "resources": {
+      "demo://hello": "mimeType text/plain, text `hello`"
+    }
+  },
+  "steps": [
+    "1. Client sends `initialize` (any protocol version the server supports), then `notifications/initialized`. The server does not hand out a session id.",
+    "2. Client sends `tools/list`.",
+    "3. Client calls tool `echo` with arguments {\"message\":\"hello\"} and receives a success result.",
+    "4. Client calls tool `fail` with arguments {} and receives a result with isError: true.",
+    "5. Client calls tool `slow` with arguments {\"ms\":10000} and, within 500 ms, sends `notifications/cancelled` for that request id. The client does not wait for a response.",
+    "6. Client reads resource `demo://hello`.",
+    "7. Client closes the transport (there is no session to DELETE).",
+    "8. The server process exits; the SDK emits session.ended (reason shutdown) for the synthetic session and flushes within its 3 s budget; the mock collector records every event."
+  ],
+  "tolerances": { "bytes": 16, "bytes_percent": 10 },
+  "strict_attrs": false,
+  "source": {
+    "sdk": { "$match": "oneOf", "values": ["node", "python"] },
+    "sdk_version": { "$match": "string", "minLength": 1 },
+    "server_name": "signals-conformance-example",
+    "server_version": { "$match": "string", "minLength": 1 }
+  },
+  "events": [
+    {
+      "type": "session.started",
+      "session_id": "<session:1>",
+      "attrs": { "transport": "synthetic" }
+    },
+    {
+      "type": "mcp.initialize",
+      "session_id": "<session:1>",
+      "client": { "name": { "$match": "string", "minLength": 1 }, "version": { "$match": "string" } },
+      "attrs": {
+        "requested_protocol_version": { "$match": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "client_capabilities": { "$match": "array" },
+        "server_capabilities": { "$match": "array", "contains": ["tools", "resources"] }
+      }
+    },
+    {
+      "type": "mcp.request",
+      "session_id": "<session:1>",
+      "attrs": { "method": "tools/list", "duration_ms": { "$match": "integer", "min": 0 }, "is_error": false }
+    },
+    {
+      "type": "tool.called",
+      "session_id": "<session:1>",
+      "attrs": {
+        "tool": "echo",
+        "duration_ms": { "$match": "integer", "min": 0, "max": 5000 },
+        "is_error": false,
+        "cancelled": false,
+        "input_bytes": 19,
+        "output_bytes": 38,
+        "output_kinds": ["text"],
+        "error_message": { "$match": "absent" },
+        "args": { "$match": "absent" }
+      }
+    },
+    {
+      "type": "tool.called",
+      "session_id": "<session:1>",
+      "attrs": {
+        "tool": "fail",
+        "duration_ms": { "$match": "integer", "min": 0, "max": 5000 },
+        "is_error": true,
+        "cancelled": false,
+        "input_bytes": 2,
+        "output_bytes": 31,
+        "output_kinds": ["text"],
+        "error_message": "boom",
+        "args": { "$match": "absent" }
+      }
+    },
+    {
+      "type": "tool.called",
+      "session_id": "<session:1>",
+      "attrs": {
+        "tool": "slow",
+        "duration_ms": { "$match": "integer", "min": 0, "max": 5000 },
+        "is_error": false,
+        "cancelled": true,
+        "input_bytes": 12,
+        "output_bytes": 0,
+        "output_kinds": [],
+        "args": { "$match": "absent" }
+      }
+    },
+    {
+      "type": "resource.read",
+      "session_id": "<session:1>",
+      "attrs": {
+        "uri": "demo://hello",
+        "duration_ms": { "$match": "integer", "min": 0, "max": 5000 },
+        "is_error": false,
+        "output_bytes": 63
+      }
+    },
+    {
+      "type": "session.ended",
+      "session_id": "<session:1>",
+      "attrs": { "duration_ms": { "$match": "integer", "min": 0 }, "reason": "shutdown" }
+    }
+  ]
+}

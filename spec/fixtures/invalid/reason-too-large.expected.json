@@ -1,0 +1,22 @@
+{
+  "status": 202,
+  "accepted": 1,
+  "rejected": [
+    {
+      "index": 1,
+      "reason": "too_large"
+    },
+    {
+      "index": 2,
+      "reason": "too_large"
+    },
+    {
+      "index": 3,
+      "reason": "too_large"
+    },
+    {
+      "index": 4,
+      "reason": "too_large"
+    }
+  ]
+}

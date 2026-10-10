@@ -1,8 +1,7 @@
-pub mod wire;
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::OnceLock};
 use uuid::Uuid;
 
 pub const MAX_EVENTS: usize = 1000;
@@ -10,14 +9,17 @@ pub const MAX_BODY: usize = 1_048_576;
 pub const INGEST_LOCK: i64 = 0x53494701;
 pub const PARTITION_LOCK: i64 = 0x53494702;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CallerIdentity {
     pub key_id: Option<String>,
     pub subject: Option<String>,
+    #[serde(skip_serializing)]
+    pub ip: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ip_hash: Option<String>,
+    pub user_agent: Option<String>,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Event {
     pub id: Uuid,
     pub ts: DateTime<Utc>,
@@ -27,106 +29,272 @@ pub struct Event {
     pub caller: Option<CallerIdentity>,
     pub tool: Option<String>,
     pub duration_ms: Option<i32>,
-    #[serde(default)]
     pub is_error: bool,
     pub client_name: Option<String>,
     pub client_version: Option<String>,
-    #[serde(default)]
     pub attrs: Map<String, Value>,
+    #[serde(default)]
+    pub source: Value,
+    #[serde(default)]
+    pub client: Value,
 }
-impl TryFrom<wire::WireEvent> for Event {
-    type Error = &'static str;
-    fn try_from(e: wire::WireEvent) -> Result<Self, Self::Error> {
-        Ok(Self {
-            id: e.id,
-            ts: e.ts,
-            event_type: e.type_.to_string(),
-            session_id: e.session_id.map(Into::into),
-            caller: e.caller.map(|c| CallerIdentity {
-                key_id: c.key_id.map(Into::into),
-                subject: c.subject.map(Into::into),
-            }),
-            tool: e.tool.map(Into::into),
-            duration_ms: e
-                .duration_ms
-                .map(i32::try_from)
-                .transpose()
-                .map_err(|_| "Duration outside database bounds")?,
-            is_error: e.is_error.unwrap_or(false),
-            client_name: e.client_name.map(Into::into),
-            client_version: e.client_version.map(Into::into),
-            attrs: e.attrs,
-        })
-    }
-}
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug)]
 pub struct Batch {
     pub sent_at: DateTime<Utc>,
+    pub source: Value,
     pub events: Vec<Value>,
 }
 #[derive(Debug, Serialize)]
 pub struct Rejected {
     pub index: usize,
-    pub id: Option<String>,
     pub reason: String,
+}
+
+// Grow the parsing stack, and destroy arbitrary rejected nesting iteratively.
+pub fn parse_json(bytes: &[u8]) -> Result<Value, serde_json::Error> {
+    let mut de = serde_json::Deserializer::from_slice(bytes);
+    de.disable_recursion_limit();
+    let value = Value::deserialize(serde_stacker::Deserializer::new(&mut de))?;
+    if let Err(error) = de.end() {
+        drop_json(value);
+        return Err(error);
+    }
+    Ok(value)
+}
+pub fn drop_json(value: Value) {
+    let mut pending = vec![value];
+    while let Some(value) = pending.pop() {
+        match value {
+            Value::Array(values) => pending.extend(values),
+            Value::Object(values) => pending.extend(values.into_values()),
+            _ => {}
+        }
+    }
+}
+pub fn contract_whitespace(c: char) -> bool {
+    matches!(c, '\u{0009}'..='\u{000d}' | '\u{0020}' | '\u{00a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}' | '\u{feff}')
+}
+fn timestamp(value: &Value) -> Option<DateTime<Utc>> {
+    let ts = DateTime::parse_from_rfc3339(value.as_str()?).ok()?;
+    (ts.timestamp_subsec_nanos() < 1_000_000_000).then(|| ts.with_timezone(&Utc))
+}
+pub fn parse_batch(body: &[u8], ndjson: bool) -> Result<Batch, &'static str> {
+    if body.len() > MAX_BODY {
+        return Err("body_too_large");
+    }
+    // NDJSON counts event lines before UTF-8/envelope validation.
+    if ndjson
+        && String::from_utf8_lossy(body)
+            .split('\n')
+            .filter(|l| !l.chars().all(contract_whitespace))
+            .count()
+            > MAX_EVENTS + 1
+    {
+        return Err("too_many_events");
+    }
+    let text = std::str::from_utf8(body).map_err(|_| "malformed_body")?;
+    let mut doc = if ndjson {
+        let mut lines = text
+            .split('\n')
+            .filter(|l| !l.chars().all(contract_whitespace));
+        let line = lines.next().ok_or("malformed_envelope")?;
+        let mut doc = parse_json(line.as_bytes()).map_err(|_| "malformed_json")?;
+        if !doc.is_object() || doc.get("events").is_some() {
+            drop_json(doc);
+            return Err("malformed_envelope");
+        }
+        doc["events"] = Value::Array(
+            lines
+                .map(|l| parse_json(l.as_bytes()).unwrap_or(Value::Null))
+                .collect(),
+        );
+        doc
+    } else {
+        parse_json(body).map_err(|_| "malformed_json")?
+    };
+    let events = match doc.get_mut("events").map(Value::take) {
+        Some(Value::Array(events)) => events,
+        _ => {
+            drop_json(doc);
+            return Err("malformed_envelope");
+        }
+    };
+    if events.len() > MAX_EVENTS {
+        drop_json(Value::Array(events));
+        drop_json(doc);
+        return Err("too_many_events");
+    }
+    doc["events"] = serde_json::json!([]);
+    static ENVELOPE: OnceLock<jsonschema::Validator> = OnceLock::new();
+    let validator = ENVELOPE.get_or_init(|| {
+        let mut schema: Value =
+            serde_json::from_str(include_str!("../../../spec/batch.schema.json")).unwrap();
+        // Events are validated independently; no external schema resolution is needed.
+        schema["properties"]["events"]["items"] = serde_json::json!({});
+        jsonschema::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .unwrap()
+    });
+    let sent_at = timestamp(&doc["sent_at"]);
+    let source_ok = doc["source"].as_object().is_some_and(|source| {
+        source.values().all(|v| {
+            v.as_str()
+                .is_some_and(|s| !s.chars().all(contract_whitespace))
+        })
+    });
+    if !validator.is_valid(&doc) || sent_at.is_none() || !source_ok {
+        drop_json(Value::Array(events));
+        drop_json(doc);
+        return Err("malformed_envelope");
+    }
+    Ok(Batch {
+        sent_at: sent_at.unwrap(),
+        source: doc["source"].take(),
+        events,
+    })
+}
+fn depth_ok(value: &Value) -> bool {
+    let mut pending = vec![(value, 0)];
+    while let Some((value, depth)) = pending.pop() {
+        match value {
+            Value::Array(values) => {
+                if depth >= 128 {
+                    return false;
+                }
+                pending.extend(values.iter().map(|v| (v, depth + 1)));
+            }
+            Value::Object(values) => {
+                if depth >= 128 {
+                    return false;
+                }
+                pending.extend(values.values().map(|v| (v, depth + 1)));
+            }
+            _ => {}
+        }
+    }
+    true
+}
+pub fn normalize_storage(value: &mut Value) {
+    match value {
+        Value::String(s) => *s = s.replace('\0', "�"),
+        Value::Array(a) => a.iter_mut().for_each(normalize_storage),
+        Value::Object(o) => {
+            *o = std::mem::take(o)
+                .into_iter()
+                .map(|(k, mut v)| {
+                    normalize_storage(&mut v);
+                    (k.replace('\0', "�"), v)
+                })
+                .collect();
+        }
+        _ => {}
+    }
 }
 pub fn validate_batch(
     values: Vec<Value>,
     now: DateTime<Utc>,
     retention_days: i32,
 ) -> (Vec<Event>, Vec<Rejected>) {
-    static VALIDATOR: std::sync::OnceLock<jsonschema::Validator> = std::sync::OnceLock::new();
+    static VALIDATOR: OnceLock<jsonschema::Validator> = OnceLock::new();
     let validator = VALIDATOR.get_or_init(|| {
-        jsonschema::validator_for(
-            &serde_json::from_str::<Value>(include_str!("../../../spec/events.schema.json"))
-                .expect("bundled schema"),
-        )
-        .expect("valid schema")
+        jsonschema::options()
+            .should_validate_formats(true)
+            .build(
+                &serde_json::from_str::<Value>(include_str!("../../../spec/events.schema.json"))
+                    .unwrap(),
+            )
+            .unwrap()
     });
     let mut seen = HashSet::new();
     let mut accepted = Vec::new();
     let mut rejected = Vec::new();
-    for (index, value) in values.into_iter().enumerate() {
-        let id = value.get("id").and_then(Value::as_str).map(str::to_owned);
-        let schema_ok = validator.is_valid(&value) && !contains_nul(&value);
-        let parsed = serde_json::from_value::<wire::WireEvent>(value)
-            .map_err(|e| e.to_string())
-            .and_then(|e| Event::try_from(e).map_err(str::to_owned));
-        let (event, reason) = match parsed {
-            Ok(event) if schema_ok => {
-                let reason = if !seen.insert(event.id) {
-                    Some("duplicate_in_batch")
-                } else if event.ts > now + Duration::minutes(5) {
-                    Some("ts_future")
-                } else if event.ts < now - Duration::days(i64::from(retention_days)) {
-                    Some("ts_too_old")
-                } else {
-                    None
-                };
-                (Some(event), reason)
+    for (index, mut value) in values.into_iter().enumerate() {
+        let reason = (|| {
+            let kind = value.get("type").and_then(Value::as_str).ok_or("schema")?;
+            if !matches!(
+                kind,
+                "session.started"
+                    | "session.ended"
+                    | "mcp.initialize"
+                    | "tool.called"
+                    | "resource.read"
+                    | "prompt.get"
+                    | "mcp.request"
+                    | "log"
+                    | "error"
+                    | "custom"
+            ) {
+                return Err("unknown_type");
             }
-            _ => (None, Some("schema_invalid")),
-        };
-        if let Some(reason) = reason {
-            rejected.push(Rejected {
-                index,
-                id,
-                reason: reason.into(),
-            });
-        } else if let Some(event) = event {
-            accepted.push(event);
+            if !depth_ok(&value) || !validator.is_valid(&value) {
+                return Err("schema");
+            }
+            let ts = timestamp(&value["ts"]).ok_or("schema")?;
+            let duplicate = !seen.insert(value["id"].as_str().unwrap().to_ascii_lowercase());
+            if serde_json::to_vec(&value).unwrap().len() > 16384 {
+                return Err("too_large");
+            }
+            for (t, field, cap) in [
+                ("tool.called", "args", 2048),
+                ("log", "fields", 4096),
+                ("custom", "props", 8192),
+            ] {
+                if kind == t
+                    && value["attrs"][field].is_object()
+                    && serde_json::to_vec(&value["attrs"][field]).unwrap().len() > cap
+                {
+                    return Err("too_large");
+                }
+            }
+            if ts > now + Duration::minutes(5) {
+                return Err("ts_future");
+            }
+            if retention_days > 0 && ts < now - Duration::days(i64::from(retention_days)) {
+                return Err("ts_too_old");
+            }
+            if duplicate {
+                return Err("duplicate_in_batch");
+            }
+            Ok(ts)
+        })();
+        match reason {
+            Err(reason) => {
+                rejected.push(Rejected {
+                    index,
+                    reason: reason.into(),
+                });
+                drop_json(value);
+            }
+            Ok(ts) => {
+                normalize_storage(&mut value);
+                let string = |v: &Value| v.as_str().map(str::to_owned);
+                accepted.push(Event {
+                    id: value["id"].as_str().unwrap().parse().unwrap(),
+                    ts,
+                    event_type: string(&value["type"]).unwrap(),
+                    session_id: string(&value["session_id"]),
+                    caller: value
+                        .get("caller")
+                        .map(|v| serde_json::from_value(v.clone()).unwrap()),
+                    tool: string(&value["attrs"]["tool"]),
+                    // The original unbounded integer remains intact in attrs.
+                    duration_ms: value["attrs"]["duration_ms"]
+                        .as_f64()
+                        .map(|n| n.min(i32::MAX as f64) as i32),
+                    is_error: value["attrs"]["is_error"]
+                        .as_bool()
+                        .unwrap_or(value["type"] == "error"),
+                    client_name: string(&value["client"]["name"]),
+                    client_version: string(&value["client"]["version"]),
+                    attrs: value["attrs"].as_object().unwrap().clone(),
+                    client: value["client"].take(),
+                    source: Value::Null,
+                });
+            }
         }
     }
     (accepted, rejected)
-}
-fn contains_nul(value: &Value) -> bool {
-    match value {
-        Value::String(v) => v.contains('\0'),
-        Value::Array(v) => v.iter().any(contains_nul),
-        Value::Object(v) => v.iter().any(|(k, v)| k.contains('\0') || contains_nul(v)),
-        _ => false,
-    }
 }
 pub const HISTOGRAM_BUCKETS: [i32; 24] = [
     1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946,
@@ -163,31 +331,6 @@ pub fn percentile(buckets: &[i64], quantile: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
-    #[test]
-    fn rejects_late_future_and_duplicate_individually() {
-        let now = Utc::now();
-        let id = Uuid::new_v4();
-        let valid = json!({"id":id,"ts":now,"type":"tool.call","attrs":{}});
-        let future =
-            json!({"id":Uuid::new_v4(),"ts":now + Duration::minutes(6),"type":"tool.call"});
-        let late = json!({"id":Uuid::new_v4(),"ts":now - Duration::days(31),"type":"tool.call"});
-        let (events, rejected) =
-            validate_batch(vec![valid.clone(), future, late, valid, json!({})], now, 30);
-        assert_eq!(events.len(), 1);
-        assert_eq!(
-            rejected
-                .iter()
-                .map(|r| r.reason.as_str())
-                .collect::<Vec<_>>(),
-            [
-                "ts_future",
-                "ts_too_old",
-                "duplicate_in_batch",
-                "schema_invalid"
-            ]
-        );
-    }
     #[test]
     fn histogram_merges_and_empty_percentile_is_zero() {
         let a = histogram([1, 10, 100]);

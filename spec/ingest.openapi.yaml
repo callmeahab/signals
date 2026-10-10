@@ -1,0 +1,309 @@
+# SPDX-License-Identifier: Apache-2.0
+# Signals ingest API v1. Derived from CONTRACT.md; the JSON Schemas in this
+# repository (batch.schema.json, events.schema.json) are referenced, not copied.
+openapi: 3.1.0
+info:
+  title: Signals ingest API
+  version: 1.0.15
+  summary: Collector endpoints that every Signals SDK talks to
+  description: |
+    Signals is open-source observability for MCP servers. SDKs inside an MCP
+    server batch events and `POST` them here; `GET /v1/whoami` lets an SDK in
+    debug mode explain "wrong key / wrong URL".
+
+    Limits (CONTRACT.md §1): one event ≤ 16 KB (16,384 bytes) serialised; one
+    batch ≤ 1 MB (1,048,576 bytes) after decompression and ≤ 1000 events.
+    Partial acceptance is normal: a `202` carries the per-event `rejected` list.
+    Whole-batch failures use the `Error` body.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: "{collector}"
+    description: Any Signals collector, hosted or self-hosted (the SDK's `SIGNALS_URL`)
+    variables:
+      collector:
+        default: http://127.0.0.1:8787
+security:
+  - ingestKey: []
+tags:
+  - name: ingest
+    description: Event ingestion and key introspection.
+paths:
+  /v1/events:
+    post:
+      tags: [ingest]
+      operationId: ingestEvents
+      summary: Ingest a batch of events
+      description: |
+        Body is a batch envelope (`batch.schema.json`) as `application/json`, or
+        `application/x-ndjson` where the first line is the envelope without
+        `events` and every following non-empty line is one event object
+        (`events.schema.json`). `Content-Encoding: gzip` is accepted for both;
+        `identity` is equivalent to no header. The 1 MB body limit applies to the
+        decoded bytes; the compressed size is not limited separately.
+
+        SDKs emit `sent_at` and every `ts` in the canonical form
+        `YYYY-MM-DDTHH:MM:SS.sssZ`; the collector uses the literal `ts` string as
+        part of the idempotency key and never rewrites it.
+
+        Events are validated one by one in the order of CONTRACT.md §5
+        (`schema`, `unknown_type`, `too_large`, `ts_future`, `ts_too_old`,
+        `duplicate_in_batch`); an event gets at most one reason. Replays of
+        already-stored events (same `ts` and `id`) count as accepted. Among the
+        `schema` checks: capability arrays hold at most 32 keys of at most 64
+        code points; every string in `client` and `caller` is capped (`client.name`
+        128, `client.version` 64, `client.protocol_version` 32, `caller.key_id` 128,
+        `caller.subject` 256, `caller.ip` 64, `caller.user_agent` 512 code points), as is
+        `mcp.initialize.attrs.requested_protocol_version` (32);
+        `caller.key_id`, `caller.subject` and `caller.user_agent` must each be a
+        string or `null` and are never coerced by an SDK, so a non-string claim is
+        omitted rather than stringified (CONTRACT.md §3); and an `args` /
+        `fields` / `props` object carrying `_truncated` must be exactly the marker
+        `{"_truncated": true, "_bytes": n}` (`events.schema.json`
+        `$defs/truncated_object`).
+      parameters:
+        - name: Content-Encoding
+          in: header
+          required: false
+          description: "`gzip` when the body is compressed; `identity`, or no header, for an uncompressed body. Any other value answers 415."
+          schema:
+            type: string
+            enum: [gzip, identity]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./batch.schema.json"
+            examples:
+              tool-call:
+                summary: One tool.called event
+                externalValue: ./fixtures/valid/tool-called.json
+          application/x-ndjson:
+            schema:
+              type: string
+              description: |
+                Line 1: the batch envelope (`batch.schema.json`) **without** the
+                `events` key. Lines 2..n: one event object (`events.schema.json`)
+                per line. Empty lines are ignored. A line that is not valid JSON is
+                rejected with reason `schema` at its position; a first line that is
+                not a valid envelope answers 400.
+            examples:
+              tool-call:
+                summary: One tool.called event as NDJSON
+                externalValue: ./fixtures/valid/tool-called.ndjson
+      responses:
+        "202":
+          description: Batch processed. `accepted` plus the length of `rejected` equals the number of events sent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestResult"
+              example:
+                accepted: 998
+                rejected:
+                  - index: 3
+                    reason: ts_future
+                  - index: 7
+                    reason: duplicate_in_batch
+        "400":
+          description: Invalid UTF-8 after decompression (`malformed_body`), malformed JSON, or an envelope that does not match `batch.schema.json` (bad `schema_version`, missing `source`, unknown key, empty or whitespace-only `source` string, `events` not an array, NDJSON envelope line carrying `events`, invalid gzip, non-RFC-3339 or leap-second `sent_at`). SDKs emit canonical UTC timestamps with exactly milliseconds; the reference mock rejects colonless offsets and leap seconds during schema validation (`schema` for event `ts`). SDKs drop the batch, count its events as `dropped`, log once in debug mode and do not retry (it is an SDK bug or a mismatched collector).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: malformed_envelope
+                message: "envelope does not match batch.schema.json: / must have required property 'source'"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The key is valid but lacks the `ingest` scope. SDKs log once and stop sending for the process lifetime.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: forbidden
+                message: key lacks the `ingest` scope
+        "413":
+          description: Decoded body over 1 MB (the compressed size is not limited separately), or more than 1000 events. Limits precede JSON/envelope validation (decoded body size, then event count); 1001 events with an invalid envelope is 413. JSON must be parsed to determine its count; NDJSON counts non-empty event lines before parsing its envelope. SDKs halve their batch size for this process and retry; when the batch already holds a single event, that event is dropped, counted as `dropped`, and the SDK continues.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: too_many_events
+                message: batch has 1001 events, limit 1000
+        "415":
+          description: "`Content-Type` is neither `application/json` nor `application/x-ndjson`, or `Content-Encoding` is none of absent, `identity` and `gzip`. SDKs drop the batch, count its events as `dropped`, log once in debug mode and do not retry."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: unsupported_media_type
+                message: Content-Type must be application/json or application/x-ndjson
+        "429":
+          description: Rate limited. `Retry-After` replaces the SDK's backoff delay for that attempt (it does not add to it) and is capped at 60 s; without the header the SDK backs off exponentially with full jitter. Every attempt counts toward the cap of 5 attempts per batch, then the batch is dropped and counted.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: rate_limited
+                message: too many requests
+        "5XX":
+          description: Collector failure. SDKs retry with exponential backoff and full jitter (cap 60 s, at most 5 attempts per batch), then drop the batch and count it in `dropped`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: internal
+                message: unexpected collector failure
+  /v1/whoami:
+    get:
+      tags: [ingest]
+      operationId: whoami
+      summary: Describe the presented key
+      description: |
+        Returns the project, label and scopes of the key in the `Authorization`
+        header. Any valid key answers 200, including keys without the `ingest`
+        scope, so an SDK in debug mode can explain a 403 on `/v1/events`.
+      responses:
+        "200":
+          description: The key is known.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Whoami"
+              example:
+                project: proj_8f3a2c
+                label: production ingest key
+                scopes: [ingest]
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          description: Rate limited.
+          headers:
+            Retry-After:
+              $ref: "#/components/headers/Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "5XX":
+          description: Collector failure.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  securitySchemes:
+    ingestKey:
+      type: http
+      scheme: bearer
+      bearerFormat: "sgk_<key id>_<secret>"
+      description: Ingest key, opaque to SDKs. Unknown or revoked keys answer 401.
+  headers:
+    Retry-After:
+      description: Optional seconds to wait before the next request; replaces SDK backoff, capped at 60 seconds. When absent, ordinary backoff applies.
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      example: 1
+  responses:
+    Unauthorized:
+      description: Missing `Authorization` header, malformed bearer token, or unknown / revoked key. SDKs log once and stop sending for the process lifetime.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: unauthorized
+            message: unknown or revoked key
+  schemas:
+    Batch:
+      description: The batch envelope. Kept as a named alias so generated clients get a stable type name.
+      $ref: "./batch.schema.json"
+    Event:
+      description: One event object.
+      $ref: "./events.schema.json"
+    RejectionReason:
+      type: string
+      description: "Closed set of per-event rejection reasons (CONTRACT.md §1 and §5). schema includes nesting beyond 128 object/array levels (event object is level 1), checked before size limits."
+      enum:
+        - schema
+        - too_large
+        - ts_future
+        - ts_too_old
+        - unknown_type
+        - duplicate_in_batch
+    Rejection:
+      type: object
+      required: [index, reason]
+      additionalProperties: false
+      properties:
+        index:
+          type: integer
+          minimum: 0
+          description: Zero-based position of the event in the batch (for NDJSON, among the non-empty lines after the envelope line).
+        reason:
+          $ref: "#/components/schemas/RejectionReason"
+    IngestResult:
+      type: object
+      required: [accepted, rejected]
+      additionalProperties: false
+      properties:
+        accepted:
+          type: integer
+          minimum: 0
+          description: Number of events stored or recognised as replays.
+        rejected:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rejection"
+          description: Rejected events in batch order. Empty when everything was accepted.
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: |
+            Short machine-readable code. Codes used by the reference mock:
+            `malformed_json`, `malformed_body`, `malformed_envelope`, `malformed_gzip`,
+            `unauthorized`, `forbidden`, `body_too_large`, `too_many_events`,
+            `unsupported_media_type`, `rate_limited`, `internal`, `bad_request`,
+            `not_found`, `method_not_allowed`.
+            Collectors may add codes; SDKs key their behaviour on the status, not the code.
+        message:
+          type: string
+          description: Human-readable explanation, safe to log.
+        details:
+          type: array
+          items:
+            type: string
+          description: Optional per-field details for 400 responses.
+    Whoami:
+      type: object
+      required: [project, label, scopes]
+      additionalProperties: false
+      properties:
+        project:
+          type: string
+          description: Project id the key belongs to.
+        label:
+          type: string
+          description: Human-readable key label.
+        scopes:
+          type: array
+          items:
+            type: string
+          description: Scopes granted to the key; `ingest` is required for `POST /v1/events`.

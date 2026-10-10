@@ -1,39 +1,16 @@
-use anyhow::{Context, Result};
-use std::{fs, path::Path};
-
+use anyhow::Result;
 fn main() -> Result<()> {
-    let check = std::env::args().any(|v| v == "--check");
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-    let source = root.join("spec/events.schema.json");
-    let schema = serde_json::from_str(&fs::read_to_string(&source)?)?;
-    let mut space = typify::TypeSpace::default();
-    space
-        .add_root_schema(schema)
-        .context("generate event schema types")?;
-    let syntax = syn::parse2(space.to_stream())?;
-    let code = prettyplease::unparse(&syntax)
-        .lines()
-        .filter(|line| !line.trim_start().starts_with("///"))
-        .map(|line| format!("{line}\n"))
-        .collect::<String>();
-    use std::io::Write;
-    let mut formatter = std::process::Command::new("rustfmt")
-        .args(["--edition", "2021", "--emit", "stdout"])
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .spawn()?;
-    formatter.stdin.take().unwrap().write_all(code.as_bytes())?;
-    let output = formatter.wait_with_output()?;
-    anyhow::ensure!(output.status.success(), "Format generated types");
-    let code = String::from_utf8(output.stdout)?;
-    let target = root.join("crates/signals-core/src/wire.rs");
-    if check {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    for name in ["events.schema.json", "batch.schema.json"] {
+        let schema: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(root.join("spec").join(name))?)?;
         anyhow::ensure!(
-            fs::read_to_string(&target)? == code,
-            "Generated event types are stale; run cargo run -p signals-xtask"
+            schema["$schema"] == "https://json-schema.org/draft/2020-12/schema",
+            "Expected official JSON Schema draft"
         );
-    } else {
-        fs::write(target, code)?;
     }
+    println!("Official schemas parsed; runtime validation replaces generated wire types");
     Ok(())
 }

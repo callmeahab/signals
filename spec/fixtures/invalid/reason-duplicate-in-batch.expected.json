@@ -1,0 +1,18 @@
+{
+  "status": 202,
+  "accepted": 2,
+  "rejected": [
+    {
+      "index": 2,
+      "reason": "duplicate_in_batch"
+    },
+    {
+      "index": 3,
+      "reason": "duplicate_in_batch"
+    },
+    {
+      "index": 4,
+      "reason": "duplicate_in_batch"
+    }
+  ]
+}

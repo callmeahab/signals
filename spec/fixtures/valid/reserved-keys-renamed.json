@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sdk": "node",
+    "sdk_version": "0.1.0",
+    "server_name": "orders-mcp",
+    "server_version": "1.4.2",
+    "instance_id": "i_7f3a2c9d1e",
+    "hostname": "pod-7"
+  },
+  "sent_at": "2026-10-01T12:00:02.000Z",
+  "dropped": 0,
+  "events": [
+    {
+      "id": "01a0f757-51ae-7c2c-a320-2f6a45cb4510",
+      "ts": "2026-10-01T12:01:30.030Z",
+      "type": "tool.called",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "tool": "render",
+        "duration_ms": 3,
+        "is_error": false,
+        "input_bytes": 40,
+        "output_bytes": 12,
+        "output_kinds": [
+          "text"
+        ],
+        "cancelled": false,
+        "args": {
+          "_truncated_user": true,
+          "_bytes_user": 5000,
+          "mode": "fast"
+        }
+      }
+    },
+    {
+      "id": "01a0f757-51af-7c2d-b33f-2f6a45cb63ff",
+      "ts": "2026-10-01T12:01:30.031Z",
+      "type": "log",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "level": "debug",
+        "message": "dump",
+        "fields": {
+          "_truncated_user": "yes",
+          "_bytes_user": -1
+        }
+      }
+    },
+    {
+      "id": "01a0f757-51b0-7c2e-835e-2f6a45cb82ee",
+      "ts": "2026-10-01T12:01:30.032Z",
+      "type": "custom",
+      "session_id": "s_01J9X0K3E2",
+      "attrs": {
+        "name": "big",
+        "props": {
+          "_truncated_user": false,
+          "_bytes_user": 0,
+          "nested": {
+            "_truncated": true,
+            "_bytes": 1
+          }
+        }
+      }
+    }
+  ]
+}

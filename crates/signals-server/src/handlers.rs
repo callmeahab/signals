@@ -1,6 +1,6 @@
 use crate::{auth, App, Error, Result};
 use axum::{
-    body::{Body, Bytes},
+    body::Body,
     extract::{ConnectInfo, Path, Query, State},
     http::{header, HeaderMap, StatusCode, Uri},
     response::{
@@ -13,7 +13,7 @@ use chrono::{DateTime, Duration, Utc};
 use rust_embed::RustEmbed;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use signals_core::{validate_batch, Batch, MAX_EVENTS};
+use signals_core::{parse_batch, validate_batch, MAX_BODY};
 use signals_store::{checked_query, checked_query_as, checked_query_scalar};
 use signals_store::{hash, random_secret, Project};
 use std::{convert::Infallible, net::SocketAddr, sync::atomic::Ordering};
@@ -23,17 +23,53 @@ pub async fn ingest(
     State(app): State<App>,
     ConnectInfo(peer): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
-    body: Bytes,
-) -> Result<impl IntoResponse> {
+    body: Body,
+) -> std::result::Result<impl IntoResponse, crate::IngestError> {
     let key = auth::key(&app, &headers, "ingest").await?;
-    let batch: Batch =
-        serde_json::from_slice(&body).map_err(|_| Error::bad("Invalid batch envelope"))?;
-    if batch.events.len() > MAX_EVENTS {
-        return Err(Error {
-            status: StatusCode::PAYLOAD_TOO_LARGE,
-            message: "A batch can contain at most 1000 events".into(),
-        });
+    let content_type = headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .split(';')
+        .next()
+        .unwrap()
+        .trim()
+        .to_ascii_lowercase();
+    let ndjson = match content_type.as_str() {
+        "application/json" => false,
+        "application/x-ndjson" => true,
+        _ => return Err(crate::IngestError::code("unsupported_media_type")),
+    };
+    let encoding = headers
+        .get(header::CONTENT_ENCODING)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("identity")
+        .to_ascii_lowercase();
+    if !matches!(encoding.as_str(), "identity" | "gzip") {
+        return Err(crate::IngestError::code("unsupported_media_type"));
     }
+    let raw = axum::body::to_bytes(
+        body,
+        if encoding == "gzip" {
+            usize::MAX
+        } else {
+            MAX_BODY
+        },
+    )
+    .await
+    .map_err(|_| crate::IngestError::code("body_too_large"))?;
+    let body = if encoding == "gzip" {
+        use std::io::Read;
+        let mut decoded = Vec::new();
+        flate2::read::MultiGzDecoder::new(raw.as_ref())
+            .take((MAX_BODY + 1) as u64)
+            .read_to_end(&mut decoded)
+            .map_err(|_| crate::IngestError::code("malformed_gzip"))?;
+        decoded
+    } else {
+        raw.to_vec()
+    };
+    let batch = parse_batch(&body, ndjson).map_err(crate::IngestError::code)?;
     let events = batch.events.len() as i64;
     let bytes = body.len() as i64;
     if events > i64::from(key.project.rate_events_per_min) || bytes > key.project.rate_bytes_per_min
@@ -41,31 +77,44 @@ pub async fn ingest(
         return Err(Error {
             status: StatusCode::TOO_MANY_REQUESTS,
             message: "Project key rate limit exceeded".into(),
-        });
+        }
+        .into());
     }
     let limited=checked_query!("INSERT INTO rate_windows(key_id,window_start,events,bytes) VALUES($1,date_trunc('minute',clock_timestamp()),$2,$3) ON CONFLICT(key_id,window_start) DO UPDATE SET events=rate_windows.events+EXCLUDED.events,bytes=rate_windows.bytes+EXCLUDED.bytes WHERE rate_windows.events+EXCLUDED.events<=$4 AND rate_windows.bytes+EXCLUDED.bytes<=$5 RETURNING events" ,key.id,events,bytes,i64::from(key.project.rate_events_per_min),key.project.rate_bytes_per_min).fetch_optional(&app.store.pool).await?;
     if limited.is_none() {
         return Err(Error {
             status: StatusCode::TOO_MANY_REQUESTS,
             message: "Project key rate limit exceeded".into(),
-        });
+        }
+        .into());
     }
     app.counters.skew_seconds.store(
         (Utc::now() - batch.sent_at).num_seconds(),
         Ordering::Relaxed,
     );
-    let indices: std::collections::HashMap<String, usize> = batch
-        .events
-        .iter()
-        .enumerate()
-        .filter_map(|(i, e)| e["id"].as_str().map(|id| (id.to_owned(), i)))
-        .collect();
-    let (valid, mut rejected) =
-        validate_batch(batch.events, Utc::now(), key.project.retention_days);
+    let now = if std::env::var("SIGNALS_CONFORMANCE_CLOCK").as_deref() == Ok("sent_at") {
+        batch.sent_at
+    } else {
+        Utc::now()
+    };
+    let (valid, rejected) = validate_batch(batch.events, now, key.project.retention_days);
     let network = auth::network_identity(&key.salt, &peer.ip().to_string());
     let enriched = valid
         .into_iter()
-        .map(|e| {
+        .map(|mut e| {
+            e.source = batch.source.clone();
+            signals_core::normalize_storage(&mut e.source);
+            if let Some(caller) = e.caller.as_mut() {
+                caller.ip_hash = caller
+                    .ip
+                    .take()
+                    .map(|ip| auth::network_identity(&key.salt, &ip));
+            }
+            let network = e
+                .caller
+                .as_ref()
+                .and_then(|c| c.ip_hash.as_ref())
+                .unwrap_or(&network);
             let identity = if let Some(id) = e.caller.as_ref().and_then(|c| c.key_id.as_ref()) {
                 ("key".to_owned(), id.clone(), id.clone())
             } else if let Some(id) = e.caller.as_ref().and_then(|c| c.subject.as_ref()) {
@@ -81,14 +130,7 @@ pub async fn ingest(
         })
         .collect();
     let outcome = app.event_store.ingest(key.project.id, enriched).await?;
-    for (id, reason) in outcome.rejected {
-        rejected.push(signals_core::Rejected {
-            index: indices[&id.to_string()],
-            id: Some(id.to_string()),
-            reason,
-        });
-    }
-    let accepted = outcome.accepted;
+    let accepted = outcome.accepted + outcome.duplicates;
     let duplicates = outcome.duplicates;
     {
         let mut reasons = app.counters.rejections.lock().unwrap();
@@ -108,7 +150,7 @@ pub async fn ingest(
         .fetch_add(duplicates as u64, Ordering::Relaxed);
     Ok((
         StatusCode::ACCEPTED,
-        Json(json!({"accepted":accepted,"duplicates":duplicates,"rejected":rejected})),
+        Json(json!({"accepted":accepted,"rejected":rejected})),
     ))
 }
 fn user_agent_family(headers: &HeaderMap) -> &'static str {
@@ -134,9 +176,18 @@ fn user_agent_family(headers: &HeaderMap) -> &'static str {
     }
 }
 #[utoipa::path(get,path="/v1/whoami",responses((status=200,description="Success",body=crate::openapi::Identity), (status=400,description="Invalid request",body=crate::openapi::ErrorDocument),(status=401,description="Invalid credentials"),(status=403,description="Scope or tenant denied")),security(("ingestKey"=[])))]
-pub async fn whoami(State(app): State<App>, headers: HeaderMap) -> Result<Json<Value>> {
-    let k = auth::key(&app, &headers, "ingest").await?;
-    Ok(Json(json!({"project":k.project,"key_id":k.id})))
+pub async fn whoami(
+    State(app): State<App>,
+    headers: HeaderMap,
+) -> std::result::Result<Json<Value>, crate::IngestError> {
+    let k = auth::key(&app, &headers, "").await?;
+    let row = checked_query!("SELECT label,scopes FROM api_keys WHERE id=$1", k.id)
+        .fetch_one(&app.store.pool)
+        .await?;
+    use sqlx::Row;
+    Ok(Json(
+        json!({"project":k.project.id,"label":row.get::<String,_>("label"),"scopes":row.get::<Vec<String>,_>("scopes")}),
+    ))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub struct Login {

@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sdk": "node",
+    "sdk_version": "0.1.0",
+    "server_name": "orders-mcp",
+    "server_version": "1.4.2",
+    "instance_id": "i_7f3a2c9d1e",
+    "hostname": "pod-7"
+  },
+  "sent_at": "2026-10-01T12:00:02.000Z",
+  "events": [
+    {
+      "id": "01a0f755-f264-7ce2-892a-2f6a1b58a2fa",
+      "ts": "2026-10-01T12:00:00.100Z",
+      "type": "session.started",
+      "attrs": {
+        "transport": "synthetic"
+      }
+    },
+    {
+      "id": "01a0f755-f265-7ce3-9949-2f6a1b58c1e9",
+      "ts": "2026-10-01T12:00:00.101Z",
+      "type": "tool.called",
+      "attrs": {
+        "tool": "echo",
+        "duration_ms": 0,
+        "is_error": true,
+        "error_message": "boom",
+        "input_bytes": 0,
+        "output_bytes": 0,
+        "output_kinds": [],
+        "cancelled": false
+      }
+    },
+    {
+      "id": "01a0f755-f266-7ce4-a968-2f6a1b58e0d8",
+      "ts": "2026-10-01T12:00:00.102Z",
+      "type": "log",
+      "attrs": {
+        "level": "warn",
+        "message": ""
+      }
+    },
+    {
+      "id": "01a0f755-f267-7ce5-b987-2f6a1b58ffc7",
+      "ts": "2026-10-01T12:00:00.103Z",
+      "type": "custom",
+      "attrs": {
+        "name": "ping"
+      }
+    },
+    {
+      "id": "01a0f755-f268-7ce6-89a6-2f6a1b591eb6",
+      "ts": "2026-10-01T12:00:00.104Z",
+      "type": "error",
+      "attrs": {
+        "message": "unauthorised",
+        "where": "auth"
+      }
+    },
+    {
+      "id": "01a0f755-f269-7ce7-99c5-2f6a1b593da5",
+      "ts": "2026-10-01T12:00:00.105Z",
+      "type": "session.ended",
+      "attrs": {
+        "duration_ms": 1,
+        "reason": "idle"
+      }
+    }
+  ]
+}

@@ -68,7 +68,7 @@ impl Summary {
         if !row.get::<String, _>("type").starts_with("session.") {
             self.requests += 1;
             self.errors += i64::from(row.get::<bool, _>("is_error"));
-            self.calls += i64::from(row.get::<String, _>("type") == "tool.call");
+            self.calls += i64::from(row.get::<String, _>("type") == "tool.called");
             *self
                 .clients
                 .entry(
@@ -263,7 +263,7 @@ impl Store {
             b.merge(&ToolBucket{calls:row.get("calls"),errors:row.get("errors"),hist:row.get("duration_hist"),last:Some(row.get("last_called"))});
         }
         if from < full_from || full_to < to {
-            for row in checked_query!("SELECT tool,ts,is_error,duration_ms FROM events WHERE project_id=$1 AND ($2::text[] IS NULL OR tool=ANY($2)) AND tool IS NOT NULL AND type='tool.call' AND ts>=$3 AND ts<$4 AND (ts<$5 OR ts>=$6)",project,selected,from,to,full_from,full_to).fetch_all(&self.pool).await? {
+            for row in checked_query!("SELECT tool,ts,is_error,duration_ms FROM events WHERE project_id=$1 AND ($2::text[] IS NULL OR tool=ANY($2)) AND tool IS NOT NULL AND type='tool.called' AND ts>=$3 AND ts<$4 AND (ts<$5 OR ts>=$6)",project,selected,from,to,full_from,full_to).fetch_all(&self.pool).await? {
                 let ts:DateTime<Utc>=row.get("ts");
                 let b=tools.entry(row.get("tool")).or_default().entry(bucket_start(ts,false)).or_default();
                 b.merge(&ToolBucket{calls:1,errors:i64::from(row.get::<bool,_>("is_error")),hist:histogram(row.get::<Option<i32>,_>("duration_ms")),last:Some(ts)});
@@ -286,7 +286,7 @@ impl Store {
         to: DateTime<Utc>,
     ) -> Result<Value> {
         let (full_from, full_to) = full_bounds(from, to, false);
-        let selected: Vec<String> = checked_query_scalar!("SELECT tool FROM (SELECT tool,calls FROM rollup_tool_hourly WHERE project_id=$1 AND hour>=$4 AND hour<$5 UNION ALL SELECT tool,1 AS calls FROM events WHERE project_id=$1 AND type='tool.call' AND tool IS NOT NULL AND ts>=$2 AND ts<$3 AND (ts<$4 OR ts>=$5)) totals GROUP BY tool ORDER BY sum(calls) DESC,tool LIMIT 5",project,from,to,full_from,full_to).fetch_all(&self.pool).await?;
+        let selected: Vec<String> = checked_query_scalar!("SELECT tool FROM (SELECT tool,calls FROM rollup_tool_hourly WHERE project_id=$1 AND hour>=$4 AND hour<$5 UNION ALL SELECT tool,1 AS calls FROM events WHERE project_id=$1 AND type='tool.called' AND tool IS NOT NULL AND ts>=$2 AND ts<$3 AND (ts<$4 OR ts>=$5)) totals GROUP BY tool ORDER BY sum(calls) DESC,tool LIMIT 5",project,from,to,full_from,full_to).fetch_all(&self.pool).await?;
         self.tools_selected(project, Some(&selected), from, to)
             .await
     }
