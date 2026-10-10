@@ -930,3 +930,300 @@ previous report's timestamp/duration divergences and UI metadata release gate
 remain outside this fix's scope and were not revalidated in this pass. The
 measuring serializer uses binary64 numbers, as the JavaScript reference does,
 while leaving the serde values used for storage unchanged.
+
+
+## Fix pass r2
+
+Implemented in `a41fbc2` (Accept overflowing JSON numbers and normalize them to null).
+
+### Changes by file
+
+- `Cargo.toml`: enable serde_json arbitrary_precision so syntactically valid numeric tokens outside binary64 no longer fail JSON parsing.
+- `crates/signals-core/src/lib.rs`: iteratively replace only out-of-binary64-range numbers with null after parsing, before validation and storage, for both JSON and NDJSON. Finite numbers retain their exact serde values for storage; measurement converts them to binary64 for ECMAScript spelling. Measurement also handles an unnormalized overflowing Number as four bytes rather than panicking. Core regression coverage includes positive/negative overflow, a 401-digit integer, finite 1e308, integers beyond 2^53, and unchanged finite values.
+- `reports/fix-r2-number-probe.py`: reproducible HTTP plus PostgreSQL test using the review's exact minimal 1e400 body, negative overflow, the 401-digit integer, finite 1e308 and 9007199254740993. Overflow cases assert stored JSON null; finite controls assert exact stored numbers.
+- `reports/collector-ingest.md`: this report.
+
+### Verification commands and results
+
+Cargo commands used the following environment:
+
+```sh
+export PATH=$HOME/.cargo/bin:$PATH
+export CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0
+```
+
+The disposable PostgreSQL container was started with:
+
+```sh
+docker run -d --name signals-collector-fix-r2-pg -e POSTGRES_USER=signals -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:28432:5432 postgres:18.6-bookworm
+docker exec signals-collector-fix-r2-pg createdb -U signals signals_tests
+PG_PORT=28432 PG_CONTAINER=signals-collector-fix-r2-pg PORT=28350 bash reports/review-r2/setup.sh
+```
+
+Setup output:
+
+```text
+UPDATE 1
+collector http://127.0.0.1:28350 project 3cd6fa2a-543c-44dc-8ddd-9929188b3af1 clock=sent_at keys in /home/vuk/orca/workspaces/signals-collector/collector-ingest/target/review-r2/28350
+```
+
+The setup script's background server ended with its shell, causing the first
+storage/fuzzer attempts to get connection refused. Restarted the collector in
+an active execution session with the same database, bind/public URL, admin token,
+session secret and `SIGNALS_CONFORMANCE_CLOCK=sent_at`; all final runs below
+used that live server. The new storage probe initially used UUIDv4 for additional
+cases, which correctly failed the UUIDv7 schema check; fixed the probe to use
+UUIDv7 before its final passing run. Neither was a collector regression.
+
+```sh
+DATABASE_URL=postgres://signals:signals@127.0.0.1:28432/signals SIGNALS_BIND=127.0.0.1:28350 SIGNALS_PUBLIC_URL=http://127.0.0.1:28350 SIGNALS_ADMIN_TOKEN=review-r2-admin-token-32-characters SIGNALS_SESSION_SECRET=review-r2-session-secret-32-characters SIGNALS_CONFORMANCE_CLOCK=sent_at target/debug/signals serve
+export SIGNALS_API_KEY=$(cat target/review-r2/28350/key)
+export SIGNALS_READ_KEY=$(cat target/review-r2/28350/read-key)
+```
+
+API key values remain in ignored target files and are omitted here. All required
+checks below passed; output excerpts are from this pass, not the prior review.
+
+```sh
+cargo fmt --all --check
+```
+
+```text
+(No output; exit 0.)
+```
+
+```sh
+cargo test --locked -p signals-core
+```
+
+```text
+Compiling serde_json v1.0.151
+   Compiling referencing v0.58.4
+   Compiling jsonschema-value v0.58.4
+   Compiling jsonschema v0.58.4
+   Compiling signals-core v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-core)
+    Finished `test` profile [unoptimized] target(s) in 4.53s
+     Running unittests src/lib.rs (target/debug/deps/signals_core-6cd3db3c158b6208)
+
+running 9 tests
+test tests::histogram_merges_and_empty_percentile_is_zero ... ok
+test tests::measurement_uses_ecmascript_numbers_and_json_escaping ... ok
+test tests::utf8_precedes_ndjson_count_but_count_precedes_envelope ... ok
+test tests::source_uses_ecmascript_whitespace ... ok
+test tests::rejects_arbitrary_depth_without_recursive_drop ... ok
+test tests::overflowing_numbers_become_null_and_finite_numbers_stay_exact ... ok
+test tests::object_caps_use_the_same_measurement ... ok
+test tests::event_cap_uses_json_stringify_without_changing_stored_floats ... ok
+test tests::official_fixtures_match_reference ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+   Doc-tests signals_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+```
+
+```sh
+cargo clippy --locked --workspace --all-targets -- -D warnings
+```
+
+```text
+    Checking signals-core v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-core)
+    Checking sqlx v0.9.0
+    Checking signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-store)
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 5.94s
+```
+
+```sh
+cargo test --locked --workspace
+```
+
+```text
+     Running unittests src/lib.rs (target/debug/deps/signals_core-4ddfdb2286beaddd)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+     Running unittests src/lib.rs (target/debug/deps/signals_server-a023ea4776eea880)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
+     Running unittests src/main.rs (target/debug/deps/signals-99b64af598ed441b)
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/integration.rs (target/debug/deps/integration-8e9e695f73765501)
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/read_performance.rs (target/debug/deps/read_performance-5cfcfdf614651cec)
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/rollup_properties.rs (target/debug/deps/rollup_properties-f887d20bf0b32e2c)
+test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src/lib.rs (target/debug/deps/signals_store-3298b3f48312c033)
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src/main.rs (target/debug/deps/signals_xtask-59e3c3e88674712a)
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+```
+
+```sh
+cargo build --locked --bin signals
+```
+
+```text
+Compiling serde_json v1.0.151
+   Compiling jsonschema-value v0.58.4
+   Compiling sqlx-core v0.9.0
+   Compiling referencing v0.58.4
+   Compiling reqwest v0.13.5
+   Compiling utoipa v6.0.0
+   Compiling axum v0.8.9
+   Compiling jsonschema v0.58.4
+   Compiling opentelemetry-http v0.33.0
+   Compiling opentelemetry-otlp v0.33.0
+   Compiling sqlx-postgres v0.9.0
+   Compiling sqlx v0.9.0
+   Compiling signals-core v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-core)
+   Compiling signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-store)
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 8.97s
+```
+
+```sh
+TEST_DATABASE_URL=postgres://signals:signals@127.0.0.1:28432/signals_tests cargo test --locked -p signals-server --test integration --test rollup_properties -- --ignored --test-threads=1
+```
+
+```text
+Finished `test` profile [unoptimized] target(s) in 0.10s
+     Running tests/integration.rs (target/debug/deps/integration-8e9e695f73765501)
+
+running 2 tests
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+
+     Running tests/rollup_properties.rs (target/debug/deps/rollup_properties-f887d20bf0b32e2c)
+
+running 3 tests
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.67s
+```
+
+```sh
+python3 reports/fix-r2-number-probe.py --url http://127.0.0.1:28350 --project "$(cat target/review-r2/28350/project)" --pg-container signals-collector-fix-r2-pg
+```
+
+```text
+PASS 1e400: 202 accepted=1 rejected=[], stored null
+PASS -1e400: 202 accepted=1 rejected=[], stored null
+PASS 401-digit integer: 202 accepted=1 rejected=[], stored null
+PASS 1e308: 202 accepted=1 rejected=[], stored exact finite number
+PASS 9007199254740993: 202 accepted=1 rejected=[], stored exact finite number
+5/5 acceptance and PostgreSQL storage checks passed
+```
+
+```sh
+python3 reports/review-r2/number_fuzz.py --url http://127.0.0.1:28350 --cases 500
+```
+
+```text
+1244/1244 cases matched the reference (0 unbuildable)
+```
+
+```sh
+python3 reports/review-r2/number_fuzz.py --url http://127.0.0.1:28350 --cases 500 --seed 777
+```
+
+```text
+1244/1244 cases matched the reference (0 unbuildable)
+```
+
+```sh
+python3 scripts/spec-conformance.py --url http://127.0.0.1:28350
+```
+
+```text
+identity: 39/39 valid fixtures matched
+identity: 49/49 invalid fixtures matched
+gzip: 39/39 valid fixtures matched
+gzip: 49/49 invalid fixtures matched
+```
+
+```sh
+python3 scripts/transport-conformance.py --url http://127.0.0.1:28350
+```
+
+```text
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+```
+
+```sh
+python3 reports/review-r1/probe.py --url http://127.0.0.1:28350
+```
+
+```text
+PASS utf8 invalid short json
+PASS utf8 invalid ndjson over event count
+PASS canonical_16384
+PASS canonical_16385
+PASS wire_1_0_js_16384
+5 passed, 0 failed
+```
+
+All five ignored integration and rollup tests passed. The million-row
+read-performance benchmark remains ignored; it was not run for this ingest fix.
+
+### Remaining divergence
+
+Also ran the broader optional edge probe:
+
+```sh
+python3 reports/review-r2/edge_probe.py --url http://127.0.0.1:28350
+```
+
+```text
+PASS number 1e400 -> Infinity
+PASS number -1e400 -> -Infinity
+PASS number 1e-400 -> 0
+PASS number 1e309 -> Infinity
+PASS number 401-digit integer
+FAIL lone surrogate escape \ud800
+PASS escaped control chars at 16384
+PASS escaped control chars at 16385
+PASS (a) invalid utf8 before envelope line, 1002 lines
+PASS (b) invalid utf8 inside event line 1001
+PASS (b2) invalid utf8 inside event line, 10 events
+PASS control valid utf8, 1001 events, bad envelope line
+PASS (c) invalid utf8 in gzip decoding over 1MB
+PASS control valid utf8 gzip over 1MB
+PASS control invalid utf8 gzip under 1MB
+PASS ndjson crlf line endings
+15 passed, 1 failed
+ - lone surrogate escape \ud800
+```
+
+This optional probe exits 1 only for the previously documented lone-surrogate
+escape: serde rejects it while the JavaScript reference accepts it. All numeric
+and UTF-8 cases pass; lone-surrogate support is outside the requested numeric
+fix. The earlier timestamp/duration and UI metadata limitations remain outside
+this pass and were not revalidated. No requested round-2 fix remains unfinished.
+
+### Cleanup
+
+Verified the collector PID's working directory before sending SIGTERM, then ran:
+
+```sh
+docker stop signals-collector-fix-r2-pg
+docker rm -v signals-collector-fix-r2-pg
+ss -ltnp 'sport = :28350'
+```
+
+```text
+Sent SIGTERM to owned collector PID 38391.
+$ docker stop signals-collector-fix-r2-pg
+signals-collector-fix-r2-pg
+$ docker rm -v signals-collector-fix-r2-pg
+signals-collector-fix-r2-pg
+PASS: no listener remains on collector port 28350.
+```
