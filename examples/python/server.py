@@ -5,7 +5,7 @@ from mcp.server.mcpserver import MCPServer
 from mcpramen_signals import Signals
 
 signals = Signals.from_env()
-mcp = MCPServer("signals-python-example", stateless_http=True)
+mcp = MCPServer("signals-python-example")
 
 
 @mcp.tool()

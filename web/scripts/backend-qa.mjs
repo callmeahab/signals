@@ -3,6 +3,8 @@ import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { checkLoginStyles } from './login-styles.mjs';
 
+const uuid7=()=>{const hex=Date.now().toString(16).padStart(12,'0');return `${hex.slice(0,8)}-${hex.slice(8)}-7${crypto.randomUUID().slice(15)}`;};
+const envelope=events=>({schema_version:1,source:{sdk:'browser-qa',sdk_version:'1',server_name:'qa',server_version:'1',instance_id:'qa-1'},sent_at:new Date().toISOString(),dropped:0,events});
 const docker=process.argv.includes('--docker');
 const base=process.env.SIGNALS_URL??(docker?'http://127.0.0.1:8350':'http://127.0.0.1:8300');
 const replica=process.env.SIGNALS_REPLICA_URL??(docker?'http://127.0.0.1:8351':base);
@@ -20,17 +22,17 @@ try{
  await page.getByRole('heading',{name:'Overview.',exact:true}).waitFor();
  const me=await page.request.get(`${base}/v1/auth/me`);assert.equal(me.status(),200);const account=await me.json();const project=account.projects[0];
  const minted=await page.request.post(`${base}/v1/projects/${project.id}/keys`,{data:{label:'Browser QA',scopes:['ingest','read']}});assert.equal(minted.status(),200);const {secret,key}=await minted.json();
- const first={id:crypto.randomUUID(),ts:new Date().toISOString(),type:'tool.call',session_id:'browser-qa',tool:'search_documents',duration_ms:74,is_error:false,client_name:'Claude',caller:{subject:'Browser QA'},attrs:{transport:'streamable-http'}};
- const events=Array.from({length:25},(_,i)=>({...first,id:crypto.randomUUID(),duration_ms:74+i*13,is_error:i===7,tool:i%2?'get_customer':'search_documents'}));
- const batch={sent_at:first.ts,events};
+ const first={id:uuid7(),ts:new Date().toISOString(),type:'tool.called',session_id:'browser-qa',client:{name:'Claude',version:'1',protocol_version:'2025-03-26'},caller:{subject:'Browser QA'},attrs:{tool:'search_documents',duration_ms:74,is_error:false,input_bytes:20,output_bytes:40,output_kinds:['text'],cancelled:false}};
+ const events=Array.from({length:25},(_,i)=>({...first,id:uuid7(),attrs:{...first.attrs,duration_ms:74+i*13,is_error:i===7,tool:i%2?'get_customer':'search_documents'}}));
+ const batch=envelope(events);
  const response=await page.request.post(`${base}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:batch});assert.equal(response.status(),202);assert.equal((await response.json()).accepted,25);
  const replay=await page.request.post(`${base}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:batch});assert.equal(replay.status(),202);assert.equal((await replay.json()).accepted,0);
  for(const route of ['events','sessions','keys','callers?range=24h','tools?range=24h','timeseries?range=24h']){const result=await page.request.get(`${base}/v1/projects/${project.id}/${route}`);assert.equal(result.status(),200,route);}
- const found=await page.request.get(`${base}/v1/projects/${project.id}/events?tool=search_documents`);assert((await found.json()).items.every(e=>e.tool==='search_documents'));
+ const found=await page.request.get(`${base}/v1/projects/${project.id}/events?tool=search_documents`);assert((await found.json()).items.every(e=>e.attrs.tool==='search_documents'));
  await page.goto(`${base}/#live`);await page.getByText('Streaming',{exact:true}).waitFor();
- const liveEvent={...first,id:crypto.randomUUID(),ts:new Date().toISOString(),tool:`live-${Date.now()}`};
- await page.request.post(`${replica}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:{sent_at:liveEvent.ts,events:[liveEvent]}});
- await page.getByText(liveEvent.tool,{exact:true}).waitFor({timeout:10000});
+ const liveEvent={...first,id:uuid7(),ts:new Date().toISOString(),attrs:{...first.attrs,tool:`live-${Date.now()}`}};
+ await page.request.post(`${replica}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:envelope([liveEvent])});
+ await page.getByText(liveEvent.attrs.tool,{exact:true}).waitFor({timeout:10000});
  await page.goto(`${base}/#settings`);await page.getByLabel('Project name').fill('Browser QA MCP');await page.getByRole('button',{name:'Save changes',exact:true}).click();await page.getByText('Project settings saved.',{exact:true}).waitFor();
  const csrf=await page.request.patch(`${base}/v1/projects/${project.id}`,{headers:{Origin:'https://untrusted.invalid'},data:{...project,name:'CSRF'}});assert.equal(csrf.status(),403);
  const userResponse=await page.request.post(`${base}/v1/projects/${project.id}/users`,{data:{email:`viewer-${Date.now()}@signals.test`,password:'viewer-test-password',role:'viewer'}});assert.equal(userResponse.status(),200);
