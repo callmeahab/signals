@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT ts,id,jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs) AS event FROM events WHERE project_id=$1 AND session_id=$2 AND ts>=$3 AND (ts,id)>($4,$5) ORDER BY ts,id LIMIT 201",
+  "query": "SELECT ts,id,jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs,'source',source,'client',client,'caller',caller) AS event FROM events WHERE project_id=$1 AND session_id=$2 AND ts>=$3 AND (ts,id)>($4,$5) ORDER BY ts,id LIMIT 201",
   "describe": {
     "columns": [
       {
@@ -47,5 +47,5 @@
       null
     ]
   },
-  "hash": "b6c3cf0924a1d555fbaa6cce6994cab06ffa76932af0c5c60a303c6373fbf83e"
+  "hash": "36d5d227f4c95841c054e4d7716480d33ea5dc1a69d3fe202e83b1d01603e0aa"
 }

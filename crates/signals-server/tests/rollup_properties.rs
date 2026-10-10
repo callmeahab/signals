@@ -56,7 +56,7 @@ fn random_lateness_matches_brute_force_sql() {
 
 #[tokio::test]
 #[ignore = "Requires isolated TEST_DATABASE_URL"]
-async fn copy_fallback_and_unlimited_session_history() {
+async fn storage_error_is_atomic_and_unlimited_session_history() {
     let url = std::env::var("TEST_DATABASE_URL").unwrap();
     assert!(url.contains("127.0.0.1") || url.contains("localhost"));
     let store = Store::connect(&url).await.unwrap();
@@ -99,11 +99,14 @@ async fn copy_fallback_and_unlimited_session_history() {
                 (event(14), "subject".into(), "one".into(), "One".into()),
             ],
         )
+        .await;
+    assert!(outcome.is_err());
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM events WHERE project_id=$1")
+        .bind(project.id)
+        .fetch_one(&store.pool)
         .await
         .unwrap();
-    assert_eq!(outcome.accepted, 2);
-    assert_eq!(outcome.rejected.len(), 1);
-    assert_eq!(outcome.duplicates, 0);
+    assert_eq!(count, 0);
     sqlx::query(sqlx::AssertSqlSafe(format!(
         "ALTER TABLE events DROP CONSTRAINT {constraint}"
     )))
@@ -133,7 +136,7 @@ async fn copy_fallback_and_unlimited_session_history() {
             break;
         }
     }
-    assert_eq!(ids.len(), 1202);
+    assert_eq!(ids.len(), 1200);
 }
 
 #[tokio::test]

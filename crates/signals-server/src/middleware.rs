@@ -2,7 +2,7 @@ use crate::App;
 use axum::{
     extract::{MatchedPath, Request, State},
     middleware::Next,
-    response::Response,
+    response::{IntoResponse, Response},
 };
 use std::sync::{atomic::Ordering, Arc};
 use tracing::Instrument;
@@ -40,6 +40,9 @@ pub async fn observe(State(app): State<App>, mut request: Request, next: Next) -
     let span = tracing::info_span!("http.request",http.request.method=%request.method(),http.route=route,request_id=%request_id);
     let start = std::time::Instant::now();
     let mut response = next.run(request).instrument(span.clone()).await;
+    if ingest && response.status() == axum::http::StatusCode::SERVICE_UNAVAILABLE {
+        response = (axum::http::StatusCode::SERVICE_UNAVAILABLE, axum::Json(serde_json::json!({"error":"internal","message":"Request timed out; retry the batch"}))).into_response();
+    }
     response
         .headers_mut()
         .insert("x-request-id", request_id.parse().unwrap());

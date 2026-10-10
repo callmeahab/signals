@@ -110,6 +110,12 @@ pub async fn ingest(
                     .take()
                     .map(|ip| auth::network_identity(&key.salt, &ip));
             }
+            if let Some(caller) = e.caller_data.as_object_mut() {
+                caller.remove("ip");
+                if let Some(hash) = e.caller.as_ref().and_then(|c| c.ip_hash.as_ref()) {
+                    caller.insert("ip_hash".into(), json!(hash));
+                }
+            }
             let network = e
                 .caller
                 .as_ref()

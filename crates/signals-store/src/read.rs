@@ -429,7 +429,7 @@ impl Store {
             since,
         } = query;
         let (ts, id) = cursor.unwrap_or((Utc::now() + Duration::minutes(6), Uuid::max()));
-        let rows=checked_query!("SELECT ts,id,jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs) AS event FROM events WHERE project_id=$1 AND ts>=$2 AND (ts,id)<($3,$4) AND ($5::text IS NULL OR type=$5) AND ($6::text IS NULL OR tool=$6) AND ($7::text IS NULL OR tool ILIKE '%'||$7||'%' OR attrs->>'message' ILIKE '%'||$7||'%' OR attrs->>'error_message' ILIKE '%'||$7||'%') AND ($8::bigint IS NULL OR caller_id=$8) AND ($9::boolean IS NULL OR is_error=$9) ORDER BY ts DESC,id DESC LIMIT 101" ,project,since,ts,id,kind,tool,q,caller,is_error).fetch_all(&self.pool).await?;
+        let rows=checked_query!("SELECT ts,id,jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs,'source',source,'client',client,'caller',caller) AS event FROM events WHERE project_id=$1 AND ts>=$2 AND (ts,id)<($3,$4) AND ($5::text IS NULL OR type=$5) AND ($6::text IS NULL OR tool=$6) AND ($7::text IS NULL OR tool ILIKE '%'||$7||'%' OR attrs->>'message' ILIKE '%'||$7||'%' OR attrs->>'error_message' ILIKE '%'||$7||'%') AND ($8::bigint IS NULL OR caller_id=$8) AND ($9::boolean IS NULL OR is_error=$9) ORDER BY ts DESC,id DESC LIMIT 101" ,project,since,ts,id,kind,tool,q,caller,is_error).fetch_all(&self.pool).await?;
         let next = if rows.len() > 100 {
             let r = &rows[99];
             Some(format!(
@@ -475,7 +475,7 @@ impl Store {
         cursor: Option<(DateTime<Utc>, Uuid)>,
     ) -> Result<Value> {
         let (ts, id) = cursor.unwrap_or((since, Uuid::nil()));
-        let rows=checked_query!("SELECT ts,id,jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs) AS event FROM events WHERE project_id=$1 AND session_id=$2 AND ts>=$3 AND (ts,id)>($4,$5) ORDER BY ts,id LIMIT 201" ,project,session,since,ts,id).fetch_all(&self.pool).await?;
+        let rows=checked_query!("SELECT ts,id,jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs,'source',source,'client',client,'caller',caller) AS event FROM events WHERE project_id=$1 AND session_id=$2 AND ts>=$3 AND (ts,id)>($4,$5) ORDER BY ts,id LIMIT 201" ,project,session,since,ts,id).fetch_all(&self.pool).await?;
         let next = if rows.len() > 200 {
             let r = &rows[199];
             Some(format!(
@@ -496,6 +496,6 @@ impl Store {
         id: Uuid,
         ts: DateTime<Utc>,
     ) -> Result<Option<Value>> {
-        Ok(checked_query_scalar!("SELECT jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs) FROM events WHERE project_id=$1 AND id=$2 AND ts=$3" ,project,id,ts).fetch_optional(&self.pool).await?)
+        Ok(checked_query_scalar!("SELECT jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs,'source',source,'client',client,'caller',caller) FROM events WHERE project_id=$1 AND id=$2 AND ts=$3" ,project,id,ts).fetch_optional(&self.pool).await?)
     }
 }

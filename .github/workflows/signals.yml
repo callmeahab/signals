@@ -42,7 +42,8 @@ jobs:
       - run: cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features rustls,postgres
       - run: cargo sqlx prepare --check --workspace -- --all-targets
       - run: cargo test --locked -p signals-server --test integration --test rollup_properties -- --ignored --test-threads=1
-      - run: python3 scripts/ci-conformance.py
+      - name: Official spec fixtures (identity and gzip)
+        run: python3 scripts/ci-conformance.py
       - run: bun run test:next
         working-directory: web
       - uses: actions/upload-artifact@v7

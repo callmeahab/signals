@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT ts,id,jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs) AS event FROM events WHERE project_id=$1 AND ts>=$2 AND (ts,id)<($3,$4) AND ($5::text IS NULL OR type=$5) AND ($6::text IS NULL OR tool=$6) AND ($7::text IS NULL OR tool ILIKE '%'||$7||'%' OR attrs->>'message' ILIKE '%'||$7||'%' OR attrs->>'error_message' ILIKE '%'||$7||'%') AND ($8::bigint IS NULL OR caller_id=$8) AND ($9::boolean IS NULL OR is_error=$9) ORDER BY ts DESC,id DESC LIMIT 101",
+  "query": "SELECT ts,id,jsonb_build_object('id',id,'ts',ts,'type',type,'session_id',session_id,'caller_id',caller_id::text,'tool',tool,'duration_ms',duration_ms,'is_error',is_error,'client_name',client_name,'client_version',client_version,'attrs',attrs,'source',source,'client',client,'caller',caller) AS event FROM events WHERE project_id=$1 AND ts>=$2 AND (ts,id)<($3,$4) AND ($5::text IS NULL OR type=$5) AND ($6::text IS NULL OR tool=$6) AND ($7::text IS NULL OR tool ILIKE '%'||$7||'%' OR attrs->>'message' ILIKE '%'||$7||'%' OR attrs->>'error_message' ILIKE '%'||$7||'%') AND ($8::bigint IS NULL OR caller_id=$8) AND ($9::boolean IS NULL OR is_error=$9) ORDER BY ts DESC,id DESC LIMIT 101",
   "describe": {
     "columns": [
       {
@@ -51,5 +51,5 @@
       null
     ]
   },
-  "hash": "39952662f3c0ad9fa126d1c0ca1a72b2801cb3bb1edf63334ffbdcffebf8e85c"
+  "hash": "b20825d2371363c8327e0145822314c5189caea0301bec43765c3c2c8176e095"
 }

@@ -1,12 +1,12 @@
 {
-  "mode": "vendored-unverified",
-  "conformance_verified": false,
+  "mode": "official",
+  "conformance_verified": true,
   "source": "https://github.com/vuk88/signals-spec.git",
   "tag": "v1.0.15",
   "commit": "8cdcccbcd38841acfb8aad29eb493c0c9c7aa9e0",
   "sha256": {
-    "batch.schema.json": "078bb8aefe5b7736960ac8c752fdd84093f66808c7344fec11b862ee86b70c73",
     "events.schema.json": "5c4ec060902ac58c3ecf3bfb4f0bdcb82ec465c057fcda0861b3ea8aafaba8ec",
+    "batch.schema.json": "078bb8aefe5b7736960ac8c752fdd84093f66808c7344fec11b862ee86b70c73",
     "ingest.openapi.yaml": "7b7fb0b26e94900f8ad39829611ee5ea939e0b31f674760553e8da0e0be91108",
     "fixtures/invalid/envelope-source-blank-3000.expected.json": "cc52a91011690f7689f56c557a3d12a1874d713eb05d65ea0e64a82dabc25cf5",
     "fixtures/invalid/limit-count-before-envelope.expected.json": "a72d8bb1ae3d264c7ebb3be546b73da2fbf03bc3e99d396e6c8b5bb565724646",
@@ -107,6 +107,7 @@
     "fixtures/invalid/reason-duplicate-in-batch.json": "b05f44cbfb49ab6bff7931a71fdc8d15767152faab24888159155a92fc13304f",
     "fixtures/scenarios/basic.json": "fb90275d1086a1b72e50f4349a3ebfb40aeb741bbf1d5010a5db5f9c832c1199",
     "fixtures/scenarios/basic-stateless.json": "95ff785bda765235c06fdc6a243022693f28f23e9c6c5c894af2cb8fc55107e3",
+    "fixtures/scenarios/README.md": "547cf88d1135512e4f1144c0a3e031435dd29c8100a6d2461aa86e10022878b1",
     "fixtures/valid/max-string-caps.json": "101f17a7ca1cff249a17c7169e5af242039de146f4cacaa01d78651964026c63",
     "fixtures/valid/capture-depth-126.json": "bcc17fa426c46dc4f146b0d8c3b9a361444e9d38095ab2b88fb7a4822390aa31",
     "fixtures/valid/source-whitespace-feff.json": "1415140897a5acab79bfbe62b8b19874b0026ae05cf71e740986e21711e5f01b",

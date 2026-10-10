@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT tool,ts,is_error,duration_ms FROM events WHERE project_id=$1 AND ($2::text[] IS NULL OR tool=ANY($2)) AND tool IS NOT NULL AND type='tool.call' AND ts>=$3 AND ts<$4 AND (ts<$5 OR ts>=$6)",
+  "query": "SELECT tool,ts,is_error,duration_ms FROM events WHERE project_id=$1 AND ($2::text[] IS NULL OR tool=ANY($2)) AND tool IS NOT NULL AND type='tool.called' AND ts>=$3 AND ts<$4 AND (ts<$5 OR ts>=$6)",
   "describe": {
     "columns": [
       {
@@ -65,5 +65,5 @@
       true
     ]
   },
-  "hash": "3ce2e067338159fb904e795018c30e4e96e1ef97c198cbea5986f575ddd2b4e6"
+  "hash": "e35548233dc0ba5bbd869561cfc026ad6591d4312d9a18c77c4644b6f25889ae"
 }

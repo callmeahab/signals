@@ -128,8 +128,8 @@ async fn collector_replays_late_rollups_tenant_isolation_and_keys() {
         login_limits: Default::default(),
     });
     let now = Utc::now();
-    let event = json!({"id":Uuid::new_v4(),"ts":now,"type":"tool.call","tool":"search","duration_ms":42,"session_id":"s1","client_name":"Claude","caller":{"subject":"caller"},"attrs":{}});
-    let batch = json!({"sent_at":now,"events":[event.clone()]});
+    let event = json!({"id":Uuid::now_v7(),"ts":now,"type":"tool.called","session_id":"s1","client":{"name":"Claude"},"caller":{"subject":"caller"},"attrs":{"tool":"search","duration_ms":42,"is_error":false,"input_bytes":0,"output_bytes":0,"output_kinds":[],"cancelled":false}});
+    let batch = json!({"schema_version":1,"source":{"sdk":"test","sdk_version":"1","server_name":"test","server_version":"1","instance_id":"test"},"sent_at":now,"events":[event.clone()]});
     let (a, b) = tokio::join!(
         call(&app, "POST", "/v1/events", Some(&key), batch.clone()),
         call(&app, "POST", "/v1/events", Some(&key), batch)
@@ -138,7 +138,7 @@ async fn collector_replays_late_rollups_tenant_isolation_and_keys() {
     assert_eq!(b.0, StatusCode::ACCEPTED);
     assert_eq!(
         a.1["accepted"].as_u64().unwrap() + b.1["accepted"].as_u64().unwrap(),
-        1
+        2
     );
     store.rollup().await.unwrap();
     let mut late = Vec::new();
@@ -146,14 +146,14 @@ async fn collector_replays_late_rollups_tenant_isolation_and_keys() {
     for i in 0..120 {
         let error = i % 9 == 0;
         expected_errors += u64::from(error);
-        late.push(json!({"id":Uuid::new_v4(),"ts":now-Duration::hours(1+i%20),"type":"tool.call","tool":"search","duration_ms":i*11,"is_error":error,"session_id":format!("s{}",i%3),"client_name":"Claude","caller":{"subject":"caller"},"attrs":{}}));
+        late.push(json!({"id":Uuid::now_v7(),"ts":now-Duration::hours(1+i%20),"type":"tool.called","session_id":format!("s{}",i%3),"client":{"name":"Claude"},"caller":{"subject":"caller"},"attrs":{"tool":"search","duration_ms":i*11,"is_error":error,"input_bytes":0,"output_bytes":0,"output_kinds":[],"cancelled":false}}));
     }
     let result = call(
         &app,
         "POST",
         "/v1/events",
         Some(&key),
-        json!({"sent_at":now,"events":late}),
+        json!({"schema_version":1,"source":{"sdk":"test","sdk_version":"1","server_name":"test","server_version":"1","instance_id":"test"},"sent_at":now,"events":late}),
     )
     .await;
     assert_eq!(result.0, StatusCode::ACCEPTED);
@@ -191,13 +191,13 @@ async fn collector_replays_late_rollups_tenant_isolation_and_keys() {
             "POST",
             "/v1/events",
             Some(&other_key),
-            json!({"sent_at":now,"events":[event]})
+            json!({"schema_version":1,"source":{"sdk":"test","sdk_version":"1","server_name":"test","server_version":"1","instance_id":"test"},"sent_at":now,"events":[event]})
         )
         .await
         .0,
         StatusCode::FORBIDDEN
     );
-    let result=call(&app,"POST","/v1/events",Some(&key),json!({"sent_at":now,"events":[{}, {"id":Uuid::new_v4(),"ts":now+Duration::minutes(6),"type":"tool.call"}]})).await;
+    let result=call(&app,"POST","/v1/events",Some(&key),json!({"schema_version":1,"source":{"sdk":"test","sdk_version":"1","server_name":"test","server_version":"1","instance_id":"test"},"sent_at":now,"events":[{}, {"id":Uuid::now_v7(),"ts":now+Duration::minutes(6),"type":"tool.call"}]})).await;
     assert_eq!(result.0, StatusCode::ACCEPTED);
     assert_eq!(result.1["rejected"].as_array().unwrap().len(), 2);
     sqlx::query("UPDATE projects SET rate_events_per_min=1 WHERE id=$1")
@@ -211,7 +211,7 @@ async fn collector_replays_late_rollups_tenant_isolation_and_keys() {
             "POST",
             "/v1/events",
             Some(&key),
-            json!({"sent_at":now,"events":[{},{}]})
+            json!({"schema_version":1,"source":{"sdk":"test","sdk_version":"1","server_name":"test","server_version":"1","instance_id":"test"},"sent_at":now,"events":[{},{}]})
         )
         .await
         .0,

@@ -29,14 +29,15 @@ pub async fn ensure_partition(tx: &mut Transaction<'_, Postgres>, date: NaiveDat
     checked_query!("SELECT pg_advisory_xact_lock($1)", PARTITION_LOCK)
         .execute(&mut **tx)
         .await?;
+    // Refresh catalog visibility after waiting for a concurrent partition creator.
+    checked_query!("LOCK TABLE events IN ACCESS EXCLUSIVE MODE")
+        .execute(&mut **tx)
+        .await?;
     if !checked_query_scalar!(<_, bool>"SELECT to_regclass($1) IS NOT NULL AS exists" ,&name)
         .fetch_one(&mut **tx)
         .await?
     {
         let end = date.succ_opt().expect("valid date");
-        checked_query!("LOCK TABLE events IN ACCESS EXCLUSIVE MODE")
-            .execute(&mut **tx)
-            .await?;
         sqlx::query(sqlx::AssertSqlSafe(format!(
             "CREATE TABLE {name} (LIKE events INCLUDING DEFAULTS INCLUDING CONSTRAINTS)"
         )))
@@ -99,7 +100,7 @@ pub fn copy_binary(
         let mut json = vec![1];
         json.extend(serde_json::to_vec(&e.attrs)?);
         field(&mut b, Some(&json));
-        for value in [&e.source, &e.client, &serde_json::to_value(&e.caller)?] {
+        for value in [&e.source, &e.client, &e.caller_data] {
             let mut json = vec![1];
             json.extend(serde_json::to_vec(value)?);
             field(&mut b, Some(&json));

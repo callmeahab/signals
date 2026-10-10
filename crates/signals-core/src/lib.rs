@@ -37,6 +37,8 @@ pub struct Event {
     pub source: Value,
     #[serde(default)]
     pub client: Value,
+    #[serde(default)]
+    pub caller_data: Value,
 }
 #[derive(Debug)]
 pub struct Batch {
@@ -267,6 +269,7 @@ pub fn validate_batch(
                 drop_json(value);
             }
             Ok(ts) => {
+                let raw_ip = value["caller"]["ip"].as_str().map(str::to_owned);
                 normalize_storage(&mut value);
                 let string = |v: &Value| v.as_str().map(str::to_owned);
                 accepted.push(Event {
@@ -274,9 +277,11 @@ pub fn validate_batch(
                     ts,
                     event_type: string(&value["type"]).unwrap(),
                     session_id: string(&value["session_id"]),
-                    caller: value
-                        .get("caller")
-                        .map(|v| serde_json::from_value(v.clone()).unwrap()),
+                    caller: value.get("caller").map(|v| {
+                        let mut caller: CallerIdentity = serde_json::from_value(v.clone()).unwrap();
+                        caller.ip = raw_ip.clone();
+                        caller
+                    }),
                     tool: string(&value["attrs"]["tool"]),
                     // The original unbounded integer remains intact in attrs.
                     duration_ms: value["attrs"]["duration_ms"]
@@ -288,6 +293,7 @@ pub fn validate_batch(
                     client_name: string(&value["client"]["name"]),
                     client_version: string(&value["client"]["version"]),
                     attrs: value["attrs"].as_object().unwrap().clone(),
+                    caller_data: value["caller"].take(),
                     client: value["client"].take(),
                     source: Value::Null,
                 });
@@ -331,6 +337,57 @@ pub fn percentile(buckets: &[i64], quantile: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn official_fixtures_match_reference() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../spec/fixtures");
+        for category in ["valid", "invalid"] {
+            for entry in std::fs::read_dir(root.join(category)).unwrap() {
+                let path = entry.unwrap().path();
+                let name = path.file_name().unwrap().to_str().unwrap();
+                if name.ends_with(".expected.json")
+                    || !matches!(
+                        path.extension().and_then(|s| s.to_str()),
+                        Some("json" | "ndjson")
+                    )
+                {
+                    continue;
+                }
+                let expected: Value = if category == "invalid" {
+                    serde_json::from_slice(
+                        &std::fs::read(path.with_extension("expected.json")).unwrap(),
+                    )
+                    .unwrap()
+                } else {
+                    Value::Null
+                };
+                match parse_batch(
+                    &std::fs::read(&path).unwrap(),
+                    path.extension().unwrap() == "ndjson",
+                ) {
+                    Err(code) => {
+                        assert_eq!(category, "invalid", "{name}: {code}");
+                        assert_eq!(expected["error"], code, "{name}");
+                    }
+                    Ok(batch) => {
+                        let n = batch.events.len();
+                        let (accepted, rejected) = validate_batch(batch.events, batch.sent_at, 30);
+                        if category == "valid" {
+                            assert!(rejected.is_empty(), "{name}: {rejected:?}");
+                            assert_eq!(accepted.len(), n, "{name}");
+                        } else {
+                            assert_eq!(expected["status"], 202, "{name}");
+                            assert_eq!(expected["accepted"], accepted.len(), "{name}");
+                            assert_eq!(
+                                expected["rejected"],
+                                serde_json::to_value(rejected).unwrap(),
+                                "{name}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
     #[test]
     fn histogram_merges_and_empty_percentile_is_zero() {
         let a = histogram([1, 10, 100]);
