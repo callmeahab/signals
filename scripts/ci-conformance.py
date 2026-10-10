@@ -18,9 +18,11 @@ with open(root/"target/ci-server.log","w") as log:
   else:raise RuntimeError("Collector not ready")
   def provision(route,data):
    with urllib.request.urlopen(urllib.request.Request(base+"/v1/admin/"+route,json.dumps(data).encode(),headers={"Authorization":"Bearer "+token,"Content-Type":"application/json"})) as response:return json.load(response)
-  tenant=provision("tenants",{"slug":"conformance","name":"Conformance"});project=provision("projects",{"tenant_id":tenant["id"],"slug":"fixtures","name":"Fixtures"});key=provision("keys",{"project_id":project["id"],"label":"Fixtures","scopes":["ingest"]})["secret"]
+  tenant=provision("tenants",{"slug":"conformance","name":"Conformance"});project=provision("projects",{"tenant_id":tenant["id"],"slug":"fixtures","name":"Fixtures"});key=provision("keys",{"project_id":project["id"],"label":"Fixtures","scopes":["ingest","read"]})["secret"]
   subprocess.run(["psql",os.environ["DATABASE_URL"],"-v","ON_ERROR_STOP=1","-c",f"UPDATE projects SET retention_days=30,rate_events_per_min=100000,rate_bytes_per_min=1073741824 WHERE id='{project['id']}'"],check=True)
   subprocess.run(["python3",str(root/"scripts/spec-conformance.py"),"--url",base],env={**os.environ,"SIGNALS_API_KEY":key},check=True)
+  read_key=provision("keys",{"project_id":project["id"],"label":"Read-only fixture key","scopes":["read"]})["secret"]
+  subprocess.run(["python3",str(root/"scripts/transport-conformance.py"),"--url",base],env={**os.environ,"SIGNALS_API_KEY":key,"SIGNALS_READ_KEY":read_key},check=True)
   subprocess.run(["bun","run","qa:backend"],cwd=root/"web",env={**os.environ,"SIGNALS_URL":base},check=True)
  finally:
   server.terminate()

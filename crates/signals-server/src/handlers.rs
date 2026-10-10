@@ -42,7 +42,11 @@ pub async fn ingest(
     };
     let encoding = headers
         .get(header::CONTENT_ENCODING)
-        .and_then(|v| v.to_str().ok())
+        .map(|v| {
+            v.to_str()
+                .map_err(|_| crate::IngestError::code("unsupported_media_type"))
+        })
+        .transpose()?
         .unwrap_or("identity")
         .to_ascii_lowercase();
     if !matches!(encoding.as_str(), "identity" | "gzip") {

@@ -20,6 +20,9 @@ pub struct EventDocument {
     pub client_name: Option<String>,
     pub client_version: Option<String>,
     pub attrs: serde_json::Value,
+    pub source: serde_json::Value,
+    pub client: serde_json::Value,
+    pub caller: serde_json::Value,
 }
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct EventPage {
@@ -50,8 +53,9 @@ pub enum Timeseries {
 }
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct Identity {
-    pub project: ProjectDocument,
-    pub key_id: uuid::Uuid,
+    pub project: uuid::Uuid,
+    pub label: String,
+    pub scopes: Vec<String>,
 }
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct CreatedResource {

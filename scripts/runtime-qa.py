@@ -29,7 +29,7 @@ assert request("/v1/projects/"+pid,"PATCH",settings)[0]==200
 mint=request("/v1/projects/"+pid+"/keys","POST",{"label":"Runtime QA","scopes":["ingest","read"]})[2];key=mint["secret"]
 now=lambda:datetime.datetime.now(datetime.timezone.utc).isoformat()
 def batch(n,tool="runtime-qa"):
- ts=now();return {"schema_version":1,"source":{"sdk":"qa","sdk_version":"1","server_name":"qa","server_version":"1","instance_id":"qa"},"sent_at":ts,"events":[{"id":str(uuid.uuid7()),"ts":ts,"type":"tool.called","attrs":{"tool":tool,"duration_ms":42,"is_error":False,"input_bytes":0,"output_bytes":0,"output_kinds":[],"cancelled":False},"caller":{"subject":"runtime-qa"}} for _ in range(n)]}
+ ts=now();return {"schema_version":1,"source":{"sdk":"qa","sdk_version":"1","server_name":"qa","server_version":"1","instance_id":"qa"},"sent_at":ts,"events":[{"id":str(uuid.UUID(int=(uuid.uuid4().int & ~(15 << 76)) | (7 << 76))),"ts":ts,"type":"tool.called","attrs":{"tool":tool,"duration_ms":42,"is_error":False,"input_bytes":0,"output_bytes":0,"output_kinds":[],"cancelled":False},"caller":{"subject":"runtime-qa"}} for _ in range(n)]}
 subprocess.run(["python3",str(root/"scripts/conformance.py"),"--url",one],env={**os.environ,"SIGNALS_API_KEY":key},check=True)
 request_id=str(uuid.uuid4());status,headers,_=request("/healthz",headers={"X-Request-ID":request_id},raw=True);assert status==200 and headers.get("x-request-id",headers.get("X-Request-ID"))==request_id
 assert request("/v1/events","POST",gzip.compress(json.dumps({"sent_at":now(),"events":[{"attrs":{"message":"x"*2097152}}]}).encode()),key=key,headers={"Content-Encoding":"gzip"})[0]==413

@@ -389,6 +389,32 @@ mod tests {
         }
     }
     #[test]
+    fn rejects_arbitrary_depth_without_recursive_drop() {
+        let raw = format!(
+            r#"{{"id":"0192f3a1-5c7e-7a3b-9d0e-2f6a1b4c8d9e","ts":"2026-10-01T12:00:00.000Z","type":"custom","attrs":{{"name":"deep","nested":{}0{}}}}}"#,
+            "[".repeat(10000),
+            "]".repeat(10000)
+        );
+        let value = parse_json(raw.as_bytes()).unwrap();
+        let (accepted, rejected) = validate_batch(vec![value], Utc::now(), 30);
+        assert!(accepted.is_empty());
+        assert_eq!(rejected[0].reason, "schema");
+    }
+    #[test]
+    fn source_uses_ecmascript_whitespace() {
+        let mut batch: Value = serde_json::from_str(include_str!(
+            "../../../spec/fixtures/valid/tool-called.json"
+        ))
+        .unwrap();
+        batch["source"]["sdk"] = serde_json::json!("\u{0085}");
+        assert!(parse_batch(&serde_json::to_vec(&batch).unwrap(), false).is_ok());
+        batch["source"]["sdk"] = serde_json::json!("\u{feff}");
+        assert_eq!(
+            parse_batch(&serde_json::to_vec(&batch).unwrap(), false).unwrap_err(),
+            "malformed_envelope"
+        );
+    }
+    #[test]
     fn histogram_merges_and_empty_percentile_is_zero() {
         let a = histogram([1, 10, 100]);
         let b = histogram([20, 200]);
