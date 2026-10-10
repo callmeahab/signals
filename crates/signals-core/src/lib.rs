@@ -58,10 +58,24 @@ pub struct Rejected {
 pub fn parse_json(bytes: &[u8]) -> Result<Value, serde_json::Error> {
     let mut de = serde_json::Deserializer::from_slice(bytes);
     de.disable_recursion_limit();
-    let value = Value::deserialize(serde_stacker::Deserializer::new(&mut de))?;
+    let mut value = Value::deserialize(serde_stacker::Deserializer::new(&mut de))?;
     if let Err(error) = de.end() {
         drop_json(value);
         return Err(error);
+    }
+    // JSON.parse accepts overflowing numeric tokens as infinities; JSON.stringify
+    // persists those as null. Preserve all finite numbers exactly for storage.
+    // Walk iteratively because depth validation has not happened yet.
+    let mut pending = vec![&mut value];
+    while let Some(value) = pending.pop() {
+        match value {
+            Value::Number(n) if n.as_f64().is_none_or(|n| !n.is_finite()) => {
+                *value = Value::Null;
+            }
+            Value::Array(values) => pending.extend(values.iter_mut()),
+            Value::Object(values) => pending.extend(values.values_mut()),
+            _ => {}
+        }
     }
     Ok(value)
 }
@@ -218,9 +232,10 @@ fn serialised_bytes(value: &Value) -> usize {
             Value::Bool(true) => 4,
             Value::Bool(false) => 5,
             Value::String(s) => string_bytes(s),
-            Value::Number(n) => number
-                .format_finite(n.as_f64().expect("finite JSON number"))
-                .len(),
+            Value::Number(n) => n
+                .as_f64()
+                .filter(|n| n.is_finite())
+                .map_or(4, |n| number.format_finite(n).len()),
             Value::Array(values) => {
                 pending.extend(values);
                 2 + values.len().saturating_sub(1)
@@ -496,6 +511,44 @@ mod tests {
             serialised_bytes(&value),
             serde_json::to_vec(&value).unwrap().len()
         );
+    }
+
+    #[test]
+    fn overflowing_numbers_become_null_and_finite_numbers_stay_exact() {
+        let fixture = include_str!("../../../spec/fixtures/valid/custom.json");
+        for token in [
+            "1e400".to_owned(),
+            "-1e400".to_owned(),
+            "1".to_owned() + &"0".repeat(400),
+        ] {
+            let raw: Value = serde_json::from_str(&token).unwrap();
+            assert_eq!(serialised_bytes(&raw), 4);
+            let mut doc: Value = serde_json::from_str(fixture).unwrap();
+            doc["events"][0]["attrs"]["props"] = serde_json::json!({"nested": [raw]});
+            let wire = serde_json::to_vec(&doc).unwrap();
+            let batch = parse_batch(&wire, false).unwrap();
+            assert!(batch.events[0]["attrs"]["props"]["nested"][0].is_null());
+            let (accepted, rejected) = validate_batch(batch.events, batch.sent_at, 30);
+            assert!(rejected.is_empty());
+            assert_eq!(accepted.len(), 1);
+            assert!(accepted[0].attrs["props"]["nested"][0].is_null());
+            let event = doc["events"][0].take();
+            doc.as_object_mut().unwrap().remove("events");
+            let ndjson = format!("{doc}\n{event}\n");
+            let batch = parse_batch(ndjson.as_bytes(), true).unwrap();
+            assert!(batch.events[0]["attrs"]["props"]["nested"][0].is_null());
+        }
+        for token in ["1e308", "9007199254740993", "18446744073709551615", "1.0"] {
+            let original: Value = serde_json::from_str(token).unwrap();
+            let parsed = parse_json(token.as_bytes()).unwrap();
+            assert_eq!(parsed, original);
+            let mut doc: Value = serde_json::from_str(fixture).unwrap();
+            doc["events"][0]["attrs"]["props"] = serde_json::json!({"n": parsed});
+            let batch = parse_batch(&serde_json::to_vec(&doc).unwrap(), false).unwrap();
+            let (accepted, rejected) = validate_batch(batch.events, batch.sent_at, 30);
+            assert!(rejected.is_empty());
+            assert_eq!(accepted[0].attrs["props"]["n"], original);
+        }
     }
 
     #[test]
