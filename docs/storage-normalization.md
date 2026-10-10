@@ -18,6 +18,7 @@ Known deviations from literal wire preservation:
   rollup schema. The original duration integer is preserved in `attrs.duration_ms`.
 
 `SIGNALS_CONFORMANCE_CLOCK=sent_at` opts into fixture-relative validation only.
-It is never enabled by default; the production clock is UTC wall time. Database
-`received_at` always records actual receipt time so retention/rollup workers retain
-correct operational watermarks.
+It is never enabled by default; the production clock is UTC wall time. In this
+explicit test mode, database `received_at` also uses the batch `sent_at`. Use an
+isolated project/database for fixture runs because its backdated receipt times
+are not suitable production rollup watermarks.

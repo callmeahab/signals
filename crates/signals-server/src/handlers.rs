@@ -96,7 +96,8 @@ pub async fn ingest(
         (Utc::now() - batch.sent_at).num_seconds(),
         Ordering::Relaxed,
     );
-    let now = if std::env::var("SIGNALS_CONFORMANCE_CLOCK").as_deref() == Ok("sent_at") {
+    let conformance_clock = std::env::var("SIGNALS_CONFORMANCE_CLOCK").as_deref() == Ok("sent_at");
+    let now = if conformance_clock {
         batch.sent_at
     } else {
         Utc::now()
@@ -106,6 +107,7 @@ pub async fn ingest(
     let enriched = valid
         .into_iter()
         .map(|mut e| {
+            e.received_at = conformance_clock.then_some(now);
             e.source = batch.source.clone();
             signals_core::normalize_storage(&mut e.source);
             if let Some(caller) = e.caller.as_mut() {

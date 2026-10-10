@@ -23,6 +23,8 @@ pub struct CallerIdentity {
 pub struct Event {
     pub id: Uuid,
     pub ts: DateTime<Utc>,
+    #[serde(default)]
+    pub received_at: Option<DateTime<Utc>>,
     #[serde(rename = "type")]
     pub event_type: String,
     pub session_id: Option<String>,
@@ -275,6 +277,7 @@ pub fn validate_batch(
                 accepted.push(Event {
                     id: value["id"].as_str().unwrap().parse().unwrap(),
                     ts,
+                    received_at: None,
                     event_type: string(&value["type"]).unwrap(),
                     session_id: string(&value["session_id"]),
                     caller: value.get("caller").map(|v| {

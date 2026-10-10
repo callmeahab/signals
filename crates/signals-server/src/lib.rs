@@ -17,7 +17,9 @@ use std::sync::{
     Arc,
 };
 use tokio::sync::{broadcast, watch};
-use tower_http::{compression::CompressionLayer, timeout::TimeoutLayer};
+use tower_http::{
+    compression::CompressionLayer, decompression::RequestDecompressionLayer, timeout::TimeoutLayer,
+};
 
 pub type LoginLimits =
     Arc<tokio::sync::Mutex<std::collections::HashMap<Vec<u8>, (std::time::Instant, u32)>>>;
@@ -170,9 +172,10 @@ impl IntoResponse for IngestError {
 }
 pub fn router(app: App) -> Router {
     use handlers::*;
-    let timed = Router::new()
+    let ingest_routes = Router::new()
         .route("/v1/events", post(ingest))
-        .route("/v1/whoami", get(whoami))
+        .route("/v1/whoami", get(whoami));
+    let timed = Router::new()
         .route("/v1/auth/login", post(login))
         .route("/v1/auth/logout", post(logout))
         .route("/v1/auth/me", get(me))
@@ -218,6 +221,10 @@ pub fn router(app: App) -> Router {
         .route("/v1/openapi.json", get(openapi::read_document))
         .route("/v1/ingest.openapi.yaml", get(openapi::ingest_document))
         .route("/v1/events.schema.json", get(openapi::event_schema))
+        // Keep existing admin/dashboard request decompression. Ingest decodes only
+        // after authentication so its failures always use the official JSON shape.
+        .layer(RequestDecompressionLayer::new())
+        .merge(ingest_routes)
         .layer(TimeoutLayer::with_status_code(
             StatusCode::SERVICE_UNAVAILABLE,
             std::time::Duration::from_secs(10),

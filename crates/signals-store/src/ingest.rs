@@ -148,9 +148,14 @@ impl Store {
         {
             ensure_partition(&mut tx, date).await?;
         }
-        let received: DateTime<Utc> = checked_query_scalar!("SELECT clock_timestamp()")
-            .fetch_one(&mut *tx)
-            .await?;
+        let received: DateTime<Utc> = match events[0].0.received_at {
+            Some(received) => received,
+            None => {
+                checked_query_scalar!("SELECT clock_timestamp()")
+                    .fetch_one(&mut *tx)
+                    .await?
+            }
+        };
         let mut identities = BTreeMap::new();
         for (e, k, x, l) in &events {
             identities
