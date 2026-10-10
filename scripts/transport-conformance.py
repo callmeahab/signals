@@ -27,6 +27,9 @@ request(b'invalid gzip',400,'malformed_gzip',headers={'Content-Encoding':'gzip'}
 request(body,415,'unsupported_media_type',headers={'Content-Encoding':'br'})
 request(body,415,'unsupported_media_type',headers={'Content-Type':'text/plain'})
 request(b'\xff',400,'malformed_body')
+for encoding in ('identity', 'gzip'):
+ for data, status, error in [(b'\xff\n'+b'{}\n'*1001,400,'malformed_body'), (b'bad envelope\n'+b'{}\n'*1001,413,'too_many_events')]:
+  request(gzip.compress(data) if encoding=='gzip' else data,status,error,headers={'Content-Type':'application/x-ndjson','Content-Encoding':encoding})
 request(gzip.compress(b'x'*1048577),413,'body_too_large',headers={'Content-Encoding':'gzip'})
 request(b'x'*1048577,413,'body_too_large')
 request(body,202,headers={'Content-Type':'application/json; charset=utf-8','Authorization':'bEaReR\t '+key})

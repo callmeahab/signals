@@ -86,9 +86,10 @@ pub fn parse_batch(body: &[u8], ndjson: bool) -> Result<Batch, &'static str> {
     if body.len() > MAX_BODY {
         return Err("body_too_large");
     }
-    // NDJSON counts event lines before UTF-8/envelope validation.
+    let text = std::str::from_utf8(body).map_err(|_| "malformed_body")?;
+    // UTF-8 precedes parsing; NDJSON counts lines before envelope validation.
     if ndjson
-        && String::from_utf8_lossy(body)
+        && text
             .split('\n')
             .filter(|l| !l.chars().all(contract_whitespace))
             .count()
@@ -96,7 +97,6 @@ pub fn parse_batch(body: &[u8], ndjson: bool) -> Result<Batch, &'static str> {
     {
         return Err("too_many_events");
     }
-    let text = std::str::from_utf8(body).map_err(|_| "malformed_body")?;
     let mut doc = if ndjson {
         let mut lines = text
             .split('\n')
@@ -195,6 +195,45 @@ pub fn normalize_storage(value: &mut Value) {
         _ => {}
     }
 }
+/// Compact JSON.stringify byte length, without changing the stored Value.
+/// JSON.parse represents all numbers as binary64, including integer wire tokens.
+/// The caller checks depth before measuring; the walk itself is iterative.
+fn serialised_bytes(value: &Value) -> usize {
+    fn string_bytes(s: &str) -> usize {
+        2 + s
+            .bytes()
+            .map(|b| match b {
+                b'"' | b'\\' | b'\x08' | b'\x0c' | b'\n' | b'\r' | b'\t' => 2,
+                0..=0x1f => 6,
+                _ => 1,
+            })
+            .sum::<usize>()
+    }
+    let mut bytes = 0;
+    let mut pending = vec![value];
+    let mut number = ryu_js::Buffer::new();
+    while let Some(value) = pending.pop() {
+        bytes += match value {
+            Value::Null => 4,
+            Value::Bool(true) => 4,
+            Value::Bool(false) => 5,
+            Value::String(s) => string_bytes(s),
+            Value::Number(n) => number
+                .format_finite(n.as_f64().expect("finite JSON number"))
+                .len(),
+            Value::Array(values) => {
+                pending.extend(values);
+                2 + values.len().saturating_sub(1)
+            }
+            Value::Object(values) => {
+                pending.extend(values.values());
+                2 + values.len().saturating_sub(1)
+                    + values.keys().map(|k| string_bytes(k) + 1).sum::<usize>()
+            }
+        };
+    }
+    bytes
+}
 pub fn validate_batch(
     values: Vec<Value>,
     now: DateTime<Utc>,
@@ -236,7 +275,7 @@ pub fn validate_batch(
             }
             let ts = timestamp(&value["ts"]).ok_or("schema")?;
             let duplicate = !seen.insert(value["id"].as_str().unwrap().to_ascii_lowercase());
-            if serde_json::to_vec(&value).unwrap().len() > 16384 {
+            if serialised_bytes(&value) > 16384 {
                 return Err("too_large");
             }
             for (t, field, cap) in [
@@ -246,7 +285,7 @@ pub fn validate_batch(
             ] {
                 if kind == t
                     && value["attrs"][field].is_object()
-                    && serde_json::to_vec(&value["attrs"][field]).unwrap().len() > cap
+                    && serialised_bytes(&value["attrs"][field]) > cap
                 {
                     return Err("too_large");
                 }
@@ -416,6 +455,108 @@ mod tests {
             parse_batch(&serde_json::to_vec(&batch).unwrap(), false).unwrap_err(),
             "malformed_envelope"
         );
+    }
+    #[test]
+    fn utf8_precedes_ndjson_count_but_count_precedes_envelope() {
+        let lines = "{}\n".repeat(1001);
+        let mut invalid = b"\xff\n".to_vec();
+        invalid.extend_from_slice(lines.as_bytes());
+        assert_eq!(parse_batch(&invalid, true).unwrap_err(), "malformed_body");
+        let valid = format!("not JSON\n{lines}");
+        assert_eq!(
+            parse_batch(valid.as_bytes(), true).unwrap_err(),
+            "too_many_events"
+        );
+        invalid.resize(MAX_BODY + 1, b' ');
+        assert_eq!(parse_batch(&invalid, true).unwrap_err(), "body_too_large");
+    }
+
+    #[test]
+    fn measurement_uses_ecmascript_numbers_and_json_escaping() {
+        for (wire, canonical) in [
+            ("1.0", "1"),
+            ("-0.0", "0"),
+            ("1e20", "100000000000000000000"),
+            ("1e21", "1e+21"),
+            ("1e-6", "0.000001"),
+            ("1e-7", "1e-7"),
+            ("1.2345678901234567", "1.2345678901234567"),
+            ("1000000000000000100", "1000000000000000100"),
+            ("18446744073709551615", "18446744073709552000"),
+        ] {
+            let value = parse_json(wire.as_bytes()).unwrap();
+            assert_eq!(serialised_bytes(&value), canonical.len(), "{wire}");
+            assert_eq!(
+                ryu_js::Buffer::new().format_finite(value.as_f64().unwrap()),
+                canonical
+            );
+        }
+        let value = serde_json::json!({"\0\n\t\r\u{0008}\u{000c}\\\"": ["é😀\u{2028}", true, false, null, {}, []]});
+        assert_eq!(
+            serialised_bytes(&value),
+            serde_json::to_vec(&value).unwrap().len()
+        );
+    }
+
+    #[test]
+    fn event_cap_uses_json_stringify_without_changing_stored_floats() {
+        let batch: Value = serde_json::from_str(include_str!(
+            "../../../spec/fixtures/valid/tool-called.json"
+        ))
+        .unwrap();
+        let now = timestamp(&batch["sent_at"]).unwrap();
+        let mut canonical = batch["events"][0].clone();
+        canonical["attrs"]["nums"] = serde_json::json!(vec![1; 8]);
+        canonical["attrs"]["pad"] = serde_json::json!("");
+        let padding = 16384 - serde_json::to_vec(&canonical).unwrap().len();
+        canonical["attrs"]["pad"] = serde_json::json!("p".repeat(padding));
+        assert_eq!(serialised_bytes(&canonical), 16384);
+        let mut floats = canonical.clone();
+        floats["attrs"]["nums"] = serde_json::json!(vec![1.0; 8]);
+        assert_eq!(serde_json::to_vec(&floats).unwrap().len(), 16400);
+        assert_eq!(serialised_bytes(&floats), 16384);
+        let mut over = canonical.clone();
+        over["attrs"]["pad"] = serde_json::json!("p".repeat(padding + 1));
+        for value in [canonical, floats] {
+            let original = value["attrs"].clone();
+            let (accepted, rejected) = validate_batch(vec![value], now, 30);
+            assert!(rejected.is_empty());
+            assert_eq!(
+                serde_json::to_vec(&accepted[0].attrs).unwrap(),
+                serde_json::to_vec(&original).unwrap()
+            );
+        }
+        let (accepted, rejected) = validate_batch(vec![over], now, 30);
+        assert!(accepted.is_empty());
+        assert_eq!(rejected[0].reason, "too_large");
+    }
+
+    #[test]
+    fn object_caps_use_the_same_measurement() {
+        for (fixture, field, cap) in [
+            ("tool-called", "args", 2048),
+            ("log", "fields", 4096),
+            ("custom", "props", 8192),
+        ] {
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join(format!("../../spec/fixtures/valid/{fixture}.json"));
+            let batch: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+            let now = timestamp(&batch["sent_at"]).unwrap();
+            let mut event = batch["events"][0].clone();
+            let mut object = serde_json::json!({"nums": vec![1.0; 8], "pad": ""});
+            let padding = cap - serialised_bytes(&object);
+            object["pad"] = serde_json::json!("p".repeat(padding));
+            event["attrs"][field] = object.clone();
+            let (accepted, rejected) = validate_batch(vec![event.clone()], now, 30);
+            assert!(rejected.is_empty(), "{fixture}: {rejected:?}");
+            assert_eq!(
+                serde_json::to_vec(&accepted[0].attrs[field]).unwrap(),
+                serde_json::to_vec(&object).unwrap()
+            );
+            event["attrs"][field]["pad"] = serde_json::json!("p".repeat(padding + 1));
+            let (_, rejected) = validate_batch(vec![event], now, 30);
+            assert_eq!(rejected[0].reason, "too_large", "{fixture}");
+        }
     }
     #[test]
     fn histogram_merges_and_empty_percentile_is_zero() {
