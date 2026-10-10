@@ -538,3 +538,395 @@ loop then compared each manifest SHA-256 and file's bytes against
 ```text
 PASS: all 142 vendored artifact hashes match pinned commit 8cdcccbcd38841acfb8aad29eb493c0c9c7aa9e0
 ```
+
+
+## Fix pass r1
+
+Implemented in commit `67b1798` following `reviews/collector-ingest-r1.md`.
+
+### Changes by file
+
+- `crates/signals-core/src/lib.rs`: measure compact JSON byte lengths without changing the parsed values, using ECMAScript number formatting for the 16384-byte event cap and the 2048/4096/8192-byte args/fields/props caps. Validate UTF-8 after decoded body size and before NDJSON line counting; counting still precedes envelope validation. Added regression tests for the review's three event-size cases, object cap boundaries, float/exponent spelling, JSON escaping, unchanged stored event values, and validation precedence.
+- `crates/signals-core/Cargo.toml` and `Cargo.lock`: add pinned `ryu-js` 1.0.3 for ECMAScript binary64 number spelling, including whole floats, negative zero and exponent thresholds.
+- `scripts/transport-conformance.py`: exercise invalid UTF-8 plus excess NDJSON lines and valid UTF-8 plus a bad envelope and excess lines, under both identity and gzip encoding.
+- `reports/collector-ingest.md`: append this fix and verification record.
+
+### Verification commands and results
+
+All commands below exited zero. Cargo commands used:
+
+```sh
+export PATH=$HOME/.cargo/bin:$PATH
+export CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0
+```
+
+HTTP checks ran against the rebuilt collector on `127.0.0.1:28350`, with
+`SIGNALS_CONFORMANCE_CLOCK=sent_at`, backed by the disposable
+`signals-collector-fix-r1-pg` PostgreSQL container on port 28432. The ignored
+integration and rollup tests used a separate `signals_tests` database in that
+container. Locally provisioned test keys were read from ignored target files;
+no key values are recorded here.
+
+```sh
+cargo fmt --all --check
+```
+
+```text
+(No output; exit 0.)
+```
+
+```sh
+cargo test --locked -p signals-core
+```
+
+```text
+Compiling ryu-js v1.0.3
+   Compiling signals-core v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-core)
+    Finished `test` profile [unoptimized] target(s) in 1.06s
+     Running unittests src/lib.rs (target/debug/deps/signals_core-b31358bfe6a628c9)
+
+running 8 tests
+test tests::histogram_merges_and_empty_percentile_is_zero ... ok
+test tests::measurement_uses_ecmascript_numbers_and_json_escaping ... ok
+test tests::utf8_precedes_ndjson_count_but_count_precedes_envelope ... ok
+test tests::source_uses_ecmascript_whitespace ... ok
+test tests::rejects_arbitrary_depth_without_recursive_drop ... ok
+test tests::object_caps_use_the_same_measurement ... ok
+test tests::event_cap_uses_json_stringify_without_changing_stored_floats ... ok
+test tests::official_fixtures_match_reference ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+   Doc-tests signals_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+```
+
+```sh
+cargo clippy --locked --workspace --all-targets -- -D warnings
+```
+
+```text
+Checking ryu-js v1.0.3
+    Checking signals-core v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-core)
+    Checking signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-store)
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 3.14s
+```
+
+```sh
+cargo test --locked --workspace
+```
+
+```text
+Compiling signals-core v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-core)
+   Compiling signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-store)
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-server)
+    Finished `test` profile [unoptimized] target(s) in 5.07s
+     Running unittests src/lib.rs (target/debug/deps/signals_core-200491b6d915c2c2)
+
+running 8 tests
+test tests::histogram_merges_and_empty_percentile_is_zero ... ok
+test tests::measurement_uses_ecmascript_numbers_and_json_escaping ... ok
+test tests::utf8_precedes_ndjson_count_but_count_precedes_envelope ... ok
+test tests::source_uses_ecmascript_whitespace ... ok
+test tests::rejects_arbitrary_depth_without_recursive_drop ... ok
+test tests::object_caps_use_the_same_measurement ... ok
+test tests::event_cap_uses_json_stringify_without_changing_stored_floats ... ok
+test tests::official_fixtures_match_reference ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running unittests src/lib.rs (target/debug/deps/signals_server-afab0c9c2af6060f)
+
+running 3 tests
+test auth::upgrade_tests::preserves_hmac_sha256_identity ... ok
+test openapi::tests::document_covers_read_routes_and_models ... ok
+test auth::upgrade_tests::verifies_existing_argon2_05_password_hashes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.15s
+
+     Running unittests src/main.rs (target/debug/deps/signals-685e9422d73413c5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/integration.rs (target/debug/deps/integration-493d2d58e99fc0d9)
+
+running 2 tests
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ignored, Requires an isolated Postgres database in TEST_DATABASE_URL
+test migration_comment_cleanup_preserves_existing_databases ... ignored, Requires an isolated Postgres database in TEST_DATABASE_URL
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/read_performance.rs (target/debug/deps/read_performance-248a7ac1000712e2)
+
+running 1 test
+test thirty_day_dashboard_measurements ... ignored, Seeds a million rows in disposable TEST_DATABASE_URL; writes bench/artifacts
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rollup_properties.rs (target/debug/deps/rollup_properties-7eb2110955f8210f)
+
+running 3 tests
+test random_lateness_matches_brute_force_sql ... ignored, Requires isolated TEST_DATABASE_URL
+test storage_error_is_atomic_and_unlimited_session_history ... ignored, Requires isolated TEST_DATABASE_URL
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ignored, Requires isolated TEST_DATABASE_URL
+
+test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/signals_store-adcd6567ef38ac16)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/signals_xtask-a4ce160465a43e59)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests signals_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests signals_server
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests signals_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+```
+
+```sh
+cargo build --locked --bin signals
+```
+
+```text
+Compiling signals-core v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-core)
+   Compiling signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-store)
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-ingest/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 4.13s
+```
+
+```sh
+TEST_DATABASE_URL=postgres://signals:signals@127.0.0.1:28432/signals_tests cargo test --locked -p signals-server --test integration --test rollup_properties -- --ignored --test-threads=1
+```
+
+```text
+Finished `test` profile [unoptimized] target(s) in 0.10s
+     Running tests/integration.rs (target/debug/deps/integration-493d2d58e99fc0d9)
+
+running 2 tests
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+
+     Running tests/rollup_properties.rs (target/debug/deps/rollup_properties-7eb2110955f8210f)
+
+running 3 tests
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.98s
+```
+
+```sh
+SIGNALS_API_KEY=$(cat target/r1-key) python3 reports/review-r1/probe.py --url http://127.0.0.1:28350
+```
+
+```text
+PASS utf8 invalid short json
+{
+  "collector": {
+    "status": 400,
+    "error": "malformed_body",
+    "accepted": null,
+    "rejected": null,
+    "keys": [
+      "error",
+      "message"
+    ]
+  },
+  "reference": {
+    "status": 400,
+    "error": "malformed_body",
+    "accepted": null,
+    "rejected": null,
+    "keys": [
+      "error",
+      "message"
+    ]
+  }
+}
+PASS utf8 invalid ndjson over event count
+{
+  "collector": {
+    "status": 400,
+    "error": "malformed_body",
+    "accepted": null,
+    "rejected": null,
+    "keys": [
+      "error",
+      "message"
+    ]
+  },
+  "reference": {
+    "status": 400,
+    "error": "malformed_body",
+    "accepted": null,
+    "rejected": null,
+    "keys": [
+      "error",
+      "message"
+    ]
+  },
+  "ndjson_lines": 1002
+}
+PASS canonical_16384
+{
+  "collector": {
+    "status": 202,
+    "error": null,
+    "accepted": 1,
+    "rejected": [],
+    "keys": [
+      "accepted",
+      "rejected"
+    ]
+  },
+  "reference": {
+    "status": 202,
+    "error": null,
+    "accepted": 1,
+    "rejected": [],
+    "keys": [
+      "accepted",
+      "rejected"
+    ]
+  },
+  "jsEventBytes": 16384
+}
+PASS canonical_16385
+{
+  "collector": {
+    "status": 202,
+    "error": null,
+    "accepted": 0,
+    "rejected": [
+      {
+        "index": 0,
+        "reason": "too_large"
+      }
+    ],
+    "keys": [
+      "accepted",
+      "rejected"
+    ]
+  },
+  "reference": {
+    "status": 202,
+    "error": null,
+    "accepted": 0,
+    "rejected": [
+      {
+        "index": 0,
+        "reason": "too_large"
+      }
+    ],
+    "keys": [
+      "accepted",
+      "rejected"
+    ]
+  },
+  "jsEventBytes": 16385
+}
+PASS wire_1_0_js_16384
+{
+  "collector": {
+    "status": 202,
+    "error": null,
+    "accepted": 1,
+    "rejected": [],
+    "keys": [
+      "accepted",
+      "rejected"
+    ]
+  },
+  "reference": {
+    "status": 202,
+    "error": null,
+    "accepted": 1,
+    "rejected": [],
+    "keys": [
+      "accepted",
+      "rejected"
+    ]
+  },
+  "jsEventBytes": 16384
+}
+5 passed, 0 failed
+```
+
+```sh
+SIGNALS_API_KEY=$(cat target/r1-key) python3 scripts/spec-conformance.py --url http://127.0.0.1:28350
+```
+
+```text
+identity: 39/39 valid fixtures matched
+identity: 49/49 invalid fixtures matched
+gzip: 39/39 valid fixtures matched
+gzip: 49/49 invalid fixtures matched
+```
+
+```sh
+SIGNALS_API_KEY=$(cat target/r1-key) SIGNALS_READ_KEY=$(cat target/r1-read-key) python3 scripts/transport-conformance.py --url http://127.0.0.1:28350
+```
+
+```text
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+```
+
+The workspace run intentionally skips the isolated-database tests; the separate
+ignored-test command above passes all five integration and rollup tests. The
+million-row read-performance benchmark remains ignored and was not rerun for
+these ingest changes.
+
+### Cleanup and remaining work
+
+After verifying the collector process belonged to this worktree, sent SIGTERM
+to PID 4123348, then ran:
+
+```sh
+docker stop signals-collector-fix-r1-pg
+docker rm -v signals-collector-fix-r1-pg
+ss -ltnp 'sport = :28350'
+```
+
+```text
+Sent SIGTERM to owned collector PID 4123348.
+$ docker stop signals-collector-fix-r1-pg
+signals-collector-fix-r1-pg
+$ docker rm -v signals-collector-fix-r1-pg
+signals-collector-fix-r1-pg
+PASS: no listener remains on collector port 28350.
+```
+
+Both review blockers are fixed, and no requested fix remains unfinished. The
+previous report's timestamp/duration divergences and UI metadata release gate
+remain outside this fix's scope and were not revalidated in this pass. The
+measuring serializer uses binary64 numbers, as the JavaScript reference does,
+while leaving the serde values used for storage unchanged.
