@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
-import json, os, subprocess
+"""Dependency-free static integration checks; see README.md for runtime setup."""
+import ast
+import subprocess
 from pathlib import Path
-root=Path(__file__).resolve().parent
-meta={"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"Example smoke","version":"1"},"io.modelcontextprotocol/clientCapabilities":{}}
-def req(i,method,params=None):return {"jsonrpc":"2.0","id":i,"method":method,"params":{"_meta":meta,**(params or {})}}
-messages=[req(1,"server/discover"),req(2,"tools/list"),req(3,"tools/call",{"name":"add","arguments":{"a":2,"b":3}}),req(4,"tools/call",{"name":"add","arguments":{"a":"invalid","b":3}}),{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":999}},req(5,"ping",{"_meta":{**meta,"io.modelcontextprotocol/protocolVersion":"1900-01-01"}}),{"jsonrpc":"2.0","id":6,"method":"ping","params":{}},req(7,"tools/list",{"_meta":{**meta,"io.modelcontextprotocol/clientInfo":{"name":"Another client","version":"2"}}})]
-for command in [["bun",str(root/"node/server.mjs")],["python3",str(root/"python/server.py")]]:
- result=subprocess.run(command,input="\n".join(json.dumps(v) for v in messages)+"\n",text=True,capture_output=True,timeout=30,check=True)
- replies=[json.loads(line) for line in result.stdout.splitlines()];assert [v["id"] for v in replies]==[1,2,3,4,5,6,7];assert replies[2]["result"]["content"][0]["text"]=="5";assert replies[3]["result"]["isError"] is True
- assert replies[4]["error"]["code"]==-32022;assert replies[5]["error"]["code"]==-32602;assert all(v.get("result",{}).get("resultType")=="complete" for v in [replies[0],replies[1],replies[2],replies[3],replies[6]])
- print("PASS",Path(command[1]).parent.name,"MCP 2026-07-28 discovery/list/call, per-request metadata, version/errors and clean JSON-RPC stdout")
+
+root = Path(__file__).resolve().parent
+python_source = (root / "python/server.py").read_text()
+ast.parse(python_source)
+assert "Signals.from_env()" in python_source
+assert "signals.instrument(mcp)" in python_source
+assert "signals.asgi(mcp.streamable_http_app())" in python_source
+assert "atexit.register(signals.close)" in python_source
+print("PASS Python syntax, SDK instrumentation, ASGI identity wrapper and shutdown hook (static)")
+node_path = root / "node/server.mjs"
+subprocess.run(["node", "--check", str(node_path)], check=True)
+node_source = node_path.read_text()
+assert "Signals.fromEnv()" in node_source
+assert node_source.index("signals.instrument(server)") < node_source.index("server.connect(transport)")
+assert "app.use(signals.express())" in node_source
+assert "await signals.close()" in node_source
+print("PASS Node syntax, instrument-before-connect, Express identity middleware and shutdown hook (static)")
+print("Runtime HTTP/collector interoperability requires local SDK installs; see examples/README.md")

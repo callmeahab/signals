@@ -1,16 +1,29 @@
 export type Range = '24h' | '7d' | '30d';
 export type Screen = 'overview' | 'tools' | 'callers' | 'sessions' | 'live' | 'settings' | 'setup';
 export type Project = { id: string; name: string; slug: string; retention_days: number; rate_events_per_min: number; rate_bytes_per_min: number };
-export type SignalEvent = { id: string; ts: string; type: string; session_id?: string | null; caller_id?: string | null; tool?: string | null; duration_ms?: number | null; is_error: boolean; client_name?: string | null; attrs: Record<string, unknown> };
+export type EventType = 'session.started' | 'session.ended' | 'mcp.initialize' | 'tool.called' | 'resource.read' | 'prompt.get' | 'mcp.request' | 'log' | 'error' | 'custom';
+export type ClientInfo = { name?: string; version?: string; protocol_version?: string };
+export type Source = { sdk: string; sdk_version: string; server_name: string; server_version: string; instance_id: string; hostname?: string };
+export type EventAttrs = Record<string, unknown> & {
+  tool?: string; duration_ms?: number; is_error?: boolean; error_message?: string;
+  input_bytes?: number; output_bytes?: number; output_kinds?: ('text' | 'image' | 'audio' | 'resource' | 'ui')[]; cancelled?: boolean;
+  transport?: 'streamable-http' | 'sse' | 'stdio' | 'synthetic'; reason?: 'client' | 'idle' | 'error' | 'shutdown';
+  requested_protocol_version?: string; client_capabilities?: string[]; server_capabilities?: string[];
+  uri?: string; prompt?: string; method?: string; level?: 'debug' | 'info' | 'warn' | 'error';
+  message?: string; stack?: string; where?: 'auth' | 'transport' | 'handler' | 'sdk'; name?: string;
+  args?: Record<string, unknown>; fields?: Record<string, unknown>; props?: Record<string, unknown>;
+};
+// Read responses attach collector identity and batch source to the spec event envelope.
+export type SignalEvent = { id: string; ts: string; type: EventType; session_id?: string | null; caller_id?: string | null; client?: ClientInfo; caller?: { key_id?: string | null; subject?: string | null; ip_hash?: string | null; user_agent?: string | null }; source?: Source; attrs: EventAttrs };
 export type Tool = { tool: string; calls: number; errors: number; p50: number; p95: number; p99?: number; last_called: string; trend: number[] };
 export type Caller = { id: string; kind: string; label: string; calls: number; errors: number; sessions: number; clients: string[]; first_seen: string; last_seen: string };
-export type Session = { session_id: string; client_name: string; caller_label: string; started_at: string; ended_at: string | null; calls: number; errors: number; transport: string };
+export type Session = { session_id: string; client?: ClientInfo; caller_label: string; started_at: string; ended_at: string | null; calls: number; errors: number; transport: string };
 export type Point = { ts: string; requests: number; errors: number; sessions: number; callers: number; latency_p50: number; latency_p95: number; latency_p99?: number };
 export type Overview = { requests: number; tool_calls: number; errors: number; error_rate: number; sessions: number; unique_callers: number; p50: number; p95: number; p99?: number; top_tools?: Tool[]; deltas: Record<string, number | null>; clients: { name: string; count: number }[]; updated_at: string };
 export type Key = { id: string; key_id: string; label: string; scopes: string[]; created_at: string; last_used_at: string | null; revoked_at: string | null };
 export type User = { id: string; email: string; role: 'owner' | 'viewer' };
 export type Page<T> = { items: T[]; next_cursor: string | null };
-export type EventFilter = { type?: string; tool?: string; q?: string; cursor?: string; caller?: string; since?: string; is_error?: boolean };
+export type EventFilter = { type?: EventType; tool?: string; q?: string; cursor?: string; caller?: string; since?: string; is_error?: boolean };
 
 export interface SignalsClient {
   ingestUrl: string;
