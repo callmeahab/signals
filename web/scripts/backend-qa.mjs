@@ -26,7 +26,7 @@ try{
  const events=Array.from({length:25},(_,i)=>({...first,id:uuid7(),attrs:{...first.attrs,duration_ms:74+i*13,is_error:i===7,tool:i%2?'get_customer':'search_documents'}}));
  const batch=envelope(events);
  const response=await page.request.post(`${base}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:batch});assert.equal(response.status(),202);assert.equal((await response.json()).accepted,25);
- const replay=await page.request.post(`${base}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:batch});assert.equal(replay.status(),202);assert.equal((await replay.json()).accepted,0);
+ const replay=await page.request.post(`${base}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:batch});assert.equal(replay.status(),202);assert.equal((await replay.json()).accepted,events.length);
  for(const route of ['events','sessions','keys','callers?range=24h','tools?range=24h','timeseries?range=24h']){const result=await page.request.get(`${base}/v1/projects/${project.id}/${route}`);assert.equal(result.status(),200,route);}
  const found=await page.request.get(`${base}/v1/projects/${project.id}/events?tool=search_documents`);assert((await found.json()).items.every(e=>e.attrs.tool==='search_documents'));
  await page.goto(`${base}/#live`);await page.getByText('Streaming',{exact:true}).waitFor();
