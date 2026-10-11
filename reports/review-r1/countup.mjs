@@ -1,5 +1,6 @@
 // 40 ms samples of the overview count-up, then protocol dot fill attributes.
 // PRODUCT_URL=http://127.0.0.1:PORT bun reports/review-r1/countup.mjs
+import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const { chromium } = createRequire('/home/vuk/orca/workspaces/signals-collector/dash-v2/web/package.json')('@playwright/test');
 const base = process.env.PRODUCT_URL || 'http://127.0.0.1:26110';
@@ -14,6 +15,7 @@ for (let i = 0; i < 16; i++) {
   samples.push(t);
   await page.waitForTimeout(40);
 }
+const numeric=samples.map(v=>Number(v.replace('K',''))*(v.endsWith('K')?1000:1));assert(numeric.every((v,i)=>Number.isFinite(v)&&v>=0&&(!i||v>=numeric[i-1])),'count-up must be non-negative and monotone');
 const dots = await page.evaluate(() => {
   location.hash = 'protocol';
 });

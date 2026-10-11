@@ -175,7 +175,7 @@ try {
   {
     const { context, page } = await open(1440, 'light');
     for (const [range, want] of Object.entries(BUCKETS)) {
-      for (const [screen, panel, expected] of [['overview', 'Calls by client', `${want.label} tool calls · UTC`], ['adoption', 'Active users', `${want.label} observations · active identities`]]) {
+      for (const [screen, panel, expected] of [['overview', 'Calls by client', `${want.label} tool calls · UTC`], ['adoption', 'Active identities', 'New against returning, by day']]) {
         await show(page, screen);
         await page.getByRole('button', { name: RANGE_BUTTON[range], exact: true }).click();
         await page.waitForTimeout(400);
@@ -197,7 +197,7 @@ try {
     const { context, page } = await open(1440, 'light');
     await show(page, 'sessions');
     const rows = await page.evaluate(() => {
-      const table = document.querySelector('.signals-ui .table-scroll table');
+      const table = document.querySelector('.signals-ui .table-scroll table:not(.sr-only)');
       const index = [...table.querySelectorAll('thead th')].findIndex(h => h.textContent.trim() === 'Duration');
       return [...table.querySelectorAll('tbody tr')].map(r => r.children[index].textContent.trim());
     });
@@ -289,7 +289,7 @@ try {
             kronaBad: krona.filter(el => style(el).fontWeight !== '400' || style(el).fontSynthesis !== 'none').map(el => `${el.tagName}.${el.className}:${style(el).fontWeight}/${style(el).fontSynthesis}`),
             labelCount: document.querySelectorAll('.eyebrow,.status-pill').length,
             labelBad: [...document.querySelectorAll('.eyebrow,.status-pill')].filter(el => style(el).fontSize !== '10.5px').map(el => `${el.className}:${style(el).fontSize}`),
-            tables: [...document.querySelectorAll('.table-scroll')].map(el => ({
+            tables: [...document.querySelectorAll('.table-scroll:not(.chart-scroll)')].map(el => ({
               overflows: el.scrollWidth > el.clientWidth + 1,
               hint: !!el.parentElement.querySelector('.table-scroll-hint'),
               focusable: el.tabIndex === 0,

@@ -58,20 +58,20 @@ function niceTicks(max, n = 4) {
 
 function sparkline({ values, color = 'var(--chart-1)', h = 38, fill = true }) {
   return (w) => {
-    const pad = 3, lo = Math.min(...values), hi = Math.max(...values);
+    const valid=values.filter(v=>v!=null); const pad = 3, lo = Math.min(...valid), hi = Math.max(...valid);
     const x = scale(0, values.length - 1, pad, w - pad);
     const y = scale(lo - (hi - lo) * 0.35 || 0, hi + (hi - lo) * 0.12 || 1, h - pad, pad + 4);
-    const pts = values.map((v, i) => [x(i), y(v)]);
+    const pts = values.map((v, i) => v==null?null:[x(i), y(v)]);
     const id = nextId();
-    const line = curve(pts);
+    const groups=[];for(const p of pts){if(p){if(!groups.length)groups.push([]);groups.at(-1).push(p);}else if(groups.at(-1)?.length)groups.push([]);}const line = groups.filter(g=>g.length).map(curve).join(' ');
     const area = `${line}L${px(x(values.length - 1))},${h}L${px(x(0))},${h}Z`;
-    const last = pts[pts.length - 1];
+    const last = pts.filter(Boolean).at(-1);
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
       <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${color}" stop-opacity=".40"/>
         <stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
       <g class="plot">
-      ${fill ? `<path d="${area}" fill="url(#${id})"/>` : ''}
+      ${fill && valid.length===values.length ? `<path d="${area}" fill="url(#${id})"/>` : ''}
       <path d="${line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
       <circle cx="${px(last[0])}" cy="${px(last[1])}" r="2.6" fill="${color}"/>
       </g></svg>`;
@@ -149,11 +149,11 @@ function bandChart({ labels, lo, mid, hi, h = 220 }) {
   return (w) => {
     const pad = { t: 14, r: 34, b: 26, l: 46 };
     const iw = Math.max(40, w - pad.l - pad.r), ih = h - pad.t - pad.b, n = labels.length;
-    const y0 = 100, y1 = Math.max(...hi) * 1.25;
+    const y0 = Math.max(.1,Math.min(100,...lo.filter(v=>v!=null))), y1 = Math.max(y0*2,...hi.filter(v=>v!=null)) * 1.25;
     const x = scale(0, n - 1, pad.l, pad.l + iw);
     const ly = scale(Math.log(y0), Math.log(y1), pad.t + ih, pad.t);
     const y = (v) => ly(Math.log(Math.max(y0, v)));
-    const P = (a) => a.map((v, i) => [x(i), y(v)]);
+    const P = (a) => a.flatMap((v, i) => v==null?[]:[[x(i), y(v)]]);
     const rev = (a) => a.slice().reverse();
     const bandOuter = curve(P(hi)) + 'L' + curve(rev(P(mid))).slice(1) + 'Z';
     const bandInner = curve(P(mid)) + 'L' + curve(rev(P(lo))).slice(1) + 'Z';
@@ -177,9 +177,9 @@ function bandChart({ labels, lo, mid, hi, h = 220 }) {
       </g>
       <line class="axline" x1="${pad.l}" y1="${px(pad.t + ih)}" x2="${px(pad.l + iw)}" y2="${px(pad.t + ih)}"/>
       ${labels.map((l, i) => (i % labelEvery(n, iw, labels.length>1&&Date.parse(labels[1])-Date.parse(labels[0])>=604800000?110:48) && i !== n - 1) ? '' : `<text class="ax ax--dim" x="${px(x(i))}" y="${h - 7}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${esc(axisDate(labels,l))}</text>`).join('')}
-      <text class="ax" x="${px(pad.l + iw + 5)}" y="${px(y(hi[n - 1]) + 3.5)}" style="fill:var(--chart-2)">p99</text>
-      <text class="ax" x="${px(pad.l + iw + 5)}" y="${px(y(mid[n - 1]) + 3.5)}" style="fill:var(--primary-ink)">p95</text>
-      <text class="ax" x="${px(pad.l + iw + 5)}" y="${px(y(lo[n - 1]) + 3.5)}" style="fill:var(--chart-3)">p50</text>
+      <text class="ax" x="${px(pad.l + iw + 5)}" y="${px(y(hi.filter(v=>v!=null).at(-1)) + 3.5)}" style="fill:var(--chart-2)">p99</text>
+      <text class="ax" x="${px(pad.l + iw + 5)}" y="${px(y(mid.filter(v=>v!=null).at(-1)) + 3.5)}" style="fill:var(--primary-ink)">p95</text>
+      <text class="ax" x="${px(pad.l + iw + 5)}" y="${px(y(lo.filter(v=>v!=null).at(-1)) + 3.5)}" style="fill:var(--chart-3)">p50</text>
       <text class="ax ax--dim" x="${pad.l - 8}" y="${px(pad.t + ih + 13)}" text-anchor="end">ms</text>
     </svg>`;
   };
@@ -225,8 +225,8 @@ function latencyHist({ buckets, markers, h = 228 }) {
     }).join('');
     const xt = [10, 30, 100, 300, 1000, 3000, 10000].filter((v) => v >= buckets[0].lo && v <= buckets[buckets.length - 1].hi);
     let lastRight = -1e9;
-    const mk = Object.entries(markers).sort((a, b) => a[1] - b[1]).map(([k, v], i) => {
-      const X = lx(Math.log(v)), label = `${k} ${f.int(v)}`;
+    const mk = Object.entries(markers).filter(([k,v])=>['p50','p95','p99'].includes(k)&&Number.isFinite(v)).sort((a, b) => a[1] - b[1]).map(([k, v], i) => {
+      const X = lx(Math.log(Math.max(buckets[0].lo,v))), label = `${k} ${f.int(v)}`;
       const lw = Math.max(48, label.length * 6.2 + 12);
       const row = X - lw / 2 < lastRight + 4 ? 1 : 0;
       if (!row) lastRight = X + lw / 2;

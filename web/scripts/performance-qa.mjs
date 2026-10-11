@@ -12,6 +12,7 @@ try {
  await page.waitForTimeout(1000);
  const cdp=await page.context().newCDPSession(page);
  await cdp.send('Performance.enable');
+ if(process.argv.includes('--cpu-profile')){await cdp.send('Profiler.enable');await cdp.send('Profiler.start');}
  const metric=async()=>Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(m=>[m.name,m.value]));
  const box=await page.locator('nav a[href="#adoption"]').boundingBox();
  const before=await metric();
@@ -20,13 +21,14 @@ try {
  for(const type of ['mousePressed','mouseReleased'])await cdp.send('Input.dispatchMouseEvent',{type,x:box.x+box.width/2,y:box.y+box.height/2,button:'left',clickCount:1});
  await page.waitForTimeout(750);
  const after=await metric();
- await page.getByRole('heading',{name:'Active users',exact:true}).waitFor();
+ await page.getByRole('heading',{name:'Active identities',exact:true}).waitFor();
  const complete=new Promise(resolve=>cdp.once('Tracing.tracingComplete',resolve));
  await cdp.send('Tracing.end');
  const {stream}=await complete;
  let trace='';for(;;){const chunk=await cdp.send('IO.read',{handle:stream});trace+=chunk.data;if(chunk.eof)break;}
  await cdp.send('IO.close',{handle:stream});
  writeFileSync('artifacts/v3/tab-switch-trace.json',trace);
+ if(process.argv.includes('--cpu-profile')){const {profile}=await cdp.send('Profiler.stop');writeFileSync('artifacts/v3/tab-switch.cpuprofile',JSON.stringify(profile));}
  const workMs=(after.TaskDuration-before.TaskDuration)*1000;
  writeFileSync('artifacts/v3/performance.json',JSON.stringify({screen:'overview → adoption',mainThreadMs:workMs,budgetMs:100},null,2)+'\n');
  console.log(`Chromium tab switch main-thread work: ${workMs.toFixed(2)} ms (budget < 100 ms)`);

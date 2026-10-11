@@ -213,7 +213,7 @@ body{font-weight:500;font-size:14px}h1,h2,h3,h4,.metric-value{font-weight:400!im
 .table-container{min-width:0;max-width:100%}.table-scroll{overflow-x:auto;scrollbar-width:auto;scrollbar-color:var(--ink-faint) var(--muted)}
 .table-scroll-hint{margin:0;padding:9px 20px;border-bottom:1px solid var(--border);color:var(--muted-foreground);font:11px var(--font-mono)}
 @media(max-width:600px){
- .table-scroll{overflow:visible!important;margin:0!important}.table-scroll-hint{display:none}
+ .table-scroll{overflow:auto!important;margin:0!important}.table-scroll-hint{display:none}
  .table-scroll table,.table-scroll tbody{display:block;width:100%;min-width:0!important}
  .table-scroll thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
  .table-scroll tbody tr{display:flex;flex-direction:column;gap:10px;padding:16px;border-bottom:1px solid var(--border)}
@@ -650,16 +650,51 @@ td .mono{font-size:12.5px}
 
 .tile__value{contain:layout paint;min-height:1.15em}.card--focal{box-shadow:7px 7px 0 0 var(--ink-hard)}.card--focal:hover{box-shadow:9px 9px 0 0 var(--ink-hard)}
 
-@keyframes v3-draw{from{clip-path:inset(0 100% 0 0)}}
+@keyframes v3-draw{from{transform:scaleX(0);opacity:0}to{transform:scaleX(1);opacity:1}}
 @keyframes v3-stroke{from{stroke-dashoffset:var(--len)}}
 @keyframes v3-grow-x{from{transform:scaleX(0)}}
 @keyframes v3-grow-y{from{transform:scaleY(0)}}
 .plot.on{animation:v3-draw 560ms var(--ease-out) backwards}.stroke-draw.on{animation:v3-stroke 620ms var(--ease-out) backwards}.growx.on{animation:v3-grow-x 520ms var(--ease-out) backwards}.growy.on{animation:v3-grow-y 520ms var(--ease-lift) backwards}
 @media(prefers-reduced-motion:reduce){.plot.on,.stroke-draw.on,.growx.on,.growy.on{animation:none!important}}
 
-.tile,.card{contain:layout style}.card{will-change:transform}.tile__value{height:1.15em}.chartbox>div:first-child{contain:layout style}
+.tile,.card{contain:layout style}.card{will-change:auto}.tile__value{height:1.15em}.chartbox>div:first-child{contain:layout style}
 
 .analytics-settings .alert-rule{grid-template-columns:minmax(0,1fr) 76px 76px 58px;gap:10px}.analytics-settings .alert-rule input[type=number]{width:100%;min-width:0}.settings-title{font:600 14px var(--sans);margin:0 0 12px}.analytics-save{margin-top:20px}.analytics-settings .alert-rule label:first-child{font-size:13px}.analytics-settings h3{font-family:var(--sans)}
 @media(max-width:600px){.table-scroll{overflow:auto;max-width:100%}.table-scroll table{display:table;min-width:100%;width:max-content}.table-scroll thead{display:table-header-group;position:static;width:auto;height:auto;clip-path:none;overflow:visible}.table-scroll tbody{display:table-row-group}.table-scroll tbody tr{display:table-row}.table-scroll th,.table-scroll td{display:table-cell;white-space:nowrap;max-width:none;min-width:0;width:auto;padding:10px 12px}.table-scroll td::before{display:none}.analytics-settings .alert-rule{grid-template-columns:1fr 1fr}.analytics-settings .alert-rule>label:first-child{grid-column:1/-1}}
 
 .card td{font-variant-numeric:tabular-nums}
+
+/* Dashboard accessibility overrides; base mcpramen palette remains intact. */
+:root{--ink-faint:oklch(.46 .02 72);--viz-ink:var(--muted-foreground)}
+.dark{--ink-faint:oklch(.75 .02 70);--viz-ink:var(--muted-foreground)}
+.status-pill.error,.status-pill.bad{color:oklch(.46 .2 34)}
+.dark .status-pill.error,.dark .status-pill.bad{color:oklch(.8 .13 34)}
+.tile__meta,.tile__row,.chip,.ribrow code{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.panel-header,.panel-heading,.section-heading{min-width:0;flex-wrap:wrap}
+.panel-header h2,.panel-heading h2,.section-heading h2{min-width:0;white-space:normal;overflow-wrap:anywhere}
+.v3-chart .sr-only{contain:strict}
+.chart-gantt,.chart-sankey{overflow:visible}
+.chart-scroll{overflow:auto;max-width:100%;scrollbar-width:auto}
+.chart-scroll>.v3-chart{min-width:640px}
+.card{content-visibility:auto;contain-intrinsic-size:auto 350px}
+.chart-conversion text{font-size:10px}
+
+.plot{transform-origin:left center}.panel-heading>div{min-width:0}.panel-heading h2{overflow:visible;text-overflow:clip;white-space:normal}
+
+.v3-chart{overflow:visible}.v3-chart>table.sr-only{display:block!important;max-width:1px!important}.panel-heading p{white-space:normal;overflow-wrap:anywhere}.panel{min-width:0}.panel-heading{max-width:100%}
+
+/* Animate the sparkline's HTML layer once, not every SVG geometry node. */
+.chart-sparkline .plot.on{animation:none}
+@keyframes v3-spark-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.tile__spark{animation:v3-spark-reveal 560ms var(--ease-out) backwards}
+@media(prefers-reduced-motion:reduce){.tile__spark{animation:none}}
+
+/* Composite the complete area layer; SVG path geometry remains static during entry. */
+.chart-stacked-area>div:first-child{transform-origin:left center;animation:v3-draw 560ms var(--ease-out) backwards;will-change:transform}
+.chart-stacked-area .plot.on,.chart-stacked-area .stroke-draw.on{animation:none}
+@media(prefers-reduced-motion:reduce){.chart-stacked-area>div:first-child{animation:none}}
+
+.chart-donut>div:first-child{animation:v3-rise 620ms var(--ease-out) backwards}.chart-donut .stroke-draw.on{animation:none}
+@media(prefers-reduced-motion:reduce){.chart-donut>div:first-child{animation:none}}
+
+.signals-ui .table-scroll{overflow-x:auto}.signals-ui .table-scroll-hint{display:block}

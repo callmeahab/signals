@@ -1,3 +1,4 @@
+import { contrastAndClip } from './contrast-clip.mjs';
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 
@@ -40,11 +41,19 @@ try {
         await page.evaluate(() => document.fonts.ready);
         check(await page.locator('.brand svg[aria-label="mcpramen"]').count() === 1, `${screen}: wordmark present`);
         await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(async()=>{for(let y=0;y<document.body.scrollHeight;y+=600){globalThis.scrollTo(0,y);await new Promise(r=>setTimeout(r,40));}globalThis.scrollTo(0,0);});
       const charts=page.locator('.v3-chart');
       for(const chart of await charts.all()){check(await chart.locator('svg').count()===1,`${screen}: chart SVG`);check(await chart.locator('table.sr-only').count()===1,`${screen}: chart table twin`);check(await chart.getAttribute('tabindex')==='0',`${screen}: keyboard inspection`);}
-      const expected={overview:['stacked-area','donut','funnel','heatmap','ribbon','sparkline'],adoption:['stacked-area','donut','histogram','funnel','heatmap'],tools:['ribbon','sankey','histogram'],reliability:['gauge','ribbon','band'],sessions:['gantt'],cost:['treemap','bars','histogram'],protocol:['dot-grid'],live:['area','donut']};
+      const expected={overview:['stacked-area','donut','funnel','heatmap','ribbon','sparkline'],adoption:['stacked-area','donut','bars','line'],tools:['ribbon','sankey','histogram'],reliability:['gauge','ribbon','band'],sessions:['gantt'],cost:['treemap','bars','sparkline'],protocol:['dot-grid'],live:['sparkline','bars']};
       if(await charts.count()){await charts.first().focus();await page.keyboard.press('ArrowRight');check(await page.getByRole('tooltip').count()===1,`${screen}: keyboard tooltip shown`);await page.locator('h1').click();}
       for(const kind of expected[screen]??[])check(await page.locator(`[data-chart="${kind}"]`).count()>0,`${screen}: ${kind} present`);
+      const scan=await contrastAndClip(page,`${screen}/${width}/${theme}`);
+      for(const f of scan.failures)check(false,`Contrast ${JSON.stringify(f)}`);
+      for(const f of scan.clipped)check(false,`Clip ${JSON.stringify(f)}`);
+      if(screen==='tools') {const markers=await page.locator('.chart-histogram svg .popin text').allTextContents();check(markers.length===3&&markers.every((m,i)=>m.startsWith(['p50','p95','p99'][i]+' ')),'Histogram has exactly percentile markers');check(!(await page.locator('.chart-histogram svg').textContent()).includes('NaN'),'No NaN histogram labels');}
+      if(screen==='adoption'){check(await page.locator('.chart-bars').count()===2,'Adoption transport and protocol bars');check(await page.locator('.card').filter({has:page.getByRole('heading',{name:'Clients',exact:true})}).locator('table').count()===1,'Adoption client table');check(await page.locator('.chart-funnel,.chart-heatmap').count()===0,'Adoption uses conversion curve');}
+      if(screen==='live')check(await page.locator('.chart-sparkline').count()===2&&await page.locator('.chart-area,.chart-donut').count()===0,'Live two sparklines and bars');
+      if(screen==='protocol')check(await page.locator('.chart-dot-grid').count()===2&&await page.locator('.tile').count()===6,'Protocol two grids and six tiles');
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/${screen}-${width}-${theme}.png`,fullPage:true,animations:'disabled'});

@@ -52,7 +52,11 @@ try {
  assert.equal(toolData.catalog.known,true);assert.equal(toolData.catalog.complete,true);
  assert.deepEqual(toolData.tools.map(t=>t.tool).sort(),catalogued);assert.deepEqual(toolData.catalog.dead,[deadTool]);
  assert.deepEqual((await analytics('reliability')).hallucinated_tools,{count:1,names:[hallucinated]});
+ const latencySeries=(await analytics('reliability')).latency_over_time;
+ assert(latencySeries?.points.some(p=>p.p95!==null),'real latency band has populated buckets');
+ for(const tool of toolData.tools){if(tool.calls){assert.equal(tool.latency.buckets.edges.length,61);assert.equal(tool.latency.buckets.edges.at(-1),null);assert.equal(tool.latency.buckets.counts.length,60);assert.equal(tool.latency.buckets.counts.reduce((n,c)=>n+c,0),tool.calls);}}
  const overview=await analytics('overview');
+ const bucketMs=latencySeries.bucket==='hour'?3600000:86400000;const expectedBuckets=Math.ceil(Date.parse(overview.range.to)/bucketMs)-Math.floor(Date.parse(overview.range.from)/bucketMs);assert.equal(overview.tiles.latency.sparkline.length,expectedBuckets);assert.equal(overview.tiles.latency.sparkline.length,latencySeries.points.length);assert(overview.tiles.latency.sparkline.some(v=>v!==null));
  assert(overview.attention.some(t=>t.tool===deadTool&&t.status==='dead'));assert(!overview.attention.some(t=>t.tool===hallucinated));assert.equal(overview.tiles.active_users.value,1);assert.equal(overview.tiles.sessions.value,1);assert.equal(overview.tiles.success_rate.value,92.3);assert.equal(overview.tiles.context_tokens.value,260);
  for(const screen of ['overview','adoption','tools','reliability','cost','protocol']){
   await visit(screen,`analytics/${screen}`);
@@ -62,12 +66,19 @@ try {
   if(screen==='tools'){await expect(page.getByRole('row').filter({has:page.getByRole('button',{name:'search_documents',exact:true})})).toContainText('12');await expect(page.getByRole('row').filter({has:page.getByRole('button',{name:'get_customer',exact:true})})).toContainText('12');}
   if(screen==='reliability'){await expect(page.getByText('96%',{exact:true}).first()).toBeVisible();await expect(page.locator('.tile').filter({hasText:'Hallucinated tools'}).locator('strong')).toHaveText('1');await expect(page.locator('.tile').filter({hasText:'Hallucinated tools'})).toContainText(hallucinated);}
   if(screen==='tools'){assert.deepEqual((await page.locator('tbody button.row-button').allTextContents()).sort(),catalogued);await expect(page.locator('.dead-tool')).toHaveText([deadTool]);await expect(page.getByRole('button',{name:hallucinated,exact:true})).toHaveCount(0);}
+  if(screen==='overview')await expect(page.locator('.tile').filter({hasText:'p95 latency'}).locator('.chart-sparkline svg')).toHaveCount(1);
+  if(screen==='reliability')await expect(page.locator('.chart-band svg')).toHaveCount(1);
   if(screen==='overview')await expect(page.locator('.ribrow').filter({hasText:deadTool})).toContainText('dead');
   if(screen==='cost'){await expect(page.locator('.tile').filter({hasText:'Context tokens'}).locator('strong')).toHaveText('≈ 260');await expect(page.locator('.chart-bars table')).toContainText('260');}
   if(screen==='protocol')await expect(page.locator('.chart-dot-grid').filter({has:page.locator('table').filter({hasText:'roots'})})).toContainText('100');
   if(['overview','tools','cost'].includes(screen)){await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:`artifacts/v3-live/${screen}.png`,fullPage:true,animations:'disabled'});}
  }
  await expect.poll(async()=>(await json(await page.request.get(route('sessions')))).items.length,{timeout:70000}).toBe(1);
+ await visit('tools','analytics/tools');
+ await page.getByRole('button',{name:'search_documents',exact:true}).click();
+ await expect(page.getByRole('dialog').locator('.chart-histogram svg')).toHaveCount(1);
+ assert.equal(await page.getByRole('dialog').locator('.chart-histogram table tbody tr').count(),60);
+ await page.getByRole('button',{name:'Close details'}).click();
  await visit('sessions','sessions');await page.locator('tbody .row-button').first().click();
  await expect(page.locator('.timeline li')).toHaveCount(events.length);await expect(page.getByRole('dialog')).toContainText(caller);await expect(page.getByRole('dialog')).toContainText('5,000 ms');await page.getByRole('button',{name:'Close details'}).click();
  await visit('callers','callers?');await expect(page.getByRole('row').filter({has:page.getByRole('button',{name:caller,exact:true})})).toContainText(String(events.filter(e=>!e.type.startsWith('session.')).length));

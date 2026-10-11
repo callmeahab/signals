@@ -9,12 +9,14 @@ export const defaultRules:AlertRule[] = [
  {id:'destructive',name:'Destructive tool · unrecognised client',enabled:true,threshold:1,window_minutes:1,state:'ok'},
  {id:'burn',name:'Error-budget burn',enabled:true,threshold:6,window_minutes:60,state:'ok'},
 ];
+const cache=new Map<string,AnalyticsRoutes>();
 let settings:Partial<AnalyticsSettings>={};
-export function setAnalyticsSettings(next:Partial<AnalyticsSettings>){settings={...settings,...next};}
+export function setAnalyticsSettings(next:Partial<AnalyticsSettings>){settings={...settings,...next};cache.clear();}
 
 export let rules = structuredClone(defaultRules);
-export function setRules(next:AlertRule[]){rules=structuredClone(next);}
+export function setRules(next:AlertRule[]){rules=structuredClone(next);cache.clear();}
 export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:AnalyticsQuery, complete=true):AnalyticsRoutes[K] {
+ const cacheKey=JSON.stringify([query,complete]);const cached=cache.get(cacheKey);if(cached)return structuredClone(cached[route]);
  const days = query.range==='24h'?1:query.range==='30d'?30:query.range==='90d'?90:7;
  const to=query.to?Date.parse(query.to):end, from=query.from?Date.parse(query.from):to-days*86400000;
  const bucket=bucketForRange(query.range), step=bucketMilliseconds[bucket];
@@ -60,7 +62,8 @@ export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:An
  cost:{...meta,total_tokens_est:totalTokens,per_call:calls?Math.round(totalTokens/calls):null,estimated:true,by_tool:tools.map(t=>({tool:t.tool,calls:t.calls,tokens:t.calls*(t.output_tokens_est??0),pct:Math.round(t.calls*(t.output_tokens_est??0)/Math.max(1,totalTokens)*1000)/10})).sort((a,b)=>b.tokens-a.tokens),by_tenant:tenants,payload_hist:{buckets:['<1K','1–4K','4–16K','16–64K','>64K'],input:histogram([.25,.62,.1,.02,.01]),output:histogram([.17,.41,.31,.08,.03])},billing_periods:tenants.map(t=>({period:'2026-10',caller:t.caller,calls:t.calls,tokens:t.tokens}))},
  protocol:{...meta,capabilities:{sessions:sessionCount,client:[{name:'roots',sessions:sessionCount,pct:100},{name:'sampling',sessions:Math.round(sessionCount*.46),pct:46},{name:'elicitation',sessions:Math.round(sessionCount*.34),pct:34}],server:[{name:'tools',sessions:sessionCount,pct:100},{name:'resources',sessions:sessionCount,pct:100},{name:'prompts',sessions:sessionCount,pct:100}]},sampling:{requests:null,p95:null,rejected_pct:null,by_model:[]},elicitation:{requests:null,accept_pct:null,decline_pct:null,cancel_pct:null},tasks:{created:null,completed:null,failed:null,cancelled:null},progress:{long_calls:null,with_progress_pct:null}},
  alerts:{...meta,rules:structuredClone(rules)},digest:{...meta,tools:tools.map(t=>({tool:t.tool,calls:t.calls,delta_pct:12,success_rate:t.success_rate,p95:t.latency.p95})),top_error_kinds:[{kind:'tool',count:errors}],new:newUsers,returning:active-newUsers,dead_tools:dead,changes:['Tool calls grew 12% versus the previous window.','Booking success is below the mutate SLO.']}};
- return data[route];
+ if(cache.size>=32)cache.delete(cache.keys().next().value!);cache.set(cacheKey,data);
+ return structuredClone(data[route]);
 }
 export function demoTimeline(id:string):TimelineAnalytics {
  const meta=demoAnalytics('overview',{});
