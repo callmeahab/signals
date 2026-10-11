@@ -12,6 +12,8 @@ import math
 import os
 import re
 import subprocess
+import statistics
+import socket
 import threading
 import time
 import urllib.error
@@ -36,6 +38,10 @@ ARTIFACTS = os.path.join(ROOT, "target", "analytics-review")
 os.makedirs(ARTIFACTS, exist_ok=True)
 FINDINGS = []
 MISMATCHES = []
+LATENCY_BUDGET_MS = float(os.getenv("SIGNALS_PROBE_LATENCY_BUDGET_MS", "300"))
+if not math.isfinite(LATENCY_BUDGET_MS) or LATENCY_BUDGET_MS <= 0:
+    raise ValueError("SIGNALS_PROBE_LATENCY_BUDGET_MS must be finite and positive")
+TIMING_SAMPLES = {}
 
 
 def half_away(x):
@@ -133,9 +139,13 @@ class Client:
 
 def wait_ready():
     for _ in range(80):
+        if SERVER is not None and SERVER.poll() is not None:
+            raise RuntimeError("Probe collector exited; inspect target/analytics-review/server.log")
         try:
             with urllib.request.urlopen(BASE + "/readyz", timeout=1) as response:
                 if response.status == 200:
+                    if SERVER is not None and SERVER.poll() is not None:
+                        raise RuntimeError("Probe collector exited during readiness check")
                     return
         except OSError:
             pass
@@ -155,9 +165,17 @@ def stop_server():
         SERVER = None
 
 
+def require_unused_port(port):
+    # Fail before issuing fixture requests to an unrelated collector on this port.
+    with socket.socket() as check:
+        check.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        check.bind(("127.0.0.1", port))
+
+
 def restart_server():
     global SERVER
     stop_server()
+    require_unused_port(ADDRESS.port)
     env = os.environ.copy()
     env.pop("SIGNALS_CONFORMANCE_CLOCK", None)
     env.update({
@@ -1748,6 +1766,28 @@ def main():
         if schema not in schemas:
             finding("blocker", "openapi-schema", schema + " missing")
 
+    # Reproduce the CI planner shape even on a fresh database: populated daily
+    # partitions outside the performance window, created by the real ingest path.
+    partition_project = client.admin("projects", {"tenant_id": tenant_id, "slug": "partition-plan", "name": "Partition plan"})["id"]
+    partition_key = client.admin("keys", {"project_id": partition_project, "label": "partition-plan", "scopes": ["ingest"]})["secret"]
+    psql(f"UPDATE projects SET retention_days=90 WHERE id='{partition_project}'")
+    partition_events = [{
+        "id": uuid7(), "ts": fmt(datetime.now(timezone.utc) - timedelta(days=day)),
+        "type": "tool.called", "attrs": {"tool": "partition_probe", "duration_ms": 10,
+        "is_error": False, "input_bytes": 1, "output_bytes": 1, "output_kinds": ["text"], "cancelled": False},
+    } for day in range(1, 32)]
+    status, body, _ = client.request("POST", "/v1/events", {
+        "schema_version": 1, "sent_at": fmt(datetime.now(timezone.utc)),
+        "source": {"sdk": "node", "sdk_version": "1", "server_name": "review", "server_version": "1", "instance_id": "partition-plan"},
+        "events": partition_events,
+    }, key=partition_key)
+    if status != 202 or body.get("accepted") != 31 or body.get("rejected"):
+        finding("blocker", "partition-fixture", f"{status} {body}")
+    partition_count = int(psql(f"SELECT count(DISTINCT tableoid) FROM events WHERE project_id='{partition_project}'"))
+    print("populated daily partition fixture", partition_count)
+    if partition_count < 31:
+        finding("blocker", "partition-fixture", f"expected 31 populated daily partitions, got {partition_count}")
+
     # 100k route timing on its own project.
     perf = client.admin("projects", {"tenant_id": tenant_id, "slug": "perf", "name": "Perf"})["id"]
     perf_key = client.admin("keys", {"project_id": perf, "label": "perf", "scopes": ["read"]})["secret"]
@@ -1768,9 +1808,13 @@ def main():
     wait_watermark(received, timeout=240)
     timings = {}
     perf_base = f"/v1/projects/{perf}/analytics"
-    for name in ("overview", "adoption", "tools", "reliability", "cost", "protocol", "digest", "alerts"):
-        url = f"{perf_base}/{name}?range=7d"
-        client.request("GET", url, key=perf_key, timeout=30)
+    print(f"Latency budget: {LATENCY_BUDGET_MS:g} ms; warmup then median of three")
+    for name in ("overview", "adoption", "tools", "reliability", "cost", "protocol", "digest", "alerts", "timeline"):
+        route = "sessions/bench-0/timeline" if name == "timeline" else name
+        url = f"{perf_base}/{route}?range=7d"
+        status, _, _ = client.request("GET", url, key=perf_key, timeout=30)
+        if status != 200:
+            finding("blocker", "perf-status", f"{name} warmup returned {status}")
         samples = []
         for _ in range(3):
             started = time.perf_counter()
@@ -1778,31 +1822,24 @@ def main():
             samples.append((time.perf_counter() - started) * 1000)
             if status != 200:
                 finding("blocker", "perf-status", f"{name} returned {status}")
-                break
-        timings[name] = round(max(samples), 2) if samples else None
-        print(f"BENCH {name}: {timings[name]} ms")
-        if timings[name] and timings[name] > 1000:
-            finding("blocker", "perf-" + name, f"{timings[name]} ms")
-        elif timings[name] and timings[name] > 300:
-            finding("should-fix", "perf-" + name, f"{timings[name]} ms")
-    started = time.perf_counter()
-    status, _, _ = client.request("GET", f"{perf_base}/sessions/bench-0/timeline?range=7d", key=perf_key, timeout=30)
-    timings["timeline"] = round((time.perf_counter() - started) * 1000, 2)
-    print("BENCH timeline", timings["timeline"], status)
-    if status == 200 and timings["timeline"] > 1000:
-        finding("blocker", "perf-timeline", f"{timings['timeline']} ms")
-    elif status == 200 and timings["timeline"] > 300:
-        finding("should-fix", "perf-timeline", f"{timings['timeline']} ms")
+        TIMING_SAMPLES[name] = [round(sample, 2) for sample in samples]
+        elapsed = statistics.median(samples)
+        timings[name] = round(elapsed, 2)
+        print(f"BENCH {name}: median {timings[name]} ms; samples {TIMING_SAMPLES[name]}")
+        if elapsed > LATENCY_BUDGET_MS:
+            finding("should-fix", "perf-" + name, f"{timings[name]} ms median exceeds {LATENCY_BUDGET_MS:g} ms budget")
     plan = psql(
         "EXPLAIN SELECT ts,id,type FROM analytics_facts WHERE project_id="
         f"'{perf}' AND ts < now()"
     )
-    nested = psql(
-        "EXPLAIN (ANALYZE, FORMAT JSON) SELECT r.hour FROM analytics_hourly r WHERE project_id="
-        f"'{perf}' AND hour>=now()-interval '7 days' AND hour+interval '1 hour'<=now() "
-        "AND NOT EXISTS (SELECT 1 FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour "
-        "AND e.ts<r.hour+interval '1 hour' AND e.received_at>'1970-01-01')"
-    )
+    # Use the production SQL, not a handwritten approximation of eligibility.
+    with open(os.path.join(ROOT, "crates/signals-store/queries/analytics_histograms.sql")) as handle:
+        eligibility = handle.read()
+    for placeholder, value in (("$1", f"'{uuid.UUID(perf)}'::uuid"),
+                               ("$2", "now()-interval '7 days'"), ("$3", "now()"),
+                               ("$4", "'1970-01-01'::timestamptz")):
+        eligibility = eligibility.replace(placeholder, value)
+    nested = psql("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + eligibility)
     print("EXPLAIN facts\n", plan)
     print("EXPLAIN hourly\n", nested)
     scans = executed_event_scans(json.loads(nested)[0]["Plan"])
@@ -1831,7 +1868,7 @@ def main():
 
 
 def dump_results(timings=None):
-    out = {"findings": FINDINGS, "mismatches": MISMATCHES[:80], "mismatch_count": len(MISMATCHES), "timings": timings or {}}
+    out = {"findings": FINDINGS, "mismatches": MISMATCHES[:80], "mismatch_count": len(MISMATCHES), "timings": timings or {}, "timing_samples": TIMING_SAMPLES, "latency_budget_ms": LATENCY_BUDGET_MS, "latency_statistic": "median_of_three_after_warmup"}
     with open(os.path.join(ARTIFACTS, "findings.json"), "w") as handle:
         json.dump(out, handle, indent=2, default=str)
     print("FINDINGS", len(FINDINGS), "MISMATCHES", len(MISMATCHES))
@@ -1882,6 +1919,7 @@ class Probe(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     try:
+        require_unused_port(PROBE_PORT)
         restart_server()
         main()
         if FINDINGS or MISMATCHES:

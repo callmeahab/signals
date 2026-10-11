@@ -192,7 +192,7 @@ Authentication/login account responses use the same safe project serializer.
 
 ## Spec v1.1 metric coverage
 
-Migration 0009 preserves request IDs, output item counts, derived-session markers,
+Migration 0010 preserves request IDs, output item counts, derived-session markers,
 progress, sampling, elicitation, task and discovery metadata in compact facts, alongside
 error kinds/codes, output characters, schema validation flags, initialize timing/error,
 and auth failure reasons. Raw event attrs retain all schema-valid fields. Hourly
@@ -214,3 +214,45 @@ storage, retained facts, protocol/reliability metrics, and real local SMTP/webho
 receivers, including digest deduplication and alert transition delivery. Set an isolated
 `TEST_DATABASE_URL` first, using a role allowed to create/drop its temporary test
 database. Scheduler unit tests cover both US DST transitions.
+### Analytics latency checks
+
+`scripts/analytics-review-probe.py` warms each route, then measures three requests
+and gates on their median. `SIGNALS_PROBE_LATENCY_BUDGET_MS` must be a finite,
+positive number; it defaults to **300 ms** for local release probes. CI sets
+**900 ms** for shared runners. The findings artifact includes the budget, median,
+and individual samples. Semantic mismatches and non-200 responses always fail,
+regardless of the latency budget.
+
+For stage-level profiling on a disposable local database, run:
+
+```sh
+cargo run --release -p signals-store --example analytics_profile -- --seed
+# Use the PROJECT_ID printed by the seed command:
+PROJECT_ID=<uuid> cargo run --release -p signals-store --example analytics_profile
+```
+
+The first iteration loads an uncached snapshot; subsequent iterations reuse it.
+Restart the disposable PostgreSQL instance before profiling to clear its shared
+buffers (the operating system file cache remains). The profile reports snapshot
+loading, overview calculation, and current/previous histogram read times separately.
+
+### Histogram eligibility and raw partitions
+
+`analytics_hourly_arrivals` records the latest received timestamp for each project
+and UTC event hour. A statement-level ingest trigger updates it transactionally,
+using the maximum timestamp so out-of-order writes cannot move it backwards. The
+histogram query uses these indexed markers to exclude hours with arrivals newer
+than the analytics rollup watermark; excluded and partial hours use retained facts.
+Eligibility never reads raw `events` partitions, including after raw retention.
+Markers expire with hourly aggregates after 400 days.
+
+Migration 9 backfills markers from existing raw events once, holding an event-write
+lock through backfill and trigger installation to avoid missed arrivals. Production, the
+31-partition database regression test, and the review probe use the same SQL file
+at `crates/signals-store/queries/analytics_histograms.sql`. The probe creates its
+own 31 populated daily partitions, and CI explicitly runs the database regression
+for late arrivals, transaction rollback, retention, and the executed query plan.
+
+On a shared development host, select unused `ANALYTICS_REVIEW_URL` and
+`ANALYTICS_REVIEW_PROBE_PORT` values for the review probe. It rejects occupied
+ports before launching its collector or sending fixture requests.

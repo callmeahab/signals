@@ -991,3 +991,1057 @@ git diff --check
 All exited 0: stop/remove each printed `signals-settings-read-pg`; no matching
 container remained, socket output was header-only, target was absent, ownership
 diff and whitespace check were empty. Changes are committed locally; no push.
+
+## CI alerts determinism
+
+Merged `main` first with `git merge main`, fast-forwarding `5dc50d5..37cec73`.
+Read the task brief and COMMON rules, then inspected the cited CI failure before
+changing code:
+
+```sh
+gh run view 38150894037 --repo callmeahab/signals --log-failed > /tmp/alerts-ci-failure.log
+grep -n '\[blocker\]\|\[should-fix\]\|errors after\|alerts ' /tmp/alerts-ci-failure.log | head -30
+```
+
+Both commands exited 0. Relevant output (GitHub timestamps omitted):
+
+```text
+alerts burn=firing:1 | destructive=firing:1 | errors=no_data:1 | latency=firing:1 | volume=firing:1
+errors after sustained backdate firing
+[should-fix] perf-overview: 966.93 ms
+[should-fix] perf-adoption: 319.95 ms
+FINDINGS 2 MISMATCHES 0
+```
+
+The cited run passed the sustained-error assertion; its two failures were latency
+checks. The initial error `no_data` precedes the probe's sustained-error stage.
+Inspection of `alert_states` confirms a rolling `[now - 60 seconds, now)` window,
+not an aligned minute bucket. Requested coordinator clarification before making
+alert behavior changes based on a failure that the cited run does not exhibit.
+
+Coordinator correction: the brief misread the CI log. Scope changed to profiling
+cold overview latency, fixing observed work, and configuring the latency probe as
+warmup plus median of three with `SIGNALS_PROBE_LATENCY_BUDGET_MS` (local default
+300, CI 900). Correctness mismatches remain a hard failure. Explicit-clock alert
+work was explicitly dropped; the remaining acceptance checks still apply.
+
+Changes by file:
+
+- `crates/signals-store/src/analytics.rs`: reuse overview's already-built identity
+  set and token total; use timestamp bounds for histogram fallback so the previous
+  window does not scan all current-window facts.
+- `crates/signals-store/examples/analytics_profile.rs`: repeatable isolated 100k
+  fixture and stage-level cold/warm profiling, with no collector worker running.
+- `scripts/analytics-review-probe.py`: warmup and median of three for every timed
+  route, including timeline; validate positive finite budget; retain every sample
+  and budget in the artifact. Non-200 responses and semantic mismatches still fail.
+- `.github/workflows/signals.yml`: CI-only 900 ms budget, per corrected scope.
+- `docs/analytics.md`: latency policy and profiling commands.
+- `reports/collector-analytics.md`: evidence and scope correction.
+
+Setup and profiling commands (all exited 0):
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+(cd web && BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun install --frozen-lockfile && bun run build)
+docker run -d --name signals-ci-latency-pg --shm-size=1g -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:25439:5432 postgres:18.6-bookworm
+SQLX_OFFLINE=true cargo build --locked --release --bin signals
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals
+target/release/signals migrate
+docker exec -i signals-ci-latency-pg psql -U postgres -d signals -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+SQLX_OFFLINE=true cargo run --locked --release -p signals-store --example analytics_profile -- --seed
+export PROJECT_ID=54baf46f-8e1e-47fc-8b6b-c09353020e94
+docker restart signals-ci-latency-pg
+target/release/examples/analytics_profile
+# Add component breakdowns, rerun the baseline:
+SQLX_OFFLINE=true cargo run --locked --release -p signals-store --example analytics_profile
+# After optimization:
+SQLX_OFFLINE=true cargo build --locked --release -p signals-store --example analytics_profile
+docker restart signals-ci-latency-pg
+target/release/examples/analytics_profile
+```
+
+Web build ended `built in 452ms`; seed printed the project ID above. PostgreSQL
+restart clears shared buffers, not the host operating-system file cache. This is
+an application-cache and PostgreSQL-buffer cold measurement, not a cold physical
+disk measurement. The profile executes the real store functions used by overview;
+HTTP auth and JSON response serialization are covered by the full probe below.
+
+Baseline before optimization:
+
+```text
+{"calls":100000,"current_hist_ms":12.503186,"current_scopes":2,"facts":100000,"iteration":0,"load_ms":248.38514,"overview_ms":171.07182300000002,"previous_hist_ms":2.954811,"previous_scopes":0,"total_ms":434.91496}
+{"calls":100000,"current_hist_ms":11.947259,"current_scopes":2,"facts":100000,"iteration":1,"load_ms":0.16025699999999998,"overview_ms":170.846602,"previous_hist_ms":2.980254,"previous_scopes":0,"total_ms":185.934372}
+{"calls":100000,"current_hist_ms":10.666133,"current_scopes":2,"facts":100000,"iteration":2,"load_ms":0.397967,"overview_ms":163.238133,"previous_hist_ms":3.8725029999999996,"previous_scopes":0,"total_ms":178.174736}
+{"calls":100000,"current_hist_ms":10.306117,"current_scopes":2,"facts":100000,"iteration":3,"load_ms":0.16536299999999998,"overview_ms":178.11729300000002,"previous_hist_ms":2.990782,"previous_scopes":0,"total_ms":191.579555}
+```
+
+Additional baseline component breakdown:
+
+```text
+   Compiling signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-store)
+    Finished `release` profile [optimized] target(s) in 13.41s
+     Running `target/release/examples/analytics_profile`
+components {"by_kind_ms":39.861015,"cohorts_ms":36.813477999999996,"funnel_ms":19.134163}
+{"calls":100000,"current_hist_ms":15.042821,"current_scopes":2,"facts":100000,"iteration":0,"load_ms":284.22037300000005,"overview_ms":225.12801800000003,"previous_hist_ms":4.623918000000001,"previous_scopes":0,"total_ms":529.01513}
+components {"by_kind_ms":28.968069,"cohorts_ms":32.302305000000004,"funnel_ms":16.310413}
+{"calls":100000,"current_hist_ms":14.515118000000001,"current_scopes":2,"facts":100000,"iteration":1,"load_ms":0.897717,"overview_ms":236.954146,"previous_hist_ms":4.186935999999999,"previous_scopes":0,"total_ms":256.553917}
+components {"by_kind_ms":29.362239,"cohorts_ms":39.155568,"funnel_ms":15.058286}
+{"calls":100000,"current_hist_ms":11.408946,"current_scopes":2,"facts":100000,"iteration":2,"load_ms":0.817411,"overview_ms":207.454264,"previous_hist_ms":4.581206,"previous_scopes":0,"total_ms":224.261827}
+components {"by_kind_ms":40.853905000000005,"cohorts_ms":44.14275,"funnel_ms":16.220878000000003}
+{"calls":100000,"current_hist_ms":12.158403,"current_scopes":2,"facts":100000,"iteration":3,"load_ms":0.5842809999999999,"overview_ms":215.891897,"previous_hist_ms":3.7703480000000003,"previous_scopes":0,"total_ms":232.404929}
+```
+
+After optimization:
+
+```text
+components {"by_kind_ms":20.187502,"cohorts_ms":24.669772,"funnel_ms":14.292733}
+{"calls":100000,"current_hist_ms":18.739869,"current_scopes":2,"facts":100000,"iteration":0,"load_ms":261.037739,"overview_ms":122.04448699999999,"previous_hist_ms":0.640821,"previous_scopes":0,"total_ms":402.462916}
+components {"by_kind_ms":20.328474,"cohorts_ms":22.644153,"funnel_ms":13.430971}
+{"calls":100000,"current_hist_ms":12.989638,"current_scopes":2,"facts":100000,"iteration":1,"load_ms":0.259339,"overview_ms":113.665206,"previous_hist_ms":0.8037679999999999,"previous_scopes":0,"total_ms":127.717951}
+components {"by_kind_ms":21.828767,"cohorts_ms":24.963378000000002,"funnel_ms":14.898228}
+{"calls":100000,"current_hist_ms":12.034144,"current_scopes":2,"facts":100000,"iteration":2,"load_ms":0.557573,"overview_ms":113.32070800000001,"previous_hist_ms":0.83846,"previous_scopes":0,"total_ms":126.75088500000001}
+components {"by_kind_ms":24.280788,"cohorts_ms":22.650793999999998,"funnel_ms":13.680196}
+{"calls":100000,"current_hist_ms":16.350357,"current_scopes":2,"facts":100000,"iteration":3,"load_ms":0.47878299999999996,"overview_ms":114.599569,"previous_hist_ms":0.717781,"previous_scopes":0,"total_ms":132.14649}
+```
+
+The cold fact load is material, but the two histogram queries are not the dominant
+cost. The profile exposed redundant overview identity and token passes; these
+were removed without changing cache lifetime or correctness rules. Observed warm
+wall times fell from 178–192 ms in the initial baseline to 127–132 ms after the
+change. These are local measurements, not a claim that the exact runner slowdown
+was reproduced; the cited CI run itself remains the evidence for 967 ms there.
+
+Latency configuration validation:
+
+```sh
+python3 - <<'PYCODE'
+import os, subprocess, sys
+for budget in (None,'900','0','-1','nan','inf','nope'):
+ env=os.environ.copy()
+ env.pop('SIGNALS_PROBE_LATENCY_BUDGET_MS',None)
+ if budget is not None:env['SIGNALS_PROBE_LATENCY_BUDGET_MS']=budget
+ result=subprocess.run([sys.executable,'-c',"import runpy; p=runpy.run_path('scripts/analytics-review-probe.py'); print(p['LATENCY_BUDGET_MS'])"],env=env,capture_output=True,text=True)
+ if budget in (None,'900'):
+  assert result.returncode==0,result.stderr
+  assert float(result.stdout)==(300 if budget is None else 900)
+ else:assert result.returncode!=0
+ print(f'budget {budget}: PASS')
+PYCODE
+```
+
+Exit 0: all seven cases printed PASS (default 300, configured 900, and rejection
+of zero, negative, NaN, infinity and nonnumeric values).
+
+Required Rust/database verification:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+cargo fmt --all --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+cargo sqlx prepare --check --workspace -- --all-targets
+cargo run --locked -p signals-xtask -- --check
+SIGNALS_BENCH_ROWS=100000 cargo test --locked --release --workspace -- --ignored --test-threads=1
+cargo build --locked --bin signals
+cargo build --locked --release --bin signals
+```
+
+All commands exited 0. Formatting emitted no output. Workspace unit tests passed
+(9 core, 5 server, 7 store); all seven ignored DB tests passed with explicit
+`TEST_DATABASE_URL` and `.sqlx/dev.sql` applied earlier. Selected final output:
+
+```text
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 36.63s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 3.06s
+     Running `target/debug/signals-xtask --check`
+Official schemas parsed; runtime validation replaces generated wire types
+test three_day_analytics_contract_and_idempotence ... ok
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+test thirty_day_dashboard_measurements ... ok
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 11.01s
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `release` profile [optimized] target(s) in 41.95s
+```
+
+Full CI harness and first consecutive analytics probe:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+export PLAYWRIGHT_CHANNEL=chromium ANALYTICS_PG_CONTAINER=signals-ci-latency-pg SIGNALS_URL=http://127.0.0.1:25483 PYTHONUNBUFFERED=1
+python3 - <<'PYCODE'
+import os, subprocess, tempfile
+with tempfile.TemporaryDirectory(prefix='latency-', dir='/var/tmp') as tmp:
+ subprocess.run(['python3', 'scripts/ci-conformance.py'], env={**os.environ, 'TMPDIR':tmp}, check=True)
+PYCODE
+```
+
+Exit 0. This uses a disk-backed TMPDIR and the PostgreSQL instance created with
+`--shm-size=1g`. The complete, unchanged CI harness ran browser QA and then the
+analytics probe; no stages were skipped. Selected output:
+
+```text
+identity: 39/39 valid fixtures matched
+identity: 49/49 invalid fixtures matched
+gzip: 39/39 valid fixtures matched
+gzip: 49/49 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v2 analytics, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+Latency budget: 300 ms; warmup then median of three
+BENCH overview: median 131.28 ms; samples [435.2, 131.28, 125.31]
+BENCH adoption: median 225.05 ms; samples [231.0, 222.87, 225.05]
+BENCH tools: median 134.1 ms; samples [125.0, 135.87, 134.1]
+BENCH reliability: median 93.85 ms; samples [93.85, 94.24, 92.08]
+BENCH cost: median 136.5 ms; samples [135.63, 136.5, 138.98]
+BENCH protocol: median 53.82 ms; samples [57.8, 53.82, 49.63]
+BENCH digest: median 167.58 ms; samples [167.58, 158.74, 171.65]
+BENCH alerts: median 1.42 ms; samples [0.88, 1.42, 2.08]
+BENCH timeline: median 10.81 ms; samples [10.31, 12.09, 10.81]
+FINDINGS 0 MISMATCHES 0
+```
+
+Run 1 artifact:
+
+```json
+{
+  "findings": [],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 131.28,
+    "adoption": 225.05,
+    "tools": 134.1,
+    "reliability": 93.85,
+    "cost": 136.5,
+    "protocol": 53.82,
+    "digest": 167.58,
+    "alerts": 1.42,
+    "timeline": 10.81
+  },
+  "timing_samples": {
+    "overview": [
+      435.2,
+      131.28,
+      125.31
+    ],
+    "adoption": [
+      231.0,
+      222.87,
+      225.05
+    ],
+    "tools": [
+      125.0,
+      135.87,
+      134.1
+    ],
+    "reliability": [
+      93.85,
+      94.24,
+      92.08
+    ],
+    "cost": [
+      135.63,
+      136.5,
+      138.98
+    ],
+    "protocol": [
+      57.8,
+      53.82,
+      49.63
+    ],
+    "digest": [
+      167.58,
+      158.74,
+      171.65
+    ],
+    "alerts": [
+      0.88,
+      1.42,
+      2.08
+    ],
+    "timeline": [
+      10.31,
+      12.09,
+      10.81
+    ]
+  },
+  "latency_budget_ms": 300.0,
+  "latency_statistic": "median_of_three_after_warmup"
+}
+```
+
+The 435.20 ms overview sample is retained, not hidden. Its other two samples were
+131.28 and 125.31 ms; the median met the unchanged local 300 ms budget. All nine
+route medians passed and semantic mismatches remained zero.
+
+Second consecutive probe, same database, fresh isolated projects:
+
+```sh
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals ANALYTICS_PG_CONTAINER=signals-ci-latency-pg PYTHONUNBUFFERED=1
+python3 scripts/analytics-review-probe.py
+```
+
+Exit 0; final line `FINDINGS 0 MISMATCHES 0`. All nine route medians passed the
+local 300 ms budget. Complete timing artifact:
+
+```json
+{
+  "findings": [],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 123.65,
+    "adoption": 227.32,
+    "tools": 126.91,
+    "reliability": 94.74,
+    "cost": 157.34,
+    "protocol": 43.71,
+    "digest": 160.58,
+    "alerts": 0.83,
+    "timeline": 12.76
+  },
+  "timing_samples": {
+    "overview": [
+      129.13,
+      122.81,
+      123.65
+    ],
+    "adoption": [
+      227.32,
+      219.95,
+      230.25
+    ],
+    "tools": [
+      124.36,
+      126.91,
+      128.49
+    ],
+    "reliability": [
+      94.59,
+      97.74,
+      94.74
+    ],
+    "cost": [
+      157.34,
+      166.77,
+      145.97
+    ],
+    "protocol": [
+      43.71,
+      43.25,
+      44.65
+    ],
+    "digest": [
+      172.57,
+      160.58,
+      156.17
+    ],
+    "alerts": [
+      0.83,
+      0.78,
+      1.9
+    ],
+    "timeline": [
+      11.08,
+      12.76,
+      19.41
+    ]
+  },
+  "latency_budget_ms": 300.0,
+  "latency_statistic": "median_of_three_after_warmup"
+}
+```
+
+Third consecutive probe:
+
+```sh
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals ANALYTICS_PG_CONTAINER=signals-ci-latency-pg PYTHONUNBUFFERED=1
+python3 scripts/analytics-review-probe.py
+```
+
+Exit 1: `FINDINGS 6 MISMATCHES 0`. All semantic, alert and query-plan checks passed,
+but six route latency medians exceeded the local 300 ms budget. Complete artifact:
+
+```json
+{
+  "findings": [
+    {
+      "severity": "should-fix",
+      "id": "perf-overview",
+      "detail": "624.65 ms median exceeds 300 ms budget"
+    },
+    {
+      "severity": "should-fix",
+      "id": "perf-adoption",
+      "detail": "1063.89 ms median exceeds 300 ms budget"
+    },
+    {
+      "severity": "should-fix",
+      "id": "perf-tools",
+      "detail": "611.62 ms median exceeds 300 ms budget"
+    },
+    {
+      "severity": "should-fix",
+      "id": "perf-reliability",
+      "detail": "479.33 ms median exceeds 300 ms budget"
+    },
+    {
+      "severity": "should-fix",
+      "id": "perf-cost",
+      "detail": "543.95 ms median exceeds 300 ms budget"
+    },
+    {
+      "severity": "should-fix",
+      "id": "perf-digest",
+      "detail": "668.69 ms median exceeds 300 ms budget"
+    }
+  ],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 624.65,
+    "adoption": 1063.89,
+    "tools": 611.62,
+    "reliability": 479.33,
+    "cost": 543.95,
+    "protocol": 245.71,
+    "digest": 668.69,
+    "alerts": 9.33,
+    "timeline": 53.91
+  },
+  "timing_samples": {
+    "overview": [
+      577.61,
+      624.65,
+      782.43
+    ],
+    "adoption": [
+      876.38,
+      1063.89,
+      1081.95
+    ],
+    "tools": [
+      798.94,
+      611.62,
+      576.13
+    ],
+    "reliability": [
+      481.81,
+      479.33,
+      452.06
+    ],
+    "cost": [
+      543.95,
+      606.64,
+      509.89
+    ],
+    "protocol": [
+      245.71,
+      288.12,
+      218.75
+    ],
+    "digest": [
+      610.3,
+      713.99,
+      668.69
+    ],
+    "alerts": [
+      6.97,
+      23.77,
+      9.33
+    ],
+    "timeline": [
+      39.37,
+      65.38,
+      53.91
+    ]
+  },
+  "latency_budget_ms": 300.0,
+  "latency_statistic": "median_of_three_after_warmup"
+}
+```
+
+Host contention investigation immediately after that run:
+
+```sh
+uptime
+ps -eo pid,pcpu,pmem,comm,args --sort=-pcpu | head -15
+```
+
+Exit 0. At 16:35:44 UTC the load averages were `16.22, 7.15, 5.53`. The top
+processes included release/LTO `rustc` jobs writing to
+`/var/tmp/collector-v11-r1/target/release/deps`, including integration tests at
+313% CPU and read-performance tests at 208% CPU. No builds were running in this
+worker's worktree. The broad approximately fivefold slowdown affected every route,
+including cheap alerts and timeline requests, while correctness remained intact.
+This supports host contention as the cause but is not a substitute for a quiet
+repeat. Asked the coordinator to coordinate that repeat; did not change the budget,
+suppress findings, or stop another worker's processes.
+
+The coordinator accepted a quiet route timing repeat instead of another full
+nine-minute probe, requested both results with load averages, and explicitly
+instructed finalization after that repeat. Other workers' processes were untouched.
+
+Quiet repeat command (same third-run 100k project, after all `rustc` processes
+exited; same warmup plus three samples and unchanged 300 ms budget):
+
+```sh
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals ANALYTICS_PG_CONTAINER=signals-ci-latency-pg PYTHONUNBUFFERED=1
+python3 - <<'PYCODE'
+import importlib.util,time,json,os,subprocess,statistics
+from datetime import datetime,timezone
+print('waiting for release compilers',datetime.now(timezone.utc).isoformat(),'load',os.getloadavg(),flush=True)
+while subprocess.run(['pgrep','-x','rustc'],stdout=subprocess.DEVNULL).returncode==0:
+ time.sleep(2)
+print('compiler processes finished',datetime.now(timezone.utc).isoformat(),'load',os.getloadavg(),flush=True)
+spec=importlib.util.spec_from_file_location('probe','scripts/analytics-review-probe.py')
+p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
+try:
+ p.restart_server();c=p.Client()
+ project=p.psql("SELECT id FROM projects WHERE slug='perf' ORDER BY created_at DESC LIMIT 1").strip()
+ count=p.psql(f"SELECT count(*) FROM analytics_facts WHERE project_id='{project}'")
+ assert count=='100000',count
+ print('project',project,'facts',count,flush=True)
+ key=c.admin('keys',{'project_id':project,'label':'quiet timing repeat','scopes':['read']})['secret']
+ for route in ('overview','adoption','tools','reliability','cost','protocol','digest','alerts','timeline'):
+  suffix='sessions/bench-0/timeline' if route=='timeline' else route
+  url=f'/v1/projects/{project}/analytics/{suffix}?range=7d'
+  status,_,_=c.request('GET',url,key=key);assert status==200
+  samples=[]
+  for _ in range(3):
+   started=time.perf_counter();status,_,_=c.request('GET',url,key=key);assert status==200
+   samples.append((time.perf_counter()-started)*1000)
+  median=statistics.median(samples)
+  print(json.dumps({'route':route,'median_ms':round(median,2),'samples_ms':[round(s,2) for s in samples],'load':os.getloadavg(),'budget_ms':p.LATENCY_BUDGET_MS}),flush=True)
+  assert median<=p.LATENCY_BUDGET_MS,(route,median)
+ print('PASS all nine route medians under 300 ms',flush=True)
+finally:p.stop_server()
+PYCODE
+```
+
+Exit 0. Load averages below are 1-, 5-, and 15-minute averages and naturally remain
+high briefly after compiler exit; no release compiler remained during this repeat.
+The failed run's immediately-following load was 16.22/7.15/5.53 (recorded above).
+
+```text
+waiting for release compilers 2026-10-11T16:37:00.384497+00:00 load (12.2158203125, 8.4306640625, 6.1357421875)
+compiler processes finished 2026-10-11T16:37:00.399096+00:00 load (12.2158203125, 8.4306640625, 6.1357421875)
+project f618a973-3f50-4847-86c9-91fc66d7a382 facts 100000
+{"route": "overview", "median_ms": 128.07, "samples_ms": [128.07, 123.06, 164.41], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "adoption", "median_ms": 234.35, "samples_ms": [510.52, 234.35, 220.08], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "tools", "median_ms": 123.96, "samples_ms": [123.96, 123.0, 129.74], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "reliability", "median_ms": 96.05, "samples_ms": [95.56, 96.9, 96.05], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "cost", "median_ms": 136.9, "samples_ms": [137.41, 136.9, 136.06], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "protocol", "median_ms": 43.93, "samples_ms": [43.93, 43.32, 43.97], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "digest", "median_ms": 165.35, "samples_ms": [163.25, 172.62, 165.35], "load": [10.564453125, 8.20166015625, 6.08544921875], "budget_ms": 300.0}
+{"route": "alerts", "median_ms": 0.8, "samples_ms": [0.92, 0.8, 0.75], "load": [10.564453125, 8.20166015625, 6.08544921875], "budget_ms": 300.0}
+{"route": "timeline", "median_ms": 9.69, "samples_ms": [9.93, 9.69, 9.39], "load": [10.564453125, 8.20166015625, 6.08544921875], "budget_ms": 300.0}
+PASS all nine route medians under 300 ms
+```
+
+Acceptance status: fmt, clippy, workspace tests, all seven ignored DB tests, SQLx
+check, schema check and full CI harness passed locally. Three consecutive full
+probes were executed: the first two passed completely, all three had zero semantic
+mismatches, and the third's latency-only failures under concurrent release builds
+passed on the coordinator-approved quiet timing repeat. No claim is made that
+three full probes exited zero. No alert logic was changed, no assertions were
+removed, and no additional sleeps were added to the probe. Remote GitHub CI has
+not been rerun because this worker does not push.
+
+Browser QA regenerated three tracked screenshots; they were restored to HEAD
+rather than included in this backend/CI change:
+
+```sh
+git restore --source=HEAD -- web/artifacts/v2-live/cost.png web/artifacts/v2-live/overview.png web/artifacts/v2-live/tools.png
+```
+
+Exit 0. No `web/` source or artifact changes remain in this task's diff.
+
+Cleanup and final verification:
+
+```sh
+ss -ltnp '( sport = :25448 or sport = :25449 or sport = :25483 )'
+docker stop signals-ci-latency-pg
+docker rm -v signals-ci-latency-pg
+rm -r /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+test ! -e /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+docker ps -a --filter name=signals-ci-latency-pg --format '{{.Names}}'
+ss -ltnp '( sport = :25439 or sport = :25448 or sport = :25449 or sport = :25483 )'
+git diff 37cec73 --name-only -- web spec deploy
+git diff --check
+git status --porcelain
+```
+
+All exited 0. Collector/probe ports were already closed; PostgreSQL stop/remove
+printed its container name, and the final container listing was empty. Final socket
+output was header-only, target was absent, ownership diff and whitespace checks
+were empty, and the post-commit status was clean. No work remains under the
+coordinator's corrected scope and accepted timing-repeat criterion; changes are
+committed locally without a push.
+
+## Partition pruning
+
+`git merge main` reported `Already up to date` at `19d56c0`. Read COMMON and the
+partition-pruning brief before work. Inspected the cited GitHub run:
+
+```sh
+gh run view 38156371320 --repo callmeahab/signals --log-failed > /tmp/pruning-ci.log
+grep -n '\[should-fix\]\|FINDINGS' /tmp/pruning-ci.log | tail -4
+```
+
+Exit 0. CI reported one `explain-events` finding and zero semantic mismatches.
+The executed plan repeatedly scanned populated September event partitions (58
+inner loops in the supplied plan). This was the SQL eligibility anti-join, not
+the prior task's bounded in-memory fallback scan.
+
+Changes by file:
+
+- `crates/signals-store/migrations/0009_analytics_hourly_arrivals.sql`: new indexed
+  per-project/hour arrival maxima, one-time raw-event backfill, and statement-level
+  transactional capture with monotonic `greatest` updates.
+- `crates/signals-store/queries/analytics_histograms.sql`: eligibility joins only
+  hourly aggregate and arrival metadata; no raw-event relation is referenced.
+- `crates/signals-store/src/analytics.rs`: compile-checked production SQL file.
+- `crates/signals-store/src/workers.rs`: arrival metadata shares the existing
+  400-day hourly/fact retention horizon.
+- `.sqlx/`: regenerated metadata for eligibility and metadata cleanup.
+- `crates/signals-server/tests/histogram_eligibility.rs`: 31 populated daily
+  partitions, ANALYZE, executed plans with both old/current watermarks, late-arrival
+  fallback, rollback atomicity, post-rollup equality, raw retention and marker cleanup.
+- `.github/workflows/signals.yml`: runs the new database regression in CI.
+- `scripts/analytics-review-probe.py`: creates 31 populated daily partitions via
+  ingestion and EXPLAINs the production SQL file instead of a handwritten copy.
+  The existing executed raw-scan guard is retained.
+- `docs/analytics.md`: eligibility, migration and retention behavior.
+- `reports/collector-analytics.md`: verification evidence.
+
+Setup:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+(cd web && BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun install --frozen-lockfile && bun run build)
+docker run -d --name signals-pruning-pg --shm-size=1g -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:25439:5432 postgres:18.6-bookworm
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals
+cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i signals-pruning-pg psql -U postgres -d signals -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+SQLX_OFFLINE=false cargo build --locked --bin signals
+```
+
+All exited 0. Selected final output:
+
+```text
+dist/assets/index-CZafG21I.js                                     302.09 kB │ gzip: 92.62 kB
+
+✓ built in 439ms
+Applied 1/migrate initial (14.333757ms)
+Applied 2/migrate query indexes (1.981782ms)
+Applied 3/migrate spec v1 (1.136996ms)
+Applied 4/migrate analytics (10.115504ms)
+Applied 5/migrate analytics revision (1.198007ms)
+Applied 6/migrate analytics facts (2.572329ms)
+Applied 7/migrate alert pending (1.378829ms)
+Applied 8/migrate analytics scope (1.47193ms)
+Applied 9/migrate analytics hourly arrivals (1.382969ms)
+CREATE TABLE
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 8.84s
+```
+
+Targeted regression:
+
+```sh
+export TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+cargo test --locked -p signals-server --test histogram_eligibility -- --ignored --nocapture
+```
+
+Exit 0, first before and then after adding marker-retention coverage. Final run:
+
+```text
+running 1 test
+PASS 31 populated daily partitions: no raw-event plan nodes, late-arrival fallback, rollback atomicity, raw retention and metadata cleanup
+test histogram_eligibility_avoids_raw_partitions_and_tracks_late_arrivals ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+```
+
+Upgrade and before/after plan reproduction:
+
+```sh
+docker exec signals-pruning-pg createdb -U postgres signals_upgrade
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals_upgrade
+cargo sqlx migrate run --source crates/signals-store/migrations --target-version 8
+docker exec -i signals-pruning-pg psql -U postgres -d signals_upgrade -v ON_ERROR_STOP=1 <<'SQL'
+DO $$ DECLARE d date; BEGIN
+ FOR d IN SELECT current_date-g FROM generate_series(1,31) g LOOP
+ EXECUTE format('CREATE TABLE %I PARTITION OF events FOR VALUES FROM (%L) TO (%L)','events_'||to_char(d,'YYYY_MM_DD'),d,d+1);
+ END LOOP;
+END $$;
+INSERT INTO tenants VALUES(gen_random_uuid(),'upgrade','Upgrade',NULL,'salt'::bytea,now());
+INSERT INTO projects(id,tenant_id,slug,name) SELECT gen_random_uuid(),id,'upgrade','Upgrade' FROM tenants;
+INSERT INTO events(project_id,ts,received_at,id,type,tool,duration_ms,is_error,attrs)
+SELECT p.id,current_date-g*interval '1 day'+n*interval '1 minute',clock_timestamp(),gen_random_uuid(),'tool.called','read_item',100,false,'{}'::jsonb
+FROM projects p CROSS JOIN generate_series(1,31) g CROSS JOIN generate_series(1,20) n;
+INSERT INTO analytics_hourly(project_id,hour,tool,is_project,metrics)
+SELECT id,current_date-g*interval '1 day','',true,jsonb_build_object('latency_hist',to_jsonb(array_fill(1,ARRAY[60]))) FROM projects CROSS JOIN generate_series(1,31) g;
+SQL
+cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec signals-pruning-pg psql -U postgres -d signals_upgrade -c 'ANALYZE events; ANALYZE analytics_hourly;'
+python3 - <<'PY'
+import subprocess,json
+from pathlib import Path
+def sql(q):return subprocess.check_output(['docker','exec','signals-pruning-pg','psql','-U','postgres','-d','signals_upgrade','-Atc',q],text=True).strip()
+p=sql('SELECT id FROM projects')
+assert sql('SELECT count(*) FROM analytics_hourly_arrivals')=='31'
+assert sql("SELECT bool_and(a.received_at=x.received_at) FROM analytics_hourly_arrivals a JOIN (SELECT project_id,date_trunc('hour',ts,'UTC') AS bucket,max(received_at) AS received_at FROM events GROUP BY project_id,date_trunc('hour',ts,'UTC')) x ON x.project_id=a.project_id AND x.bucket=a.hour")=='t'
+print('PASS migration from version 8 backfilled 31 hourly arrival maxima')
+old=f"SELECT r.hour FROM analytics_hourly r WHERE project_id='{p}' AND hour>=now()-interval '7 days' AND hour+interval '1 hour'<=now() AND NOT EXISTS(SELECT 1 FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour AND e.ts<r.hour+interval '1 hour' AND e.received_at>'1970-01-01')"
+new=Path('crates/signals-store/queries/analytics_histograms.sql').read_text()
+for k,v in (('$1',f"'{p}'::uuid"),('$2',"now()-interval '7 days'"),('$3','now()'),('$4',"'1970-01-01'::timestamptz")):new=new.replace(k,v)
+def scans(n):
+ result=[]
+ if n.get('Node Type')=='Seq Scan' and n.get('Relation Name','').startswith('events') and n.get('Actual Loops',0)>0 and n.get('Actual Rows',0)+n.get('Rows Removed by Filter',0)>0:result.append(n['Relation Name'])
+ for c in n.get('Plans',[]):result+=scans(c)
+ return result
+for label,q in [('old',old),('new',new)]:
+ plan=json.loads(sql('EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) '+q))
+ Path('/tmp/pruning-'+label+'-plan.json').write_text(json.dumps(plan,indent=2))
+ raw=scans(plan[0]['Plan']);print(label,'populated raw sequential scans',len(raw),raw)
+ assert bool(raw)==(label=='old')
+print('PASS old query reproduces guard failure; production metadata query avoids it')
+PY
+```
+
+All final commands exited 0. Initial diagnostic attempts encountered a corrected
+SQL alias typo and, before ANALYZE, an old plan using index scans instead of the CI
+sequential-scan plan; after gathering normal table statistics, the guard failure
+reproduced without disabling indexes or changing planner settings. Final output:
+
+```text
+PASS migration from version 8 backfilled 31 hourly arrival maxima
+old populated raw sequential scans 31 ['events_2026_09_10', 'events_2026_09_11', 'events_2026_09_12', 'events_2026_09_13', 'events_2026_09_14', 'events_2026_09_15', 'events_2026_09_16', 'events_2026_09_17', 'events_2026_09_18', 'events_2026_09_19', 'events_2026_09_20', 'events_2026_09_21', 'events_2026_09_22', 'events_2026_09_23', 'events_2026_09_24', 'events_2026_09_25', 'events_2026_09_26', 'events_2026_09_27', 'events_2026_09_28', 'events_2026_09_29', 'events_2026_09_30', 'events_2026_10_01', 'events_2026_10_02', 'events_2026_10_03', 'events_2026_10_04', 'events_2026_10_05', 'events_2026_10_06', 'events_2026_10_07', 'events_2026_10_08', 'events_2026_10_09', 'events_2026_10_10']
+new populated raw sequential scans 0 []
+PASS old query reproduces guard failure; production metadata query avoids it
+```
+
+Final migration hardening: migration 9 explicitly acquires `SHARE ROW EXCLUSIVE`
+on `events` before the one-time backfill and holds it through trigger installation.
+This prevents concurrent ingestion from committing between those steps without
+an arrival marker. Because this is a new, unpublished migration, a fresh disposable
+database was used for final acceptance rather than changing applied checksums.
+
+```sh
+docker exec signals-pruning-pg createdb -U postgres signals_final
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals_final cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i signals-pruning-pg psql -U postgres -d signals_final -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+# After the earlier validation process exited:
+docker exec signals-pruning-pg psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c 'ALTER DATABASE signals RENAME TO signals_prelock' -c 'ALTER DATABASE signals_final RENAME TO signals'
+# Reset only migration 9 objects in the isolated upgrade fixture, then reapply
+# the finalized migration to its existing 31-partition version-8 data:
+docker exec signals-pruning-pg psql -U postgres -d signals_upgrade -v ON_ERROR_STOP=1 -c 'DROP TRIGGER analytics_record_arrivals ON events; DROP FUNCTION analytics_record_arrivals(); DROP TABLE analytics_hourly_arrivals; DELETE FROM _sqlx_migrations WHERE version=9;'
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals_upgrade cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec signals-pruning-pg psql -U postgres -d signals_upgrade -Atc "SELECT count(*),bool_and(a.received_at=x.received_at) FROM analytics_hourly_arrivals a JOIN (SELECT project_id,date_trunc('hour',ts,'UTC') AS bucket,max(received_at) AS received_at FROM events GROUP BY project_id,date_trunc('hour',ts,'UTC')) x ON x.project_id=a.project_id AND x.bucket=a.hour"
+```
+
+All exited 0; final upgrade output:
+
+```text
+Applied 9/migrate analytics hourly arrivals (21.16597ms)
+31|t
+```
+
+Rust and database acceptance (final migration, fresh database):
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+cargo sqlx prepare --workspace -- --all-targets
+cargo fmt --all --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+cargo sqlx prepare --check --workspace -- --all-targets
+cargo run --locked -p signals-xtask -- --check
+SIGNALS_BENCH_ROWS=100000 cargo test --locked --release --workspace -- --ignored --test-threads=1
+cargo build --locked --bin signals
+cargo build --locked --release --bin signals
+```
+
+All exited 0. After the lock-only migration refinement and fresh-database swap,
+fmt, clippy, workspace tests, SQLx check and the complete ignored database suite
+were repeated and passed. The new migration changes no SQL query shapes, and
+metadata remained unchanged. Final outputs (fmt was silent):
+
+```text
+    Finished `dev` profile [unoptimized] target(s) in 2.85s
+query data written to .sqlx in the workspace root; please check this into version control
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 2.95s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 2.67s
+     Running `target/debug/signals-xtask --check`
+Official schemas parsed; runtime validation replaces generated wire types
+test three_day_analytics_contract_and_idempotence ... ok
+test histogram_eligibility_avoids_raw_partitions_and_tracks_late_arrivals ... ok
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+test thirty_day_dashboard_measurements ... ok
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 5.15s
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `release` profile [optimized] target(s) in 41.83s
+```
+
+Workspace tests passed (9 core, 5 server, 7 store). All eight ignored DB tests
+passed, including the new partition-plan test; explicit `TEST_DATABASE_URL` and
+`.sqlx/dev.sql` were used on the final database.
+
+CI harness port collision and isolation fix:
+
+The first full harness invocation used the established `SIGNALS_URL` port 25483
+and default analytics ports 25448/25449. Spec, transport and browser QA all passed,
+but the analytics child could not bind 25448 (`Address already in use`). Its old
+readiness check reached a different collector already there, producing wire/fixture
+mismatches and finally an empty timestamp from this worker's separate database.
+The harness exited 1; this was not a plan-guard result. The coordinator confirmed
+in `msg_d770a10713b7` that the conflicting collector was their verification run and
+had been stopped, then instructed continuing on the chosen isolated ports.
+
+`scripts/analytics-review-probe.py` now checks that collector and mock-prober ports
+are unused before starting and checks child exit during readiness. This prevents
+silently accepting an already-running unrelated collector after a bind failure.
+No other worker's process was stopped by this task. Targeted check:
+
+```sh
+python3 - <<'PY'
+import importlib.util,socket,errno
+from urllib.parse import urlparse
+spec=importlib.util.spec_from_file_location('probe','scripts/analytics-review-probe.py');p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
+with socket.socket() as occupied:
+ occupied.bind(('127.0.0.1',0));occupied.listen()
+ p.ADDRESS=urlparse(f'http://127.0.0.1:{occupied.getsockname()[1]}')
+ try:p.restart_server()
+ except OSError as error:assert error.errno==errno.EADDRINUSE
+ else:raise AssertionError('occupied collector port was accepted')
+ assert p.SERVER is None
+ print('PASS occupied port rejected before collector launch or fixture requests')
+PY
+```
+
+Exit 0, printing the PASS line above. Final harness uses explicit ports
+27483/27448/27449; the command and final result follow below. Both harness attempts
+use disk-backed TMPDIR and `SIGNALS_PROBE_LATENCY_BUDGET_MS=900`.
+
+The isolated rerun on 27483/27448/27449 passed spec, transport, browser QA,
+rollup idempotence, restart consistency, analytics comparisons and sustained-error
+firing without reporting findings, but its process tree was terminated with
+SIGTERM (exit 143) at 17:38:34 UTC before the final stages. Socket inspection showed
+its ports closed. This invocation is recorded as interrupted, not passed; asked
+the coordinator about external cleanup before restarting.
+
+The coordinator confirmed the SIGTERM was their cleanup using a process-name
+match, explicitly authorized a fresh full harness run, and stated subsequent
+cleanup would target only their recorded PIDs. No code change was needed for this
+interruption; rerunning on the same isolated ports.
+
+Completed full CI harness and full analytics probe:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+export PLAYWRIGHT_CHANNEL=chromium ANALYTICS_PG_CONTAINER=signals-pruning-pg SIGNALS_URL=http://127.0.0.1:27483 PYTHONUNBUFFERED=1 SIGNALS_PROBE_LATENCY_BUDGET_MS=900 ANALYTICS_REVIEW_URL=http://127.0.0.1:27448 ANALYTICS_REVIEW_PROBE_PORT=27449
+python3 - <<'PYCODE'
+import os, subprocess, tempfile
+with tempfile.TemporaryDirectory(prefix='pruning-',dir='/var/tmp') as tmp:
+ subprocess.run(['python3','scripts/ci-conformance.py'],env={**os.environ,'TMPDIR':tmp},check=True)
+PYCODE
+```
+
+Exit 0. The complete harness ran spec/transport/browser QA and then the complete
+analytics review probe, including its fresh 31 populated daily partitions and
+100k-event fixture. No stage was skipped. The interrupted invocation used exactly
+this command; the earlier port-collision invocation used port 25483 for
+`SIGNALS_URL` and omitted the two `ANALYTICS_REVIEW_*` overrides. Selected completed
+output:
+
+```text
+identity: 39/39 valid fixtures matched
+identity: 49/49 invalid fixtures matched
+gzip: 39/39 valid fixtures matched
+gzip: 49/49 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v2 analytics, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+populated daily partition fixture 31
+Latency budget: 900 ms; warmup then median of three
+BENCH overview: median 112.02 ms; samples [117.04, 111.1, 112.02]
+BENCH adoption: median 216.37 ms; samples [228.38, 212.13, 216.37]
+BENCH tools: median 118.61 ms; samples [118.61, 125.85, 116.71]
+BENCH reliability: median 85.99 ms; samples [85.99, 90.49, 85.87]
+BENCH cost: median 131.41 ms; samples [131.41, 129.22, 138.72]
+BENCH protocol: median 39.07 ms; samples [38.11, 39.23, 39.07]
+BENCH digest: median 152.06 ms; samples [146.56, 152.12, 152.06]
+BENCH alerts: median 0.76 ms; samples [0.84, 0.76, 0.69]
+BENCH timeline: median 8.25 ms; samples [8.25, 9.2, 8.03]
+FINDINGS 0 MISMATCHES 0
+```
+
+Complete final findings artifact, preserved before target cleanup:
+
+```json
+{
+  "findings": [],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 112.02,
+    "adoption": 216.37,
+    "tools": 118.61,
+    "reliability": 85.99,
+    "cost": 131.41,
+    "protocol": 39.07,
+    "digest": 152.06,
+    "alerts": 0.76,
+    "timeline": 8.25
+  },
+  "timing_samples": {
+    "overview": [
+      117.04,
+      111.1,
+      112.02
+    ],
+    "adoption": [
+      228.38,
+      212.13,
+      216.37
+    ],
+    "tools": [
+      118.61,
+      125.85,
+      116.71
+    ],
+    "reliability": [
+      85.99,
+      90.49,
+      85.87
+    ],
+    "cost": [
+      131.41,
+      129.22,
+      138.72
+    ],
+    "protocol": [
+      38.11,
+      39.23,
+      39.07
+    ],
+    "digest": [
+      146.56,
+      152.12,
+      152.06
+    ],
+    "alerts": [
+      0.84,
+      0.76,
+      0.69
+    ],
+    "timeline": [
+      8.25,
+      9.2,
+      8.03
+    ]
+  },
+  "latency_budget_ms": 900.0,
+  "latency_statistic": "median_of_three_after_warmup"
+}
+```
+
+Checked the executed production plan separately:
+
+```sh
+python3 - <<'PYCODE'
+import json
+from pathlib import Path
+text=Path('/tmp/pruning-conformance-complete.log').read_text()
+plan=json.loads(text.split('EXPLAIN hourly\n',1)[1].split('\nsubject_kind',1)[0])[0]
+relations=set()
+def walk(n):
+ if 'Relation Name' in n:relations.add(n['Relation Name'])
+ for c in n.get('Plans',[]):walk(c)
+walk(plan['Plan'])
+print('Eligibility plan relations:',sorted(relations))
+print('Execution time:',plan['Execution Time'],'ms')
+assert not any(r.startswith('events') for r in relations)
+PYCODE
+```
+
+Exit 0:
+
+```text
+Eligibility plan relations: ['analytics_hourly', 'analytics_hourly_arrivals']
+Execution time: 0.342 ms
+```
+
+No contract divergence or unfinished implementation remains. The migration's
+one-time backfill holds event writes while it establishes consistent metadata;
+normal eligibility reads access only rollup metadata. Remote GitHub CI has not
+been rerun because this worker does not push; the complete local CI harness passed.
+
+Cleanup and final checks:
+
+```sh
+git restore --source=HEAD -- web/artifacts/v2-live/cost.png web/artifacts/v2-live/overview.png web/artifacts/v2-live/tools.png
+ss -ltnp '( sport = :27448 or sport = :27449 or sport = :27483 )'
+docker stop signals-pruning-pg
+docker rm -v signals-pruning-pg
+rm -r /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+test ! -e /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+docker ps -a --filter name=signals-pruning-pg --format '{{.Names}}'
+ss -ltnp '( sport = :25439 or sport = :27448 or sport = :27449 or sport = :27483 )'
+git diff 19d56c0 --name-only -- web spec deploy
+git diff --check
+git status --porcelain
+```
+
+All exited 0. Generated browser screenshots were restored; no web/spec/deploy
+changes remain. Collector/probe ports were already closed, stop/remove printed
+`signals-pruning-pg`, the final container listing was empty, socket output was
+header-only, and target was absent. The final whitespace check and post-commit
+status were empty. All task changes are committed locally; no push was performed.

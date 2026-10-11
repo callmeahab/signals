@@ -12,6 +12,10 @@ use uuid::Uuid;
 type DataCache = BTreeMap<Uuid, (i64, Instant, Arc<Data>)>;
 static DATA_CACHE: OnceLock<Mutex<DataCache>> = OnceLock::new();
 
+fn identity_counts(ids: &BTreeSet<(String, String)>) -> Value {
+    json!({"strong":ids.iter().filter(|i|i.0=="strong").count(),"key":ids.iter().filter(|i|i.0=="key").count(),"network":ids.iter().filter(|i|i.0=="network").count()})
+}
+
 fn capability_names(value: &Value) -> Vec<&str> {
     match value {
         Value::Array(values) => values.iter().filter_map(Value::as_str).collect(),
@@ -413,7 +417,7 @@ impl Data {
     }
     pub fn by_kind(&self, events: &[&Fact]) -> Value {
         let ids: BTreeSet<_> = events.iter().filter_map(|e| e.identity()).collect();
-        json!({"strong":ids.iter().filter(|i|i.0=="strong").count(),"key":ids.iter().filter(|i|i.0=="key").count(),"network":ids.iter().filter(|i|i.0=="network").count()})
+        identity_counts(&ids)
     }
     pub fn funnel(&self, w: Window, events: &[&Fact]) -> Vec<Value> {
         let mut people = BTreeMap::<(String, String), (bool, bool, usize, bool)>::new();
@@ -599,9 +603,13 @@ impl Data {
                 .entry(e.client_name.as_deref().unwrap_or("Unknown"))
                 .or_default() += 1;
         }
+        // The identity set already drives active users; reuse it for the quality
+        // breakdown instead of parsing and allocating every caller a second time.
+        let by_kind = identity_counts(&ids);
+        let tokens = m.tokens(self.divisor());
         let mut latency = m.latency(w.exact());
         latency["prev_p95"] = pm.latency(w.exact())["p95"].clone();
-        json!({"tiles":{"tool_calls":{"value":m.calls.len(),"prev":pm.calls.len()},"active_users":{"value":ids.len(),"prev":prev.iter().filter_map(|e|e.identity()).collect::<BTreeSet<_>>().len(),"new":ids.iter().filter(|id|self.first.get(*id).is_some_and(|t|w.contains(*t))).count(),"by_kind":self.by_kind(&events)},"sessions":{"value":sessions.len(),"prev":prev.iter().filter_map(|e|e.session_id.as_ref()).collect::<BTreeSet<_>>().len(),"calls_per_session":(!sessions.is_empty()).then(||(m.calls.len() as f64/sessions.len() as f64*10.0).round()/10.0)},"success_rate":{"value":m.success(),"prev":pm.success(),"tools_below_slo":attention.iter().filter(|t|t["status"]=="error").count()},"latency":latency,"context_tokens":{"value":m.tokens(self.divisor()),"per_call":m.tokens(self.divisor()).map(|n|(n as f64/m.calls.len() as f64).round() as i64),"estimated":true}},"calls_by_client":{"buckets":"day","points":clients.into_iter().map(|(t,by_client)|json!({"t":t,"by_client":by_client})).collect::<Vec<_>>()},"funnel":self.funnel(w,&events),"attention":attention,"cohorts":{"kind":"weekly","rows":self.cohorts(w,f)}})
+        json!({"tiles":{"tool_calls":{"value":m.calls.len(),"prev":pm.calls.len()},"active_users":{"value":ids.len(),"prev":prev.iter().filter_map(|e|e.identity()).collect::<BTreeSet<_>>().len(),"new":ids.iter().filter(|id|self.first.get(*id).is_some_and(|t|w.contains(*t))).count(),"by_kind":by_kind},"sessions":{"value":sessions.len(),"prev":prev.iter().filter_map(|e|e.session_id.as_ref()).collect::<BTreeSet<_>>().len(),"calls_per_session":(!sessions.is_empty()).then(||(m.calls.len() as f64/sessions.len() as f64*10.0).round()/10.0)},"success_rate":{"value":m.success(),"prev":pm.success(),"tools_below_slo":attention.iter().filter(|t|t["status"]=="error").count()},"latency":latency,"context_tokens":{"value":tokens,"per_call":tokens.map(|n|(n as f64/m.calls.len() as f64).round() as i64),"estimated":true}},"calls_by_client":{"buckets":"day","points":clients.into_iter().map(|(t,by_client)|json!({"t":t,"by_client":by_client})).collect::<Vec<_>>()},"funnel":self.funnel(w,&events),"attention":attention,"cohorts":{"kind":"weekly","rows":self.cohorts(w,f)}})
     }
     pub fn adoption(&self, w: Window, f: &Filters) -> Value {
         let events = self.selected(w, f);
@@ -901,20 +909,32 @@ impl Store {
         )
         .fetch_one(&self.pool)
         .await?;
-        let rows=checked_query!("SELECT r.hour,r.tool,r.is_project,r.metrics->'latency_hist' AS hist FROM analytics_hourly r WHERE project_id=$1 AND hour>=$2 AND hour+interval '1 hour'<=$3 AND NOT EXISTS(SELECT 1 FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour AND e.ts<r.hour+interval '1 hour' AND e.received_at>$4)",project,w.from,w.to,watermark).fetch_all(&self.pool).await?;
+        let rows = sqlx::query_file!(
+            "queries/analytics_histograms.sql",
+            project,
+            w.from,
+            w.to,
+            watermark
+        )
+        .fetch_all(&self.pool)
+        .await?;
         let mut hist = BTreeMap::<Option<String>, Vec<i64>>::new();
         let mut covered = BTreeSet::new();
         for row in rows {
-            let tool = (!row.get::<bool, _>("is_project")).then(|| row.get::<String, _>("tool"));
-            let hour: DateTime<Utc> = row.get("hour");
-            let bins: Value = row.get("hist");
+            let tool = (!row.is_project).then_some(row.tool);
+            let hour = row.hour;
+            let bins = row.hist;
             let h = hist.entry(tool.clone()).or_insert_with(|| vec![0; 60]);
             for (a, b) in h.iter_mut().zip(bins.as_array().into_iter().flatten()) {
                 *a += b.as_i64().unwrap_or(0);
             }
             covered.insert((hour, tool));
         }
-        for e in data.events.iter().filter(|e| e.call() && w.contains(e.ts)) {
+        // Facts are ordered by timestamp. The previous window is often empty;
+        // avoid scanning the current window again just to discover that.
+        let start = data.events.partition_point(|e| e.ts < w.from);
+        let end = data.events.partition_point(|e| e.ts < w.to);
+        for e in data.events[start..end].iter().filter(|e| e.call()) {
             let hour =
                 e.ts.with_minute(0)
                     .unwrap()

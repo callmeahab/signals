@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM analytics_hourly_arrivals WHERE hour<clock_timestamp()-interval '400 days'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "625de0425cdbe0f030e5a8cdfaf02e81d3b9eac456a5e7d6ca78d14e833ad0a5"
+}
