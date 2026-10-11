@@ -283,21 +283,16 @@ pub fn validate_batch(
                     | "error"
                     | "custom"
                     | "tools.listed"
+                    | "sampling.requested"
+                    | "elicitation.requested"
+                    | "task.updated"
             ) {
                 return Err("unknown_type");
             }
             if !depth_ok(&value) {
                 return Err("schema");
             }
-            let valid = if kind == "tools.listed" {
-                // Validate the same envelope without imposing a not-yet-vendored attrs schema.
-                let mut envelope = value.clone();
-                envelope["type"] = Value::String("custom".into());
-                envelope["attrs"] = serde_json::json!({"name":"tools.listed"});
-                validator.is_valid(&envelope) && value["attrs"].is_object()
-            } else {
-                validator.is_valid(&value)
-            };
+            let valid = validator.is_valid(&value);
             if !valid {
                 return Err("schema");
             }

@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sdk": "node",
+    "sdk_version": "0.1.0",
+    "server_name": "orders-mcp",
+    "server_version": "1.4.2",
+    "instance_id": "i_7f3a2c9d1e",
+    "hostname": "pod-7"
+  },
+  "sent_at": "2026-10-01T12:00:02.000Z",
+  "dropped": 0,
+  "events": [
+    {
+      "id": "01a0f757-78a0-731e-8a6e-2f6a4a7ffcfe",
+      "ts": "2026-10-01T12:01:40.000Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "duration_ms": 3,
+        "is_error": true,
+        "source": "list"
+      }
+    },
+    {
+      "id": "01a0f757-78a1-731f-9a8d-2f6a4a801bed",
+      "ts": "2026-10-01T12:01:40.001Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "method": "tools/list",
+        "duration_ms": 3,
+        "is_error": true,
+        "error_kind": "internal",
+        "error_code": -32603
+      }
+    },
+    {
+      "id": "01a0f757-78a2-7320-aaac-2f6a4a803adc",
+      "ts": "2026-10-01T12:01:40.002Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "count": 2,
+        "tools": [
+          {
+            "name": "search_orders",
+            "annotations": [
+              "readOnly"
+            ],
+            "schema_hash": "a100000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "name": "book_flight",
+            "annotations": [
+              "destructive"
+            ]
+          }
+        ],
+        "catalog_hash": "4d1e000000000000000000000000000000000000000000000000000000000000",
+        "duration_ms": 4,
+        "is_error": false,
+        "source": "list"
+      }
+    },
+    {
+      "id": "01a0f757-78a3-7321-bacb-2f6a4a8059cb",
+      "ts": "2026-10-01T12:01:40.003Z",
+      "type": "mcp.request",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "method": "tools/list",
+        "duration_ms": 4,
+        "is_error": false
+      }
+    },
+    {
+      "id": "01a0f757-78a4-7322-8aea-2f6a4a8078ba",
+      "ts": "2026-10-01T12:01:40.004Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "count": 1,
+        "tools": [
+          {
+            "name": "search_orders",
+            "annotations": [
+              "readOnly"
+            ],
+            "schema_hash": "a100000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "catalog_hash": "7b00000000000000000000000000000000000000000000000000000000000000",
+        "source": "list_changed"
+      }
+    },
+    {
+      "id": "01a0f757-78a5-7323-9b09-2f6a4a8097a9",
+      "ts": "2026-10-01T12:01:40.005Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "duration_ms": 1,
+        "is_error": true,
+        "source": "list"
+      }
+    }
+  ]
+}

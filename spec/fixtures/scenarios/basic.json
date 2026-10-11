@@ -30,6 +30,7 @@
   ],
   "tolerances": { "bytes": 16, "bytes_percent": 10 },
   "strict_attrs": false,
+  "require_optional": false,
   "source": {
     "sdk": { "$match": "oneOf", "values": ["node", "python"] },
     "sdk_version": { "$match": "string", "minLength": 1 },
@@ -40,7 +41,10 @@
     {
       "type": "session.started",
       "session_id": "<session:1>",
-      "attrs": { "transport": "streamable-http" }
+      "attrs": {
+        "transport": "streamable-http",
+        "derived": { "$match": "ifPresent", "then": false }
+      }
     },
     {
       "type": "mcp.initialize",
@@ -49,13 +53,42 @@
       "attrs": {
         "requested_protocol_version": { "$match": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
         "client_capabilities": { "$match": "array" },
-        "server_capabilities": { "$match": "array", "contains": ["tools", "resources"] }
+        "server_capabilities": { "$match": "array", "contains": ["tools", "resources"] },
+        "duration_ms": { "$match": "ifPresent", "then": { "$match": "integer", "min": 0, "max": 5000 } },
+        "is_error": { "$match": "ifPresent", "then": false },
+        "error_kind": { "$match": "absent" }
+      }
+    },
+    {
+      "type": "tools.listed",
+      "optional": true,
+      "note": "Contract 1.1.0. An SDK that emits the catalogue snapshot is matched here; one that does not is skipped, so this scenario holds for both. Its `ts` is the start of the `tools/list` request handling, the same instant as the `mcp.request` below, and the CONTRACT.md §6 tie-break therefore puts it first. The scenario is stricter than the schema on purpose: every attribute is optional on the wire, but an SDK that emits a snapshot at all must say what triggered it and what the catalogue holds. Run `compare --require-optional` to make this expectation mandatory.",
+      "session_id": "<session:1>",
+      "attrs": {
+        "source": "list",
+        "count": 3,
+        "tools": [
+          { "name": { "$match": "oneOf", "values": ["echo", "fail", "slow"] } },
+          { "name": { "$match": "oneOf", "values": ["echo", "fail", "slow"] } },
+          { "name": { "$match": "oneOf", "values": ["echo", "fail", "slow"] } }
+        ],
+        "truncated": { "$match": "ifPresent", "then": false },
+        "catalog_hash": { "$match": "ifPresent", "then": { "$match": "string", "minLength": 1, "maxLength": 64 } },
+        "duration_ms": { "$match": "ifPresent", "then": { "$match": "integer", "min": 0, "max": 5000 } },
+        "is_error": { "$match": "ifPresent", "then": false }
       }
     },
     {
       "type": "mcp.request",
       "session_id": "<session:1>",
-      "attrs": { "method": "tools/list", "duration_ms": { "$match": "integer", "min": 0 }, "is_error": false }
+      "attrs": {
+        "method": "tools/list",
+        "duration_ms": { "$match": "integer", "min": 0 },
+        "is_error": false,
+        "error_kind": { "$match": "absent" },
+        "error_code": { "$match": "absent" },
+        "request_id": { "$match": "ifPresent", "then": { "$match": "string", "minLength": 1, "maxLength": 64 } }
+      }
     },
     {
       "type": "tool.called",
@@ -68,7 +101,13 @@
         "input_bytes": 19,
         "output_bytes": 38,
         "output_kinds": ["text"],
+        "output_chars": { "$match": "ifPresent", "then": 11 },
+        "output_items": { "$match": "ifPresent", "then": 1 },
+        "input_schema_valid": { "$match": "ifPresent", "then": true },
         "error_message": { "$match": "absent" },
+        "error_kind": { "$match": "absent" },
+        "error_code": { "$match": "absent" },
+        "request_id": { "$match": "ifPresent", "then": { "$match": "string", "minLength": 1, "maxLength": 64 } },
         "args": { "$match": "absent" }
       }
     },
@@ -83,7 +122,11 @@
         "input_bytes": 2,
         "output_bytes": 31,
         "output_kinds": ["text"],
+        "output_chars": { "$match": "ifPresent", "then": 4 },
+        "output_items": { "$match": "ifPresent", "then": 1 },
         "error_message": "boom",
+        "error_kind": { "$match": "ifPresent", "then": "tool" },
+        "error_code": { "$match": "absent" },
         "args": { "$match": "absent" }
       }
     },
@@ -98,6 +141,9 @@
         "input_bytes": 12,
         "output_bytes": 0,
         "output_kinds": [],
+        "output_chars": { "$match": "ifPresent", "then": 0 },
+        "output_items": { "$match": "ifPresent", "then": 0 },
+        "error_kind": { "$match": "ifPresent", "then": "cancelled" },
         "args": { "$match": "absent" }
       }
     },
@@ -108,7 +154,10 @@
         "uri": "demo://hello",
         "duration_ms": { "$match": "integer", "min": 0, "max": 5000 },
         "is_error": false,
-        "output_bytes": 63
+        "output_bytes": 63,
+        "output_chars": { "$match": "ifPresent", "then": 5 },
+        "output_items": { "$match": "ifPresent", "then": 1 },
+        "error_kind": { "$match": "absent" }
       }
     },
     {

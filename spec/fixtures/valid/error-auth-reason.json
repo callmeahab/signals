@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sdk": "node",
+    "sdk_version": "0.1.0",
+    "server_name": "orders-mcp",
+    "server_version": "1.4.2",
+    "instance_id": "i_7f3a2c9d1e",
+    "hostname": "pod-7"
+  },
+  "sent_at": "2026-10-01T12:00:02.000Z",
+  "dropped": 0,
+  "events": [
+    {
+      "id": "01a0f757-6563-7fe1-b60b-2f6a482ce10b",
+      "ts": "2026-10-01T12:01:35.075Z",
+      "type": "error",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "message": "auth failed: missing",
+        "where": "auth",
+        "reason": "missing"
+      }
+    },
+    {
+      "id": "01a0f757-6564-7fe2-862a-2f6a482cfffa",
+      "ts": "2026-10-01T12:01:35.076Z",
+      "type": "error",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "message": "auth failed: invalid",
+        "where": "auth",
+        "reason": "invalid"
+      }
+    },
+    {
+      "id": "01a0f757-6565-7fe3-9649-2f6a482d1ee9",
+      "ts": "2026-10-01T12:01:35.077Z",
+      "type": "error",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "message": "auth failed: expired",
+        "where": "auth",
+        "reason": "expired"
+      }
+    },
+    {
+      "id": "01a0f757-6566-7fe4-a668-2f6a482d3dd8",
+      "ts": "2026-10-01T12:01:35.078Z",
+      "type": "error",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "message": "auth failed: revoked",
+        "where": "auth",
+        "reason": "revoked"
+      }
+    },
+    {
+      "id": "01a0f757-6567-7fe5-b687-2f6a482d5cc7",
+      "ts": "2026-10-01T12:01:35.079Z",
+      "type": "error",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "message": "auth failed: scope",
+        "where": "auth",
+        "reason": "scope"
+      }
+    },
+    {
+      "id": "01a0f757-6568-7fe6-86a6-2f6a482d7bb6",
+      "ts": "2026-10-01T12:01:35.080Z",
+      "type": "error",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "message": "auth failed: other",
+        "where": "auth",
+        "reason": "other"
+      }
+    }
+  ]
+}

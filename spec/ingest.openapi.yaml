@@ -4,7 +4,7 @@
 openapi: 3.1.0
 info:
   title: Signals ingest API
-  version: 1.0.15
+  version: 1.1.0
   summary: Collector endpoints that every Signals SDK talks to
   description: |
     Signals is open-source observability for MCP servers. SDKs inside an MCP
@@ -15,6 +15,13 @@ info:
     batch ≤ 1 MB (1,048,576 bytes) after decompression and ≤ 1000 events.
     Partial acceptance is normal: a `202` carries the per-event `rejected` list.
     Whole-batch failures use the `Error` body.
+
+    Contract 1.1.0 is additive: four new event types (`tools.listed`,
+    `sampling.requested`, `elicitation.requested`, `task.updated`) and new
+    optional attributes on the existing ones. `schema_version` stays `1`, every
+    new attribute is optional, and an SDK built against 1.0 stays conformant.
+    The shapes live in `events.schema.json`, which this document references
+    rather than copies.
   license:
     name: Apache-2.0
     identifier: Apache-2.0

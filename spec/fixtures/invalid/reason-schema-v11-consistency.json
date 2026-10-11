@@ -1,0 +1,578 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sdk": "node",
+    "sdk_version": "0.1.0",
+    "server_name": "orders-mcp",
+    "server_version": "1.4.2",
+    "instance_id": "i_7f3a2c9d1e",
+    "hostname": "pod-7"
+  },
+  "sent_at": "2026-10-01T12:00:02.000Z",
+  "dropped": 0,
+  "events": [
+    {
+      "id": "01a0f757-7c88-7706-8386-2f6a4af8d296",
+      "ts": "2026-10-01T12:01:41.000Z",
+      "type": "mcp.request",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": true,
+        "error_kind": "cancelled"
+      },
+      "session_id": "s_01J9X0K3E2"
+    },
+    {
+      "id": "01a0f757-7c89-7707-93a5-2f6a4af8f185",
+      "ts": "2026-10-01T12:01:41.001Z",
+      "type": "tool.called",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "tool": "slow",
+        "duration_ms": 1,
+        "is_error": true,
+        "input_bytes": 0,
+        "output_bytes": 0,
+        "output_kinds": [],
+        "cancelled": false,
+        "error_kind": "cancelled"
+      }
+    },
+    {
+      "id": "01a0f757-7c8a-7708-a3c4-2f6a4af91074",
+      "ts": "2026-10-01T12:01:41.002Z",
+      "type": "tool.called",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "tool": "slow",
+        "duration_ms": 1,
+        "is_error": false,
+        "input_bytes": 0,
+        "output_bytes": 0,
+        "output_kinds": [],
+        "cancelled": false,
+        "error_kind": "cancelled"
+      }
+    },
+    {
+      "id": "01a0f757-7c8b-7709-b3e3-2f6a4af92f63",
+      "ts": "2026-10-01T12:01:41.003Z",
+      "type": "resource.read",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "uri": "u",
+        "duration_ms": 1,
+        "is_error": true,
+        "output_bytes": 0,
+        "error_kind": "cancelled"
+      }
+    },
+    {
+      "id": "01a0f757-7c8c-770a-8402-2f6a4af94e52",
+      "ts": "2026-10-01T12:01:41.004Z",
+      "type": "prompt.get",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "prompt": "p",
+        "duration_ms": 1,
+        "is_error": true,
+        "output_bytes": 0,
+        "error_kind": "cancelled"
+      }
+    },
+    {
+      "id": "01a0f757-7c8d-770b-9421-2f6a4af96d41",
+      "ts": "2026-10-01T12:01:41.005Z",
+      "type": "mcp.initialize",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "requested_protocol_version": "2026-07-28",
+        "client_capabilities": [],
+        "server_capabilities": [
+          "tools"
+        ],
+        "is_error": true,
+        "error_kind": "cancelled"
+      }
+    },
+    {
+      "id": "01a0f757-7c8e-770c-a440-2f6a4af98c30",
+      "ts": "2026-10-01T12:01:41.006Z",
+      "type": "mcp.initialize",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "requested_protocol_version": "2026-07-28",
+        "client_capabilities": [],
+        "server_capabilities": [
+          "tools"
+        ],
+        "error_kind": "cancelled"
+      }
+    },
+    {
+      "id": "01a0f757-7c8f-770d-b45f-2f6a4af9ab1f",
+      "ts": "2026-10-01T12:01:41.007Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "is_error": true,
+        "source": "list",
+        "count": 3
+      }
+    },
+    {
+      "id": "01a0f757-7c90-770e-847e-2f6a4af9ca0e",
+      "ts": "2026-10-01T12:01:41.008Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "is_error": true,
+        "source": "list",
+        "tools": [
+          {
+            "name": "search_orders"
+          }
+        ]
+      }
+    },
+    {
+      "id": "01a0f757-7c91-770f-949d-2f6a4af9e8fd",
+      "ts": "2026-10-01T12:01:41.009Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "is_error": true,
+        "source": "list",
+        "catalog_hash": "4d1e000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "id": "01a0f757-7c92-7710-a4bc-2f6a4afa07ec",
+      "ts": "2026-10-01T12:01:41.010Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "is_error": true,
+        "source": "list",
+        "count": 2,
+        "tools": [
+          {
+            "name": "search_orders",
+            "annotations": [
+              "readOnly"
+            ],
+            "schema_hash": "a100000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "name": "book_flight",
+            "annotations": [
+              "destructive"
+            ]
+          }
+        ],
+        "catalog_hash": "4d1e000000000000000000000000000000000000000000000000000000000000",
+        "truncated": false
+      }
+    },
+    {
+      "id": "01a0f757-7c93-7711-b4db-2f6a4afa26db",
+      "ts": "2026-10-01T12:01:41.011Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "is_error": true,
+        "source": "list_changed",
+        "count": 0,
+        "tools": []
+      }
+    },
+    {
+      "id": "01a0f757-7c94-7712-84fa-2f6a4afa45ca",
+      "ts": "2026-10-01T12:01:41.012Z",
+      "type": "sampling.requested",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "rejected": true,
+        "is_error": true
+      }
+    },
+    {
+      "id": "01a0f757-7c95-7713-9519-2f6a4afa64b9",
+      "ts": "2026-10-01T12:01:41.013Z",
+      "type": "sampling.requested",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "model": "claude-sonnet-4-5",
+        "stop_reason": "end_turn",
+        "duration_ms": 80,
+        "rejected": true,
+        "is_error": true
+      }
+    },
+    {
+      "id": "01a0f757-7c96-7714-a538-2f6a4afa83a8",
+      "ts": "2026-10-01T12:01:41.014Z",
+      "type": "mcp.request",
+      "attrs": {
+        "method": "ping",
+        "duration_ms": 1,
+        "is_error": false,
+        "error_kind": "cancelled"
+      },
+      "session_id": "s_01J9X0K3E2"
+    },
+    {
+      "id": "01a0f757-7c97-7715-b557-2f6a4afaa297",
+      "ts": "2026-10-01T12:01:41.015Z",
+      "type": "tool.called",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "tool": "slow",
+        "duration_ms": 1,
+        "is_error": false,
+        "input_bytes": 0,
+        "output_bytes": 0,
+        "output_kinds": [],
+        "cancelled": true,
+        "error_kind": "cancelled"
+      }
+    },
+    {
+      "id": "01a0f757-7c98-7716-8576-2f6a4afac186",
+      "ts": "2026-10-01T12:01:41.016Z",
+      "type": "resource.read",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "uri": "u",
+        "duration_ms": 1,
+        "is_error": false,
+        "output_bytes": 0,
+        "error_kind": "cancelled"
+      }
+    },
+    {
+      "id": "01a0f757-7c99-7717-9595-2f6a4afae075",
+      "ts": "2026-10-01T12:01:41.017Z",
+      "type": "prompt.get",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "prompt": "p",
+        "duration_ms": 1,
+        "is_error": false,
+        "output_bytes": 0,
+        "error_kind": "cancelled"
+      }
+    },
+    {
+      "id": "01a0f757-7c9a-7718-a5b4-2f6a4afaff64",
+      "ts": "2026-10-01T12:01:41.018Z",
+      "type": "mcp.initialize",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "requested_protocol_version": "2026-07-28",
+        "client_capabilities": [],
+        "server_capabilities": [
+          "tools"
+        ],
+        "is_error": false,
+        "error_kind": "cancelled"
+      }
+    },
+    {
+      "id": "01a0f757-7c9b-7719-b5d3-2f6a4afb1e53",
+      "ts": "2026-10-01T12:01:41.019Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "is_error": true,
+        "source": "list",
+        "duration_ms": 2
+      }
+    },
+    {
+      "id": "01a0f757-7c9c-771a-85f2-2f6a4afb3d42",
+      "ts": "2026-10-01T12:01:41.020Z",
+      "type": "tools.listed",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "is_error": false,
+        "source": "list",
+        "count": 0,
+        "tools": [],
+        "catalog_hash": "4d1e000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "id": "01a0f757-7c9d-771b-9611-2f6a4afb5c31",
+      "ts": "2026-10-01T12:01:41.021Z",
+      "type": "sampling.requested",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "rejected": true,
+        "is_error": false
+      }
+    },
+    {
+      "id": "01a0f757-7c9e-771c-a630-2f6a4afb7b20",
+      "ts": "2026-10-01T12:01:41.022Z",
+      "type": "sampling.requested",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "rejected": false,
+        "is_error": true
+      }
+    },
+    {
+      "id": "01a0f757-7c9f-771d-b64f-2f6a4afb9a0f",
+      "ts": "2026-10-01T12:01:41.023Z",
+      "type": "sampling.requested",
+      "session_id": "s_01J9X0K3E2",
+      "client": {
+        "name": "claude-ai",
+        "version": "1.2.0",
+        "protocol_version": "2025-06-18"
+      },
+      "caller": {
+        "key_id": "k_8f3a2c",
+        "subject": null,
+        "ip": "203.0.113.9",
+        "user_agent": "claude-ai/1.2.0"
+      },
+      "attrs": {
+        "rejected": true
+      }
+    }
+  ]
+}

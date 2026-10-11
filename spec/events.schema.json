@@ -47,9 +47,13 @@
     { "$ref": "#/$defs/resource.read" },
     { "$ref": "#/$defs/prompt.get" },
     { "$ref": "#/$defs/mcp.request" },
+    { "$ref": "#/$defs/tools.listed" },
     { "$ref": "#/$defs/log" },
     { "$ref": "#/$defs/error" },
-    { "$ref": "#/$defs/custom" }
+    { "$ref": "#/$defs/custom" },
+    { "$ref": "#/$defs/sampling.requested" },
+    { "$ref": "#/$defs/elicitation.requested" },
+    { "$ref": "#/$defs/task.updated" }
   ],
   "$comment": "Events may nest at most 128 object/array levels, counting the event object as level 1; collectors enforce deeper values as schema rejections before sizing.",
   "$defs": {
@@ -64,9 +68,13 @@
         "resource.read",
         "prompt.get",
         "mcp.request",
+        "tools.listed",
         "log",
         "error",
-        "custom"
+        "custom",
+        "sampling.requested",
+        "elicitation.requested",
+        "task.updated"
       ]
     },
     "client": {
@@ -85,10 +93,20 @@
       "properties": {
         "key_id": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9_-]+$", "maxLength": 128 },
         "subject": { "type": ["string", "null"], "maxLength": 256 },
+        "subject_kind": {
+          "description": "How the server established `subject` (contract 1.1.0, CONTRACT.md §3): `oauth` a validated access-token claim, `api_key` a credential the server itself verified, `header` a value a trusted proxy supplied, `none` the server has no subject identity. Optional and, like every other `caller` value, may be null. Collectors use it to rank identity strength; `oauth` is the only strong kind. When it is `none`, `subject` must be absent or null (enforced below).",
+          "type": ["string", "null"],
+          "enum": ["oauth", "api_key", "header", "none", null]
+        },
         "ip": { "type": ["string", "null"], "maxLength": 64 },
         "user_agent": { "type": ["string", "null"], "maxLength": 512 }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "if": { "properties": { "subject_kind": { "const": "none" } }, "required": ["subject_kind"] },
+      "then": {
+        "description": "`subject_kind: none` means the server resolved no subject, so a subject value here would contradict it.",
+        "properties": { "subject": { "type": "null" } }
+      }
     },
     "duration_ms": {
       "description": "Wall-clock duration in whole milliseconds.",
@@ -99,6 +117,61 @@
       "description": "A size in bytes of a compact (no whitespace) UTF-8 JSON serialisation; 0 when the counted field is absent or no response was sent. Counting rule (CONTRACT.md §4): the exact size of the compact JSON serialisation of the payload value, computed from the wire text or by a serialisation-equivalent walk; when that walk stopped at the SDK's budget (§6 Counting budgets: at least 100 000 visited nodes or 1 MiB) the field is the count reached, a lower bound; 0 only when the platform's reference serialiser can produce no form for the entire input (a cycle, or in JavaScript a BigInt, for which JSON.stringify throws on the whole value). An unsupported member never zeroes the value that contains it: the member contributes nothing and its siblings are counted exactly (CONTRACT.md §6 \"Conditions: capture and counting\").",
       "type": "integer",
       "minimum": 0
+    },
+    "item_count": {
+      "description": "A count of items, never bytes (contract 1.1.0).",
+      "type": "integer",
+      "minimum": 0
+    },
+    "char_count": {
+      "description": "A count of Unicode code points of text content, excluding binary blobs (contract 1.1.0, CONTRACT.md §4 \"Context-cost fields\"). Follows the same budget rule as `byte_count`: when the SDK's walk stopped at its counting budget the field is the count reached, a lower bound.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "error_kind": {
+      "description": "What kind of failure the SDK observed (contract 1.1.0, CONTRACT.md §4 \"Error classification\"). Closed set, first match in the §4 precedence order wins: `cancelled` (the request was cancelled and no response was sent), `timeout` (a deadline expired), `auth` (rejected before the handler ran for authentication or authorisation), `unknown_tool` (the named tool, prompt or resource is not advertised), `invalid_params` (a known target whose parameters were rejected), `protocol` (any other JSON-RPC protocol error), `internal` (the handler or server raised an unexpected exception), `tool` (the handler returned a result with `isError: true`). The key is omitted -- never set to a placeholder -- when the SDK cannot classify the failure; a collector reads an absent `error_kind` on an `is_error` event as \"unknown kind\".",
+      "type": "string",
+      "enum": ["tool", "protocol", "timeout", "cancelled", "unknown_tool", "invalid_params", "auth", "internal"]
+    },
+    "error_code": {
+      "description": "The JSON-RPC `error.code` of the response, when there was one (contract 1.1.0). Any integer, including the negative reserved range (`-32700`, `-32600`, `-32601`, `-32602`, `-32603`); omitted when the failure produced no JSON-RPC error object.",
+      "type": "integer"
+    },
+    "request_id": {
+      "description": "The JSON-RPC `id` of the request this event reports, so cancellations, progress notifications and the call can be joined (contract 1.1.0). A string id is used as it arrived, truncated to 64 code points; a number id is its decimal form; an absent, null or otherwise typed id means the key is omitted. Scoped to one session, not globally unique.",
+      "type": "string",
+      "maxLength": 64
+    },
+    "content_hash": {
+      "description": "A digest an SDK computes over content it observed, as lower-case hexadecimal (contract 1.1.0, CONTRACT.md §4 \"Catalogue hashes\"). Opaque to collectors: they may test two hashes for equality but never parse one, and never compare hashes across different `source.sdk` values. It must be a pure function of the content, independent of iteration order, of the event's truncation state and of process identity.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "error_kind_consistency": {
+      "description": "CONTRACT.md §4 \"Error classification\": `is_error` is true whenever `error_kind` is present, with one exception -- `error_kind: cancelled`, where no response was sent at all and `is_error` is false. Both directions are enforced (contract 1.1.0, review round 1, S1): an event that names a kind other than `cancelled` while reporting success is rejected with reason `schema`, and so is one that names `cancelled` while reporting a failure. `tool.called` adds that `error_kind: cancelled` requires `cancelled: true`.",
+      "type": "object",
+      "allOf": [
+        {
+          "if": { "type": "object", "properties": { "error_kind": { "not": { "const": "cancelled" } } }, "required": ["error_kind"] },
+          "then": { "type": "object", "required": ["is_error"], "properties": { "is_error": { "const": true } } }
+        },
+        {
+          "if": { "type": "object", "properties": { "error_kind": { "const": "cancelled" } }, "required": ["error_kind"] },
+          "then": { "type": "object", "required": ["is_error"], "properties": { "is_error": { "const": false } } }
+        }
+      ]
+    },
+    "tool_entry": {
+      "description": "One advertised tool in a `tools.listed` snapshot (contract 1.1.0). `name` is the tool name as advertised and is the only required key: the snapshot carries names, annotation keys and hashes, never a schema, a description or a result. `annotations` lists the distinct annotation hints whose value is true, with the `Hint` suffix removed (`destructiveHint: true` -> `destructive`); `title` is never included. `schema_hash` is a digest of the tool's advertised `inputSchema`. The SDK fits the 16 KB event cap by dropping `annotations`, then `schema_hash`, then whole entries (CONTRACT.md §6 \"Event cap\").",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "annotations": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "type": "string", "maxLength": 32 } },
+        "schema_hash": { "$ref": "#/$defs/content_hash" }
+      },
+      "required": ["name"],
+      "additionalProperties": true
     },
     "truncated_object": {
       "description": "The only permitted replacement object inside `args`, `fields` or `props`: exactly `{\"_truncated\": true, \"_bytes\": <int >= 0>}`. It stands for the whole field when the field is still over its serialised-size cap after redaction (CONTRACT.md §6), and for one member the SDK may not serialise -- a subtree deeper than the capture cap, or an unsupported member (CONTRACT.md §6 \"Conditions: capture and counting\") -- whose siblings are still captured and counted exactly. `_bytes` is the serialised size of what the marker replaced, for the whole-field case the redacted object that was dropped and never the pre-redaction size, and follows the counting rule of CONTRACT.md §4: the exact compact serialised size, the count reached when the walk stopped at the SDK's budget, and 0 only when that value has no serialisable form at all. A field-cap overflow is a budget condition, not a serialisation failure: the size is exact for the redacted copy even when that copy carries a per-member marker inside it. For a cycle, capture marks the back-edge at the cycling member's own position and preserves its siblings; the SDK may choose this standard marker object with `_bytes`: 0 or a short string marker such as \"[cycle]\". Both cycle marker forms conform, and counting remains 0 for the whole input (CONTRACT.md §6). A shared object is expanded at most once in one capture, so capture is not required to be path-relative: a marker may sit where the *first* path that reached the value found a back-edge, even where a later path to the same value would not have cut there (CONTRACT.md §6). Any object carrying a `_truncated` key must have exactly this shape; the SDK renames caller-owned top-level `_truncated` / `_bytes` keys to `_truncated_user` / `_bytes_user` before emitting, appending a further `_user` while the name is taken (`_truncated_user_user`, …). For a property key longer than the serialised-byte budget, the SDK must not allocate in proportion to the key: its length may be read, but its contents must not be normalised, copied, sliced, re-encoded or otherwise traversed, including for redaction, Unicode repair or reserved-key renaming (the 1.0.14 length-only oversized input chunk discipline). The captured member must not carry caller key bytes, and siblings must be captured exactly, including replacement-name collisions. One over-long key must not replace the whole field unless the resulting captured copy is still over the field cap; then _bytes is its exact serialised size, including the replacement entry. Counting reports the count reached, a lower bound, and must still reach at least 100 000 visited nodes or 1 MiB of serialised output before stopping; an over-long key must not short-circuit that minimum. The exact form of the replacement entry is the SDK's choice subject to these requirements; conformance tests must assert these properties rather than a particular literal (CONTRACT.md §6).",
@@ -118,10 +191,17 @@
         "attrs": {
           "type": "object",
           "properties": {
-            "transport": { "type": "string", "enum": ["streamable-http", "sse", "stdio", "synthetic"] }
+            "transport": { "type": "string", "enum": ["streamable-http", "sse", "stdio", "synthetic"] },
+            "derived": {
+              "description": "True when the SDK synthesised this session's identity from caller attributes and an idle window instead of observing one from the transport's own session management (contract 1.1.0, CONTRACT.md §4). In `schema_version` 1 that is exactly the `transport: synthetic` case, so the two must agree and the schema enforces it; the key exists so a collector can label derived sessions without re-reading `transport`, and so a later protocol revision that hands the SDK a nameable transport without a session id can keep the flag unchanged.",
+              "type": "boolean"
+            }
           },
           "required": ["transport"],
-          "additionalProperties": true
+          "additionalProperties": true,
+          "if": { "properties": { "transport": { "const": "synthetic" } }, "required": ["transport"] },
+          "then": { "properties": { "derived": { "const": true } } },
+          "else": { "properties": { "derived": { "const": false } } }
         }
       },
       "required": ["type", "attrs"]
@@ -144,7 +224,7 @@
       "required": ["type", "attrs"]
     },
     "mcp.initialize": {
-      "description": "The MCP `initialize` handshake. Only the top-level capability keys are reported, never their values.",
+      "description": "The MCP `initialize` handshake. Only the top-level capability keys are reported, never their values. `duration_ms`, `is_error` and `error_kind` are optional (contract 1.1.0) so handshake success can be measured; an SDK that cannot time the handshake omits them.",
       "type": "object",
       "properties": {
         "type": { "const": "mcp.initialize" },
@@ -163,10 +243,14 @@
               "type": "array",
               "maxItems": 32,
               "items": { "type": "string", "maxLength": 64 }
-            }
+            },
+            "duration_ms": { "$ref": "#/$defs/duration_ms" },
+            "is_error": { "type": "boolean" },
+            "error_kind": { "$ref": "#/$defs/error_kind" }
           },
           "required": ["requested_protocol_version", "client_capabilities", "server_capabilities"],
-          "additionalProperties": true
+          "additionalProperties": true,
+          "$ref": "#/$defs/error_kind_consistency"
         }
       },
       "required": ["type", "attrs"]
@@ -183,6 +267,27 @@
             "duration_ms": { "$ref": "#/$defs/duration_ms" },
             "is_error": { "type": "boolean" },
             "error_message": { "type": "string", "maxLength": 512 },
+            "error_kind": { "$ref": "#/$defs/error_kind" },
+            "error_code": { "$ref": "#/$defs/error_code" },
+            "request_id": { "$ref": "#/$defs/request_id" },
+            "output_chars": { "$ref": "#/$defs/char_count" },
+            "output_items": { "$ref": "#/$defs/item_count" },
+            "input_schema_valid": {
+              "description": "Whether the call's arguments satisfied the tool's declared `inputSchema` (contract 1.1.0). Absent -- never a placeholder -- when the SDK could not evaluate it: no schema was declared, no validator was available, or validation was skipped. False normally accompanies `is_error: true` with `error_kind: invalid_params`, but the two are independent observations.",
+              "type": "boolean"
+            },
+            "output_schema_valid": {
+              "description": "Whether the result's `structuredContent` satisfied the tool's declared `outputSchema` (contract 1.1.0). Absent when the tool declares no `outputSchema` or the SDK could not evaluate it.",
+              "type": "boolean"
+            },
+            "progress_events": {
+              "description": "How many `notifications/progress` the server sent for this call (contract 1.1.0). Emitted only when `SIGNALS_PROTOCOL_EVENTS` is on (CONTRACT.md §6).",
+              "$ref": "#/$defs/item_count"
+            },
+            "first_progress_ms": {
+              "description": "Milliseconds from the start of the call to its first `notifications/progress` (contract 1.1.0); absent when no progress notification was sent. Emitted only when `SIGNALS_PROTOCOL_EVENTS` is on.",
+              "$ref": "#/$defs/duration_ms"
+            },
             "input_bytes": { "$ref": "#/$defs/byte_count" },
             "output_bytes": { "$ref": "#/$defs/byte_count" },
             "output_kinds": {
@@ -204,18 +309,34 @@
           },
           "required": ["tool", "duration_ms", "is_error", "input_bytes", "output_bytes", "output_kinds", "cancelled"],
           "additionalProperties": true,
-          "if": {
-            "properties": { "cancelled": { "type": "boolean", "const": true } },
-            "required": ["cancelled"]
-          },
-          "then": {
-            "description": "A cancelled call got no response: no error, no output.",
-            "properties": {
-              "is_error": { "type": "boolean", "const": false },
-              "output_bytes": { "type": "integer", "const": 0 },
-              "output_kinds": { "type": "array", "maxItems": 0 }
+          "allOf": [
+            {
+              "if": {
+                "properties": { "cancelled": { "type": "boolean", "const": true } },
+                "required": ["cancelled"]
+              },
+              "then": {
+                "description": "A cancelled call got no response: no error, no output, and no error kind other than `cancelled`.",
+                "properties": {
+                  "is_error": { "type": "boolean", "const": false },
+                  "output_bytes": { "type": "integer", "const": 0 },
+                  "output_kinds": { "type": "array", "maxItems": 0 },
+                  "output_items": { "type": "integer", "const": 0 },
+                  "error_kind": { "type": "string", "const": "cancelled" }
+                }
+              }
+            },
+            { "$ref": "#/$defs/error_kind_consistency" },
+            {
+              "if": { "type": "object", "properties": { "error_kind": { "const": "cancelled" } }, "required": ["error_kind"] },
+              "then": {
+                "description": "Only a cancelled call can report the `cancelled` kind (contract 1.1.0, review round 1, S1): on `tool.called` the two must agree in both directions.",
+                "type": "object",
+                "required": ["cancelled"],
+                "properties": { "cancelled": { "const": true } }
+              }
             }
-          }
+          ]
         }
       },
       "required": ["type", "attrs"]
@@ -231,10 +352,16 @@
             "uri": { "type": "string", "maxLength": 1024 },
             "duration_ms": { "$ref": "#/$defs/duration_ms" },
             "is_error": { "type": "boolean" },
-            "output_bytes": { "$ref": "#/$defs/byte_count" }
+            "output_bytes": { "$ref": "#/$defs/byte_count" },
+            "error_kind": { "$ref": "#/$defs/error_kind" },
+            "error_code": { "$ref": "#/$defs/error_code" },
+            "request_id": { "$ref": "#/$defs/request_id" },
+            "output_chars": { "$ref": "#/$defs/char_count" },
+            "output_items": { "$ref": "#/$defs/item_count" }
           },
           "required": ["uri", "duration_ms", "is_error", "output_bytes"],
-          "additionalProperties": true
+          "additionalProperties": true,
+          "$ref": "#/$defs/error_kind_consistency"
         }
       },
       "required": ["type", "attrs"]
@@ -250,10 +377,16 @@
             "prompt": { "type": "string", "maxLength": 256 },
             "duration_ms": { "$ref": "#/$defs/duration_ms" },
             "is_error": { "type": "boolean" },
-            "output_bytes": { "$ref": "#/$defs/byte_count" }
+            "output_bytes": { "$ref": "#/$defs/byte_count" },
+            "error_kind": { "$ref": "#/$defs/error_kind" },
+            "error_code": { "$ref": "#/$defs/error_code" },
+            "request_id": { "$ref": "#/$defs/request_id" },
+            "output_chars": { "$ref": "#/$defs/char_count" },
+            "output_items": { "$ref": "#/$defs/item_count" }
           },
           "required": ["prompt", "duration_ms", "is_error", "output_bytes"],
-          "additionalProperties": true
+          "additionalProperties": true,
+          "$ref": "#/$defs/error_kind_consistency"
         }
       },
       "required": ["type", "attrs"]
@@ -268,10 +401,62 @@
           "properties": {
             "method": { "type": "string", "maxLength": 128 },
             "duration_ms": { "$ref": "#/$defs/duration_ms" },
-            "is_error": { "type": "boolean" }
+            "is_error": { "type": "boolean" },
+            "error_kind": { "$ref": "#/$defs/error_kind" },
+            "error_code": { "$ref": "#/$defs/error_code" },
+            "request_id": { "$ref": "#/$defs/request_id" }
           },
           "required": ["method", "duration_ms", "is_error"],
-          "additionalProperties": true
+          "additionalProperties": true,
+          "$ref": "#/$defs/error_kind_consistency"
+        }
+      },
+      "required": ["type", "attrs"]
+    },
+    "tools.listed": {
+      "description": "A snapshot of the tool catalogue the server advertises (contract 1.1.0). The session's catalogue is emitted once, on the first `tools/list` that succeeded, and again on every `notifications/tools/list_changed`; a failed `tools/list` emits an `is_error: true` snapshot that carries no catalogue and does not consume that one emission, so a session may carry both (review round 1, B2). it does not replace the `mcp.request` event for `tools/list`, which is still reported subject to `SIGNALS_SAMPLE_REQUESTS`. Every attribute is optional: an SDK reports what it can observe. The snapshot carries names, annotation keys and hashes only -- never a schema, a description or a result. `count` is the number of tools advertised and is never reduced by truncation, so `count` greater than the length of `tools` means entries were dropped to fit the 16 KB event cap and `truncated` is true (CONTRACT.md §6 \"Event cap\").",
+      "type": "object",
+      "properties": {
+        "type": { "const": "tools.listed" },
+        "attrs": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "description": "How many tools the server advertised at this snapshot, before any truncation. It is the advertised total even when `tools` is shorter or absent.",
+              "$ref": "#/$defs/item_count"
+            },
+            "tools": {
+              "description": "The advertised tools, at most 500 entries. Order is the order the server advertised them. An SDK with more than 500 advertised tools keeps the first 500 and sets `truncated`.",
+              "type": "array",
+              "maxItems": 500,
+              "items": { "$ref": "#/$defs/tool_entry" }
+            },
+            "truncated": {
+              "description": "True when this snapshot is incomplete because the SDK shrank it to fit the 16 KB event cap or the 500-entry cap: annotations dropped, `schema_hash` dropped, or whole entries dropped. The retained entry count is the length of `tools`; `count` and `catalog_hash` still describe the full catalogue.",
+              "type": "boolean"
+            },
+            "catalog_hash": {
+              "description": "A digest over the full advertised catalogue, computed before any truncation, so it changes when and only when the catalogue changes (CONTRACT.md §4 \"Catalogue hashes\").",
+              "$ref": "#/$defs/content_hash"
+            },
+            "duration_ms": { "$ref": "#/$defs/duration_ms" },
+            "is_error": {
+              "description": "True when the `tools/list` request this snapshot came from failed. `count`, `tools` and `catalog_hash` are then absent (enforced below) because nothing was advertised, and the snapshot does not consume the session's one catalogue emission: the first later success still emits it.",
+              "type": "boolean"
+            },
+            "source": {
+              "description": "What produced the snapshot: `list` the session's catalogue, taken from the first `tools/list` that succeeded, `list_changed` a `notifications/tools/list_changed` the server sent.",
+              "type": "string",
+              "enum": ["list", "list_changed"]
+            }
+          },
+          "additionalProperties": true,
+          "if": { "type": "object", "properties": { "is_error": { "const": true } }, "required": ["is_error"] },
+          "then": {
+            "description": "A failed `tools/list` advertised nothing, so a failed snapshot carries no catalogue: `count`, `tools` and `catalog_hash` must all be absent (contract 1.1.0, review round 1, S2). `count: 0` with `is_error: false` is the empty-catalogue success and is a different fact.",
+            "type": "object",
+            "properties": { "count": false, "tools": false, "catalog_hash": false }
+          }
         }
       },
       "required": ["type", "attrs"]
@@ -310,10 +495,20 @@
           "properties": {
             "message": { "type": "string", "maxLength": 4096 },
             "stack": { "type": "string", "maxLength": 4096 },
-            "where": { "type": "string", "enum": ["auth", "transport", "handler", "sdk"] }
+            "where": { "type": "string", "enum": ["auth", "transport", "handler", "sdk"] },
+            "reason": {
+              "description": "Why authentication or authorisation failed (contract 1.1.0): `missing` no credential was presented, `invalid` it did not verify, `expired` it verified but was past its lifetime, `revoked` it was withdrawn, `scope` it verified but lacked the required scope, `other` the server classified it as none of these. Optional, and set only on `where: auth`, which the schema enforces.",
+              "type": "string",
+              "enum": ["missing", "invalid", "expired", "revoked", "scope", "other"]
+            }
           },
           "required": ["message", "where"],
-          "additionalProperties": true
+          "additionalProperties": true,
+          "if": { "properties": { "reason": {} }, "required": ["reason"] },
+          "then": {
+            "description": "`reason` classifies an auth failure, so it belongs only to `where: auth`.",
+            "properties": { "where": { "const": "auth" } }
+          }
         }
       },
       "required": ["type", "attrs"]
@@ -335,6 +530,102 @@
             }
           },
           "required": ["name"],
+          "additionalProperties": true
+        }
+      },
+      "required": ["type", "attrs"]
+    },
+    "sampling.requested": {
+      "description": "A server-to-client `sampling/createMessage` request (contract 1.1.0). Emitted only when `SIGNALS_PROTOCOL_EVENTS` is on (CONTRACT.md §6); every attribute is optional. `ts` is the start of the request and `duration_ms` its length.",
+      "type": "object",
+      "properties": {
+        "type": { "const": "sampling.requested" },
+        "attrs": {
+          "type": "object",
+          "properties": {
+            "model": {
+              "description": "The model the client named in its result, never the request's model preferences; absent when the client sent no result or named none.",
+              "type": "string",
+              "maxLength": 128
+            },
+            "max_tokens": {
+              "description": "The `maxTokens` the server asked for.",
+              "$ref": "#/$defs/item_count"
+            },
+            "stop_reason": {
+              "description": "The `stopReason` the client reported, as it arrived, truncated to 64 code points.",
+              "type": "string",
+              "maxLength": 64
+            },
+            "duration_ms": { "$ref": "#/$defs/duration_ms" },
+            "is_error": {
+              "description": "True when the client answered with a JSON-RPC error, or when the request could not be sent.",
+              "type": "boolean"
+            },
+            "rejected": {
+              "description": "True when the client refused the request through its own human-in-the-loop policy, including when it delivered that refusal as a JSON-RPC error carrying the MCP sampling specification's user-rejection code (CONTRACT.md §4). A refusal is not a failure, so `is_error` stays false, and the schema rejects an event that reports both (contract 1.1.0, review round 1, B1).",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "if": { "type": "object", "properties": { "rejected": { "const": true } }, "required": ["rejected"] },
+          "then": {
+            "description": "A refusal is `rejected: true` with `is_error: false`; both true is rejected with reason `schema`.",
+            "type": "object",
+            "properties": { "is_error": { "const": false } }
+          }
+        }
+      },
+      "required": ["type", "attrs"]
+    },
+    "elicitation.requested": {
+      "description": "A server-to-client `elicitation/create` request (contract 1.1.0). Emitted only when `SIGNALS_PROTOCOL_EVENTS` is on; every attribute is optional. `ts` is the start of the request and `duration_ms` its length, which includes the time the user took to answer.",
+      "type": "object",
+      "properties": {
+        "type": { "const": "elicitation.requested" },
+        "attrs": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "description": "How the server asked: `form` a schema the client renders, `url` a link the client opens.",
+              "type": "string",
+              "enum": ["form", "url"]
+            },
+            "action": {
+              "description": "What the client answered: `accept`, `decline`, `cancel`, or `error` when the request failed instead of being answered. Never the answer itself: an elicitation response is user data and no part of it is reported.",
+              "type": "string",
+              "enum": ["accept", "decline", "cancel", "error"]
+            },
+            "duration_ms": { "$ref": "#/$defs/duration_ms" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": ["type", "attrs"]
+    },
+    "task.updated": {
+      "description": "A status change of a long-running task the server exposes (contract 1.1.0). Emitted only when `SIGNALS_PROTOCOL_EVENTS` is on; every attribute is optional. One event per observed status change, not one per poll.",
+      "type": "object",
+      "properties": {
+        "type": { "const": "task.updated" },
+        "attrs": {
+          "type": "object",
+          "properties": {
+            "task_id": {
+              "description": "The task identifier the server issued, as it arrived, truncated to 128 code points.",
+              "type": "string",
+              "maxLength": 128
+            },
+            "status": {
+              "description": "The status as the protocol spells it (for example `working`, `completed`, `failed`, `cancelled`), truncated to 32 code points. Deliberately not an enum: the task status set is still moving, and an SDK must report what it saw rather than drop an unrecognised value.",
+              "type": "string",
+              "maxLength": 32
+            },
+            "poll_count": {
+              "description": "How many status polls the client had made for this task when this change was observed.",
+              "$ref": "#/$defs/item_count"
+            }
+          },
           "additionalProperties": true
         }
       },
