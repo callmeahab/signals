@@ -69,13 +69,14 @@ try {
   if(screen==='overview')await expect(page.locator('.tile').filter({hasText:'p95 latency'}).locator('.chart-sparkline svg')).toHaveCount(1);
   if(screen==='reliability')await expect(page.locator('.chart-band svg')).toHaveCount(1);
   if(screen==='overview')await expect(page.locator('.ribrow').filter({hasText:deadTool})).toContainText('dead');
-  if(screen==='cost'){await expect(page.locator('.tile').filter({hasText:'Context tokens'}).locator('strong')).toHaveText('≈ 260');await expect(page.locator('.chart-bars table')).toContainText('260');}
+  if(screen==='cost'){await expect(page.locator('.tile').filter({hasText:'Context tokens'}).locator('strong')).toHaveText('≈ 260');await expect(page.getByRole('table',{name:'Tenant share',exact:true})).toContainText('260');}
   if(screen==='protocol')await expect(page.locator('.chart-dot-grid').filter({has:page.locator('table').filter({hasText:'roots'})})).toContainText('100');
   if(['overview','tools','cost'].includes(screen)){await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:`artifacts/v3-live/${screen}.png`,fullPage:true,animations:'disabled'});}
  }
  await expect.poll(async()=>(await json(await page.request.get(route('sessions')))).items.length,{timeout:70000}).toBe(1);
  await visit('tools','analytics/tools');
  await page.getByRole('button',{name:'search_documents',exact:true}).click();
+ await page.getByRole('dialog').locator('.chart-histogram').scrollIntoViewIfNeeded();
  await expect(page.getByRole('dialog').locator('.chart-histogram svg')).toHaveCount(1);
  assert.equal(await page.getByRole('dialog').locator('.chart-histogram table tbody tr').count(),60);
  await page.getByRole('button',{name:'Close details'}).click();
@@ -129,5 +130,5 @@ try {
  await page.getByRole('button',{name:'Log out',exact:true}).click();await page.getByRole('button',{name:'Sign in',exact:true}).waitFor();
  assert.equal((await page.request.get(`${base}/v1/auth/me`)).status(),401);assert.deepEqual(failures,[]);
  await context.close();
- console.log('Backend browser QA passed: real v3 analytics, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.');
+ console.log('Backend browser QA passed: real v3 analytics, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.');
 } finally {await browser.close();}

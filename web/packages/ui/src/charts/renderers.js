@@ -153,10 +153,12 @@ function bandChart({ labels, lo, mid, hi, h = 220 }) {
     const x = scale(0, n - 1, pad.l, pad.l + iw);
     const ly = scale(Math.log(y0), Math.log(y1), pad.t + ih, pad.t);
     const y = (v) => ly(Math.log(Math.max(y0, v)));
-    const P = (a) => a.flatMap((v, i) => v==null?[]:[[x(i), y(v)]]);
+    const groups=[];for(let i=0;i<n;i++){if(lo[i]!=null&&mid[i]!=null&&hi[i]!=null){if(!groups.length)groups.push([]);groups.at(-1).push(i);}else if(groups.at(-1)?.length)groups.push([]);}const runs=groups.filter(g=>g.length);
+    const P = (a,indices) => indices.map(i=>[x(i),y(a[i])]);
+    const line = a=>runs.map(g=>curve(P(a,g))).join(' ');
     const rev = (a) => a.slice().reverse();
-    const bandOuter = curve(P(hi)) + 'L' + curve(rev(P(mid))).slice(1) + 'Z';
-    const bandInner = curve(P(mid)) + 'L' + curve(rev(P(lo))).slice(1) + 'Z';
+    const bandOuter = runs.map(g=>curve(P(hi,g))+'L'+curve(rev(P(mid,g))).slice(1)+'Z').join(' ');
+    const bandInner = runs.map(g=>curve(P(mid,g))+'L'+curve(rev(P(lo,g))).slice(1)+'Z').join(' ');
     const id = nextId();
     const ticks = [100, 300, 1000, 3000].filter((t) => t <= y1);
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img">
@@ -170,10 +172,11 @@ function bandChart({ labels, lo, mid, hi, h = 220 }) {
         <text class="ax" x="${pad.l - 8}" y="${px(y(t) + 3.5)}" text-anchor="end">${t >= 1000 ? (t / 1000) + ' s' : t}</text>`).join('')}
       <g class="plot">
         <path d="${bandOuter}" fill="url(#${id})"/>
+        ${runs.filter(g=>g.length===1).flatMap(g=>[[lo,'var(--chart-3)'],[mid,'var(--chart-1)'],[hi,'var(--chart-2)']].map(([a,c])=>`<circle cx="${x(g[0])}" cy="${y(a[g[0]])}" r="3" fill="${c}"/>`)).join('')}
         <path d="${bandInner}" fill="url(#${id}b)"/>
-        <path d="${curve(P(hi))}" fill="none" stroke="var(--chart-2)" stroke-width="1.6" stroke-dasharray="4 3"/>
-        <path d="${curve(P(mid))}" fill="none" stroke="var(--chart-1)" stroke-width="2.4" stroke-linecap="round"/>
-        <path d="${curve(P(lo))}" fill="none" stroke="var(--chart-3)" stroke-width="2" stroke-linecap="round"/>
+        <path d="${line(hi)}" fill="none" stroke="var(--chart-2)" stroke-width="1.6" stroke-dasharray="4 3"/>
+        <path d="${line(mid)}" fill="none" stroke="var(--chart-1)" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="${line(lo)}" fill="none" stroke="var(--chart-3)" stroke-width="2" stroke-linecap="round"/>
       </g>
       <line class="axline" x1="${pad.l}" y1="${px(pad.t + ih)}" x2="${px(pad.l + iw)}" y2="${px(pad.t + ih)}"/>
       ${labels.map((l, i) => (i % labelEvery(n, iw, labels.length>1&&Date.parse(labels[1])-Date.parse(labels[0])>=604800000?110:48) && i !== n - 1) ? '' : `<text class="ax ax--dim" x="${px(x(i))}" y="${h - 7}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${esc(axisDate(labels,l))}</text>`).join('')}

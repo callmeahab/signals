@@ -698,3 +698,8 @@ td .mono{font-size:12.5px}
 @media(prefers-reduced-motion:reduce){.chart-donut>div:first-child{animation:none}}
 
 .signals-ui .table-scroll{overflow-x:auto}.signals-ui .table-scroll-hint{display:block}
+
+:root{--error-ink:oklch(.46 .2 34)}.dark{--error-ink:oklch(.8 .13 34)}.error-text,.has-error .event-type{color:var(--error-ink)}
+
+.chart-histogram>div:first-child{animation:v3-rise 520ms var(--ease-out) backwards}.chart-histogram .growy.on{animation:none}
+@media(prefers-reduced-motion:reduce){.chart-histogram>div:first-child{animation:none}}
