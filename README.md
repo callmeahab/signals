@@ -52,5 +52,14 @@ Run database tests against a separate test database:
 ```sh
 docker compose exec postgres createdb -U signals signals_test
 TEST_DATABASE_URL=postgres://signals:signals@127.0.0.1:8432/signals_test \
-  cargo test --locked -p signals-server --test integration --test rollup_properties -- --ignored --test-threads=1
+  cargo test --locked -p signals-server --test integration --test rollup_properties --test analytics --test v11 -- --ignored --test-threads=1
+```
+
+The v1.1 delivery test creates and drops a temporary database and runs local SMTP
+and webhook receivers; its database role needs permission to create databases.
+For the million-row read latency gate, use the production optimization profile:
+
+```sh
+TEST_DATABASE_URL=postgres://signals:signals@127.0.0.1:8432/signals_test \
+  cargo test --locked --release --workspace -- --ignored --test-threads=1
 ```

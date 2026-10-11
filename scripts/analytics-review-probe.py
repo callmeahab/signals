@@ -344,7 +344,7 @@ def build(now):
                 {"tool": "book_flight", "cancelled": True, "kind": "cancelled", "dur": 20, "out": 0, "chars": 0, "kinds": []},
                 {"tool": "get_product", "dur": 33, "out": 0, "chars": 0, "kinds": []},
                 {"tool": "not_a_tool", "error": True, "kind": "unknown_tool", "dur": 12, "chars": 4, "out": 8},
-                {"tool": "book_flight", "error": True, "kind": "boom", "dur": 70, "chars": 8, "out": 16},
+                {"tool": "book_flight", "error": True, "kind": "internal", "dur": 70, "chars": 8, "out": 16},
                 {"tool": "get_admin", "dur": 64, "chars": 48, "inp": 70000, "out": 80000},
                 {"tool": "Get_Thing", "dur": 42, "chars": 16, "inp": 1500, "out": 5000},
             ]), listed="request", init_dur=100)
@@ -1282,13 +1282,14 @@ def main():
         "events": [
             {"id": uuid7(), "ts": fmt(now - timedelta(minutes=1)), "type": "tools.listed", "attrs": {"future_optional": True, "tools": []}},
             {"id": uuid7(), "ts": fmt(now - timedelta(minutes=1)), "type": "sampling.created", "attrs": {}},
+            {"id": uuid7(), "ts": fmt(now - timedelta(minutes=1)), "type": "sampling.requested", "attrs": {}, "caller": {"subject_kind": "invalid-kind"}},
             {"id": uuid7(), "ts": fmt(now - timedelta(minutes=1)), "type": "tool.called", "attrs": {"tool": "get_product", "duration_ms": 1, "is_error": False, "input_bytes": 1, "output_bytes": 1, "output_kinds": ["text"], "cancelled": False}, "caller": {"subject": "x", "subject_kind": "oauth"}},
         ],
     }, wire_key)
     reasons = [item.get("reason") for item in (bad[1] or {}).get("rejected") or []]
     print("rejection probe", bad[0], reasons)
-    if bad[0] != 202 or reasons != ["unknown_type", "schema"]:
-        finding("blocker", "wire-acceptance", f"expected tools.listed accepted and unknown_type/schema rejected, got {bad[0]} {bad[1]}")
+    if bad[0] != 202 or (bad[1] or {}).get("accepted") != 2 or reasons != ["unknown_type", "schema"]:
+        finding("blocker", "wire-acceptance", f"expected tools.listed/OAuth caller accepted and unknown_type/invalid caller schema rejected, got {bad[0]} {bad[1]}")
 
     accepted, rejected = ingest(client, key, events)
     print(f"accepted {accepted} rejected batches {len(rejected)}")
