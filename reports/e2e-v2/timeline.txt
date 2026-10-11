@@ -1,0 +1,14 @@
+PASS light theme class applied (false)
+PASS light both projects present
+PASS egg-node long session row visible
+PASS egg-node timeline lists search_products
+FAIL egg-node timeline has five tool calls
+egg-node timeline offsets 6,300025,600022,900026,1200014
+PASS egg-node timeline API has 5 search_products calls
+PASS egg-python long session row visible
+PASS egg-python timeline lists search_products
+FAIL egg-python timeline has five tool calls
+egg-python timeline offsets 127,300104,600108,900093,1200103
+PASS egg-python timeline API has 5 search_products calls
+PASS light page errors: none
+FINDINGS 2
