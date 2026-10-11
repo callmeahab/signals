@@ -240,6 +240,16 @@ fn analytics_document(api: &mut utoipa::openapi::OpenApi) {
     let strings = arr(string.clone());
     let mut schemas = serde_json::Map::new();
     schemas.insert(
+        "AnalyticsSettingsError".into(),
+        obj(&[
+            (
+                "error",
+                json!({"type":"string","enum":["invalid_settings"]}),
+            ),
+            ("message", json!({"type":"string"})),
+        ]),
+    );
+    schemas.insert(
         "AnalyticsRange".into(),
         obj(&[
             ("from", date.clone()),
@@ -287,7 +297,9 @@ fn analytics_document(api: &mut utoipa::openapi::OpenApi) {
     );
     schemas.insert(
         "AnalyticsFunnelStep".into(),
-        obj(&[("step", string.clone()), ("count", int.clone())]),
+        json!({"type":"object","required":["step","count"],"properties":{
+            "step":string.clone(),"count":int.clone(),"eligible":{"type":"integer","minimum":0},"dropoff_pct":number.clone()
+        }}),
     );
     schemas.insert(
         "AnalyticsCohort".into(),
@@ -445,14 +457,7 @@ fn analytics_document(api: &mut utoipa::openapi::OpenApi) {
         ),
         (
             "funnel",
-            obj(&[(
-                "steps",
-                arr(obj(&[
-                    ("step", string.clone()),
-                    ("count", int.clone()),
-                    ("dropoff_pct", number.clone()),
-                ])),
-            )]),
+            obj(&[("steps", arr(reference("AnalyticsFunnelStep")))]),
         ),
         ("identity_quality", reference("IdentityQuality")),
     ]);
@@ -775,7 +780,24 @@ fn analytics_document(api: &mut utoipa::openapi::OpenApi) {
         }
         document["paths"][format!("/v1/projects/{{project}}/analytics/{route}")] = json!({"get":{"operationId":model,"tags":["Analytics"],"parameters":parameters,"security":[{"session":[]},{"readKey":[]}],"responses":{"200":{"description":"Analytics with UTC windows; unavailable metrics are null","content":{"application/json":{"schema":reference(model)}}},"400":{"description":"Invalid range or filter","content":{"application/json":{"schema":reference("AnalyticsError")}}},"401":{"description":"Unauthenticated"},"403":{"description":"Project access denied"}}}});
     }
-    document["paths"]["/v1/projects/{project}/alerts"] = json!({"put":{"operationId":"setAnalyticsAlerts","parameters":[{"name":"project","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],"security":[{"session":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":obj(&[("rules",arr(reference("AnalyticsAlertRule")))])}}},"responses":{"200":{"description":"Updated rules","content":{"application/json":{"schema":obj(&[("rules",arr(reference("AnalyticsAlertRule")))])}}},"400":{"description":"Invalid rules"},"403":{"description":"Owner session required"}}}});
+    document["paths"]["/v1/projects/{project}/alerts"] = json!({"put":{"operationId":"setAnalyticsAlerts","parameters":[{"name":"project","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],"security":[{"session":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":obj(&[("rules",arr(reference("AnalyticsAlertRule")))])}}},"responses":{"200":{"description":"Updated rules","content":{"application/json":{"schema":obj(&[("rules",arr(reference("AnalyticsAlertRule")))])}}},"400":{"description":"Invalid settings","content":{"application/json":{"schema":reference("AnalyticsSettingsError")}}},"403":{"description":"Owner session required"}}}});
+    document["paths"]["/v1/projects/{project}"]["patch"]["responses"]["400"] = json!({"description":"Invalid settings","content":{"application/json":{"schema":reference("AnalyticsSettingsError")}}});
+    api.paths
+        .paths
+        .get_mut("/v1/projects/{project}")
+        .unwrap()
+        .patch
+        .as_mut()
+        .unwrap()
+        .responses
+        .responses
+        .insert(
+            "400".into(),
+            serde_json::from_value(
+                document["paths"]["/v1/projects/{project}"]["patch"]["responses"]["400"].clone(),
+            )
+            .expect("valid settings error response"),
+        );
     for (name, schema) in document["components"]["schemas"].as_object().unwrap() {
         if name.starts_with("Analytics") || name == "IdentityQuality" {
             api.components.as_mut().unwrap().schemas.insert(
@@ -820,5 +842,21 @@ mod tests {
             assert!(v["paths"][p].is_object(), "{p}");
         }
         assert!(v["components"]["schemas"]["Overview"]["properties"]["p99"].is_object());
+        for (path, method) in [
+            ("/v1/projects/{project}", "patch"),
+            ("/v1/projects/{project}/alerts", "put"),
+        ] {
+            assert_eq!(
+                v["paths"][path][method]["responses"]["400"]["content"]["application/json"]
+                    ["schema"]["$ref"],
+                "#/components/schemas/AnalyticsSettingsError"
+            );
+        }
+        let funnel = &v["components"]["schemas"]["AnalyticsFunnelStep"];
+        assert!(funnel["properties"]["eligible"].is_object());
+        assert!(!funnel["required"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("eligible")));
     }
 }

@@ -46,6 +46,32 @@ impl IntoResponse for AnalyticsError {
         }
     }
 }
+/// Settings validation has its own stable code; authentication/internal errors stay unchanged.
+#[derive(Debug)]
+pub struct SettingsError(Error);
+impl From<Error> for SettingsError {
+    fn from(error: Error) -> Self {
+        Self(error)
+    }
+}
+impl From<sqlx::Error> for SettingsError {
+    fn from(error: sqlx::Error) -> Self {
+        Self(Error::internal(error))
+    }
+}
+impl IntoResponse for SettingsError {
+    fn into_response(self) -> Response {
+        if self.0.status == StatusCode::BAD_REQUEST {
+            (
+                self.0.status,
+                Json(json!({"error":"invalid_settings","message":self.0.message})),
+            )
+                .into_response()
+        } else {
+            self.0.into_response()
+        }
+    }
+}
 type Result<T> = std::result::Result<T, AnalyticsError>;
 fn bad(message: &str) -> AnalyticsError {
     Error::bad(message).into()
@@ -358,7 +384,7 @@ pub async fn update_rules(
     Path(project): Path<Uuid>,
     headers: HeaderMap,
     Json(value): Json<Value>,
-) -> crate::Result<Json<Value>> {
+) -> std::result::Result<Json<Value>, SettingsError> {
     auth::read(&app, &headers, project, true).await?;
     let rules = value.get("rules").unwrap_or(&value);
     validate_rules(rules)?;

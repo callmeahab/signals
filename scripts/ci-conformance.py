@@ -19,7 +19,9 @@ with open(root/"target/ci-server.log","w") as log:
   def provision(route,data):
    with urllib.request.urlopen(urllib.request.Request(base+"/v1/admin/"+route,json.dumps(data).encode(),headers={"Authorization":"Bearer "+token,"Content-Type":"application/json"})) as response:return json.load(response)
   tenant=provision("tenants",{"slug":"conformance","name":"Conformance"});project=provision("projects",{"tenant_id":tenant["id"],"slug":"fixtures","name":"Fixtures"});key=provision("keys",{"project_id":project["id"],"label":"Fixtures","scopes":["ingest","read"]})["secret"]
-  subprocess.run(["psql",os.environ["DATABASE_URL"],"-v","ON_ERROR_STOP=1","-c",f"UPDATE projects SET retention_days=30,rate_events_per_min=100000,rate_bytes_per_min=1073741824 WHERE id='{project['id']}'"],check=True)
+  pg = os.getenv("ANALYTICS_PG_CONTAINER")
+  psql = ["docker", "exec", "-i", pg, "psql", "-U", "postgres", "-d", "signals"] if pg else ["psql", os.environ["DATABASE_URL"]]
+  subprocess.run(psql+["-v","ON_ERROR_STOP=1","-c",f"UPDATE projects SET retention_days=30,rate_events_per_min=100000,rate_bytes_per_min=1073741824 WHERE id='{project['id']}'"],check=True)
   subprocess.run(["python3",str(root/"scripts/spec-conformance.py"),"--url",base],env={**os.environ,"SIGNALS_API_KEY":key},check=True)
   read_key=provision("keys",{"project_id":project["id"],"label":"Read-only fixture key","scopes":["read"]})["secret"]
   subprocess.run(["python3",str(root/"scripts/transport-conformance.py"),"--url",base],env={**os.environ,"SIGNALS_API_KEY":key,"SIGNALS_READ_KEY":read_key},check=True)
@@ -28,3 +30,8 @@ with open(root/"target/ci-server.log","w") as log:
   server.terminate()
   try:server.wait(timeout=15)
   except subprocess.TimeoutExpired:server.kill();server.wait()
+
+# Run the independent analytics review probe on its own collector, using the same
+# isolated database. Release mode is required for its 100k-event latency checks.
+subprocess.run(["cargo", "build", "--locked", "--release", "--bin", "signals"], cwd=root, check=True)
+subprocess.run(["python3", str(root/"scripts/analytics-review-probe.py")], cwd=root, check=True)

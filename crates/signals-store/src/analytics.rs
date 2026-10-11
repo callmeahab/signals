@@ -423,6 +423,11 @@ impl Data {
                 }
             }
         }
+        // The half-open window cannot observe a return exactly at its upper bound.
+        let eligible = people
+            .keys()
+            .filter(|id| self.first[*id] + Duration::days(7) < w.to)
+            .count();
         let counts = [
             people.values().filter(|p| p.0).count(),
             people.values().filter(|p| p.1).count(),
@@ -439,7 +444,13 @@ impl Data {
         ]
         .iter()
         .zip(counts)
-        .map(|(step, count)| json!({"step":step,"count":count}))
+        .map(|(step, count)| {
+            if *step == "returned_day_7" {
+                json!({"step":step,"count":(eligible > 0).then_some(count),"eligible":eligible})
+            } else {
+                json!({"step":step,"count":count})
+            }
+        })
         .collect()
     }
     pub fn cohorts(&self, w: Window, f: &Filters) -> Vec<Value> {
@@ -640,7 +651,14 @@ impl Data {
             let eligible: Vec<_> = self
                 .first
                 .iter()
-                .filter(|(_, t)| w.contains(**t) && **t + Duration::days(offset + 1) <= w.to)
+                .filter(|(_, t)| {
+                    w.contains(**t)
+                        && (t.date_naive() + Duration::days(offset + 1))
+                            .and_hms_opt(0, 0, 0)
+                            .unwrap()
+                            .and_utc()
+                            <= w.to
+                })
                 .collect();
             let active: BTreeSet<_> = events
                 .iter()
@@ -662,12 +680,12 @@ impl Data {
         let mut funnel = self.funnel(w, &events);
         let mut previous = None;
         for step in &mut funnel {
-            let count = step["count"].as_u64().unwrap() as usize;
-            step["dropoff_pct"] = json!(previous.map_or(Some(0.0), |prev: usize| rate(
-                prev.saturating_sub(count),
-                prev
+            let count = step["count"].as_u64().map(|v| v as usize);
+            step["dropoff_pct"] = json!(count.and_then(|count| previous.map_or(
+                Some(0.0),
+                |prev: usize| rate(prev.saturating_sub(count), prev)
             )));
-            previous = Some(count);
+            previous = count;
         }
         json!({"active":{"bucket":"day","points":points,"dau":active(1),"wau":active(7),"mau":active(30)},"clients":clients.into_iter().map(|((name,version),(sessions,calls,capabilities))|json!({"name":name,"version":version,"sessions":sessions.len(),"calls":calls,"pct":rate(sessions.len(),all_sessions.len()),"capabilities":capabilities})).collect::<Vec<_>>(),"protocol_versions":protocols.into_iter().map(|(version,sessions)|json!({"version":version,"sessions":sessions.len()})).collect::<Vec<_>>(),"transports":transports.into_iter().map(|(transport,sessions)|json!({"transport":transport,"sessions":sessions.len()})).collect::<Vec<_>>(),"retention":{"daily":{"d1":retention(1),"d7":retention(7),"d30":retention(30)},"weekly":self.cohorts(w,f)},"funnel":{"steps":funnel},"identity_quality":self.by_kind(&events)})
     }
@@ -888,6 +906,111 @@ mod tests {
         assert_eq!(p[&vec!["a".into(), "a".into()]], 1);
         assert_eq!(p[&vec!["a".into(), "a".into(), "b".into()]], 1);
         assert_eq!(p.values().sum::<usize>(), 5);
+    }
+    #[test]
+    fn day_seven_funnel_requires_observable_identities() {
+        let from = DateTime::parse_from_rfc3339("2026-10-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let mut events = vec![fact(from, "session.started", "", false)];
+        let mut missed = fact(from, "session.started", "", false);
+        missed.caller = Some(json!({"subject":"missed"}));
+        events.push(missed);
+        events.push(fact(from + Duration::days(7), "tool.called", "a", false));
+        let mut young = fact(from + Duration::days(8), "session.started", "", false);
+        young.caller = Some(json!({"subject":"young"}));
+        events.push(young);
+        let data = Data {
+            events,
+            first: BTreeMap::from([
+                (("strong".into(), "a".into()), from),
+                (("strong".into(), "missed".into()), from),
+                (("strong".into(), "young".into()), from + Duration::days(8)),
+            ]),
+            settings: json!({}),
+            catalog: BTreeMap::new(),
+            catalog_info: json!({}),
+        };
+        for days in [1, 7, 10] {
+            let w = Window {
+                from,
+                to: from + Duration::days(days),
+            };
+            let events = data.selected(w, &Filters::default());
+            let step = data.funnel(w, &events).pop().unwrap();
+            assert_eq!(
+                step["count"],
+                if days <= 7 { Value::Null } else { json!(1) }
+            );
+            assert_eq!(step["eligible"], if days <= 7 { 0 } else { 2 });
+            let adoption = data.adoption(w, &Filters::default());
+            assert_eq!(adoption["funnel"]["steps"][4]["count"], step["count"]);
+            if days <= 7 {
+                assert!(adoption["funnel"]["steps"][4]["dropoff_pct"].is_null());
+            }
+        }
+    }
+    #[test]
+    fn retention_uses_completed_utc_anniversary_day() {
+        let from = DateTime::parse_from_rfc3339("2026-10-07T12:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let mut first = BTreeMap::new();
+        let mut events = Vec::new();
+        for offset in [1, 7, 30] {
+            events.clear();
+            first.clear();
+            for i in 0..7 {
+                // Review's user-late-clock misses D1 despite returning on D2.
+                let seen = if i == 6 {
+                    from + Duration::days(2) + Duration::hours(6)
+                } else {
+                    from + Duration::hours(13)
+                };
+                let id = if i == 6 {
+                    "user-late-clock".into()
+                } else {
+                    format!("key-only-{i}")
+                };
+                first.insert(("strong".into(), id.clone()), seen);
+                let mut e = fact(seen, "session.started", "", false);
+                e.caller = Some(json!({"subject":id}));
+                events.push(e.clone());
+                e.ts = if i == 6 {
+                    (seen.date_naive() + Duration::days(offset + 1))
+                        .and_hms_opt(8, 30, 0)
+                        .unwrap()
+                        .and_utc()
+                } else {
+                    seen + Duration::days(offset)
+                };
+                events.push(e);
+            }
+            events.sort_by_key(|e| e.ts);
+            let data = Data {
+                events: events.clone(),
+                first: first.clone(),
+                settings: json!({}),
+                catalog: BTreeMap::new(),
+                catalog_info: json!({}),
+            };
+            let end = (from.date_naive() + Duration::days(offset + 3))
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc();
+            let key = format!("d{offset}");
+            for (to, expected) in [
+                (end - Duration::milliseconds(1), 100.0),
+                (end, 85.7),
+                (end + Duration::hours(12), 85.7),
+            ] {
+                assert_eq!(
+                    data.adoption(Window { from, to }, &Filters::default())["retention"]["daily"]
+                        [&key],
+                    expected
+                );
+            }
+        }
     }
     #[test]
     fn funnel_and_cohorts() {

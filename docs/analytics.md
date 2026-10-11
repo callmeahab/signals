@@ -10,6 +10,10 @@ Requests accept `range=24h|7d|30d|90d`, defaulting to seven days, or both RFC 33
 cannot be combined with explicit timestamps. The immediately preceding window has
 the same duration. Optional `client`, `tool`, `caller`, and `transport` filters are
 exact matches; unknown query keys and malformed ranges return `invalid_filter`.
+Invalid project settings (`PATCH /v1/projects/{project}`) and alert rules
+(`PUT /v1/projects/{project}/alerts`) return HTTP 400 with
+`{"error":"invalid_settings","message":"human-readable reason"}`. Query validation
+continues to use `invalid_filter`.
 Digest additionally accepts an ISO week (`week=2026-W41`). No matching events is a
 valid response. Missing measurements, denominators, and future protocol fields
 are null; a measured count of zero is zero.
@@ -39,8 +43,14 @@ are null; a measured count of zero is zero.
   divided by the project's positive `token_divisor` (default 4). Estimates are
   summed before rounding to integer tokens. Missing payload measurements stay null.
 - The funnel counts new identities at each observed step. Day-seven return means
-  an event at least seven days after first seen. Daily retention counts activity
-  on the exact UTC anniversary day, excluding identities too young to observe it.
+  an event at least seven days after first seen. The `returned_day_7` step includes
+  `eligible`, the number of selected new identities whose first-seen timestamp plus
+  seven days is strictly before the half-open window end. Its `count` and adoption
+  `dropoff_pct` are null when eligible is zero; otherwise count includes only returns
+  among eligible identities. Other steps omit `eligible`.
+  Daily retention counts activity on the exact UTC anniversary day. Eligibility
+  begins at midnight UTC after that day (`date(first_seen) + offset + 1`), including
+  a window ending exactly at that midnight; it does not depend on first-seen clock time.
   Weekly cohorts start on Monday; unfinished weeks are null.
 - Catalogue snapshots may be empty. The latest event-time snapshot controls the
   advertised set, while individual tool records preserve first/last seen metadata.
@@ -112,3 +122,19 @@ negotiated protocol headers. It bounds response size, total runtime and paginati
 disables redirects, and attempts session cleanup. Keys are omitted from settings
 responses and errors. Availability is the fraction of successful probes in the
 window; `healthy_tools` remains null because discovery does not execute tools.
+
+## Regression checks
+
+`cargo test --workspace` covers the UTC anniversary boundaries for D1/D7/D30,
+including the review's `user-late-clock` miss (6 of 7 returns = 85.7%), and day-seven
+funnel eligibility. The ignored `analytics` database test covers both route funnel
+shapes and stable PATCH/PUT settings errors.
+
+`scripts/ci-conformance.py` also builds the release collector and runs
+`scripts/analytics-review-probe.py`, the independent round-one review dataset and
+all-route checks updated for these contract corrections. The probe requires a
+migrated isolated `DATABASE_URL`, starts/stops only its own collector, fails on any
+finding or comparison mismatch, and writes evidence under `target/analytics-review/`.
+Set `ANALYTICS_PG_CONTAINER` to use `docker exec psql` instead of host psql; defaults
+are collector port 25448 and mock MCP port 25449, configurable with
+`ANALYTICS_REVIEW_URL` and `ANALYTICS_REVIEW_PROBE_PORT`.

@@ -576,7 +576,7 @@ pub async fn update_project(
     Path(p): Path<Uuid>,
     headers: HeaderMap,
     Json(mut input): Json<Value>,
-) -> Result<Json<Value>> {
+) -> std::result::Result<Json<Value>, crate::analytics::SettingsError> {
     auth::read(&app, &headers, p, true).await?;
     let object = input
         .as_object_mut()
@@ -598,7 +598,7 @@ pub async fn update_project(
             .as_ref()
             .is_some_and(|v| !v.as_i64().is_some_and(|n| n > 0))
     {
-        return Err(Error::bad("Invalid project settings"));
+        return Err(Error::bad("Invalid project settings").into());
     }
     crate::analytics::validate_settings(&input)?;
     let mut tx = app.store.pool.begin().await?;

@@ -146,6 +146,12 @@ async fn three_day_analytics_contract_and_idempotence() {
     assert_eq!(adoption["active"]["wau"], 2);
     assert_eq!(adoption["retention"]["daily"]["d1"], 100.0);
     assert_eq!(adoption["retention"]["daily"]["d7"], Value::Null);
+    for step in [&overview["funnel"][4], &adoption["funnel"]["steps"][4]] {
+        assert_eq!(step["step"], "returned_day_7");
+        assert_eq!(step["count"], Value::Null);
+        assert_eq!(step["eligible"], 0);
+    }
+    assert_eq!(adoption["funnel"]["steps"][4]["dropoff_pct"], Value::Null);
     assert_eq!(adoption["clients"].as_array().unwrap().len(), 2);
     assert_eq!(adoption["transports"][0]["sessions"], 6);
     let (_, tools) = call(&app, "GET", &get("tools"), &key, Value::Null).await;
@@ -236,6 +242,38 @@ async fn three_day_analytics_contract_and_idempotence() {
         .unwrap();
     let secret = "analytics-test-session";
     sqlx::query("INSERT INTO dashboard_sessions(secret_hash,user_id,expires_at) VALUES($1,$2,now()+interval '1 hour') ON CONFLICT(secret_hash) DO UPDATE SET user_id=EXCLUDED.user_id,expires_at=EXCLUDED.expires_at").bind(signals_store::hash(secret)).bind(owner).execute(&store.pool).await.unwrap();
+    for (method, suffix, body) in [
+        ("PATCH", "", json!({"slo_classes":{"get_item":"write"}})),
+        ("PATCH", "", json!({"retention_days":0})),
+        ("PATCH", "", json!({"token_divisor":0})),
+        ("PATCH", "", json!([])),
+        (
+            "PUT",
+            "/alerts",
+            json!({"rules":[{"id":"unknown","enabled":true}]}),
+        ),
+    ] {
+        let request = Request::builder()
+            .method(method)
+            .uri(format!("/v1/projects/{}{suffix}", project.id))
+            .header("content-type", "application/json")
+            .header(
+                "cookie",
+                format!(
+                    "signals_session={}",
+                    auth::signed_cookie(&app_state, secret)
+                ),
+            )
+            .body(Body::from(body.to_string()))
+            .unwrap();
+        let response = app.clone().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let error: Value =
+            serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes())
+                .unwrap();
+        assert_eq!(error["error"], "invalid_settings");
+        assert!(!error["message"].as_str().unwrap().is_empty());
+    }
     let request=Request::builder().method("PATCH").uri(format!("/v1/projects/{}",project.id)).header("content-type","application/json").header("cookie",format!("signals_session={}",auth::signed_cookie(&app_state,secret))).body(Body::from(json!({"token_divisor":2,"slo_classes":{"get_item":"mutate"},"digest":{"enabled":true,"recipient":"owner@example.test"},"probe_key":"secret"}).to_string())).unwrap();
     let response = app.clone().oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
