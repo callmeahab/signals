@@ -1183,3 +1183,420 @@ test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
    Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
     Finished `release` profile [optimized] target(s) in 41.95s
 ```
+
+Full CI harness and first consecutive analytics probe:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+export PLAYWRIGHT_CHANNEL=chromium ANALYTICS_PG_CONTAINER=signals-ci-latency-pg SIGNALS_URL=http://127.0.0.1:25483 PYTHONUNBUFFERED=1
+python3 - <<'PYCODE'
+import os, subprocess, tempfile
+with tempfile.TemporaryDirectory(prefix='latency-', dir='/var/tmp') as tmp:
+ subprocess.run(['python3', 'scripts/ci-conformance.py'], env={**os.environ, 'TMPDIR':tmp}, check=True)
+PYCODE
+```
+
+Exit 0. This uses a disk-backed TMPDIR and the PostgreSQL instance created with
+`--shm-size=1g`. The complete, unchanged CI harness ran browser QA and then the
+analytics probe; no stages were skipped. Selected output:
+
+```text
+identity: 39/39 valid fixtures matched
+identity: 49/49 invalid fixtures matched
+gzip: 39/39 valid fixtures matched
+gzip: 49/49 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v2 analytics, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+Latency budget: 300 ms; warmup then median of three
+BENCH overview: median 131.28 ms; samples [435.2, 131.28, 125.31]
+BENCH adoption: median 225.05 ms; samples [231.0, 222.87, 225.05]
+BENCH tools: median 134.1 ms; samples [125.0, 135.87, 134.1]
+BENCH reliability: median 93.85 ms; samples [93.85, 94.24, 92.08]
+BENCH cost: median 136.5 ms; samples [135.63, 136.5, 138.98]
+BENCH protocol: median 53.82 ms; samples [57.8, 53.82, 49.63]
+BENCH digest: median 167.58 ms; samples [167.58, 158.74, 171.65]
+BENCH alerts: median 1.42 ms; samples [0.88, 1.42, 2.08]
+BENCH timeline: median 10.81 ms; samples [10.31, 12.09, 10.81]
+FINDINGS 0 MISMATCHES 0
+```
+
+Run 1 artifact:
+
+```json
+{
+  "findings": [],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 131.28,
+    "adoption": 225.05,
+    "tools": 134.1,
+    "reliability": 93.85,
+    "cost": 136.5,
+    "protocol": 53.82,
+    "digest": 167.58,
+    "alerts": 1.42,
+    "timeline": 10.81
+  },
+  "timing_samples": {
+    "overview": [
+      435.2,
+      131.28,
+      125.31
+    ],
+    "adoption": [
+      231.0,
+      222.87,
+      225.05
+    ],
+    "tools": [
+      125.0,
+      135.87,
+      134.1
+    ],
+    "reliability": [
+      93.85,
+      94.24,
+      92.08
+    ],
+    "cost": [
+      135.63,
+      136.5,
+      138.98
+    ],
+    "protocol": [
+      57.8,
+      53.82,
+      49.63
+    ],
+    "digest": [
+      167.58,
+      158.74,
+      171.65
+    ],
+    "alerts": [
+      0.88,
+      1.42,
+      2.08
+    ],
+    "timeline": [
+      10.31,
+      12.09,
+      10.81
+    ]
+  },
+  "latency_budget_ms": 300.0,
+  "latency_statistic": "median_of_three_after_warmup"
+}
+```
+
+The 435.20 ms overview sample is retained, not hidden. Its other two samples were
+131.28 and 125.31 ms; the median met the unchanged local 300 ms budget. All nine
+route medians passed and semantic mismatches remained zero.
+
+Second consecutive probe, same database, fresh isolated projects:
+
+```sh
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals ANALYTICS_PG_CONTAINER=signals-ci-latency-pg PYTHONUNBUFFERED=1
+python3 scripts/analytics-review-probe.py
+```
+
+Exit 0; final line `FINDINGS 0 MISMATCHES 0`. All nine route medians passed the
+local 300 ms budget. Complete timing artifact:
+
+```json
+{
+  "findings": [],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 123.65,
+    "adoption": 227.32,
+    "tools": 126.91,
+    "reliability": 94.74,
+    "cost": 157.34,
+    "protocol": 43.71,
+    "digest": 160.58,
+    "alerts": 0.83,
+    "timeline": 12.76
+  },
+  "timing_samples": {
+    "overview": [
+      129.13,
+      122.81,
+      123.65
+    ],
+    "adoption": [
+      227.32,
+      219.95,
+      230.25
+    ],
+    "tools": [
+      124.36,
+      126.91,
+      128.49
+    ],
+    "reliability": [
+      94.59,
+      97.74,
+      94.74
+    ],
+    "cost": [
+      157.34,
+      166.77,
+      145.97
+    ],
+    "protocol": [
+      43.71,
+      43.25,
+      44.65
+    ],
+    "digest": [
+      172.57,
+      160.58,
+      156.17
+    ],
+    "alerts": [
+      0.83,
+      0.78,
+      1.9
+    ],
+    "timeline": [
+      11.08,
+      12.76,
+      19.41
+    ]
+  },
+  "latency_budget_ms": 300.0,
+  "latency_statistic": "median_of_three_after_warmup"
+}
+```
+
+Third consecutive probe:
+
+```sh
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals ANALYTICS_PG_CONTAINER=signals-ci-latency-pg PYTHONUNBUFFERED=1
+python3 scripts/analytics-review-probe.py
+```
+
+Exit 1: `FINDINGS 6 MISMATCHES 0`. All semantic, alert and query-plan checks passed,
+but six route latency medians exceeded the local 300 ms budget. Complete artifact:
+
+```json
+{
+  "findings": [
+    {
+      "severity": "should-fix",
+      "id": "perf-overview",
+      "detail": "624.65 ms median exceeds 300 ms budget"
+    },
+    {
+      "severity": "should-fix",
+      "id": "perf-adoption",
+      "detail": "1063.89 ms median exceeds 300 ms budget"
+    },
+    {
+      "severity": "should-fix",
+      "id": "perf-tools",
+      "detail": "611.62 ms median exceeds 300 ms budget"
+    },
+    {
+      "severity": "should-fix",
+      "id": "perf-reliability",
+      "detail": "479.33 ms median exceeds 300 ms budget"
+    },
+    {
+      "severity": "should-fix",
+      "id": "perf-cost",
+      "detail": "543.95 ms median exceeds 300 ms budget"
+    },
+    {
+      "severity": "should-fix",
+      "id": "perf-digest",
+      "detail": "668.69 ms median exceeds 300 ms budget"
+    }
+  ],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 624.65,
+    "adoption": 1063.89,
+    "tools": 611.62,
+    "reliability": 479.33,
+    "cost": 543.95,
+    "protocol": 245.71,
+    "digest": 668.69,
+    "alerts": 9.33,
+    "timeline": 53.91
+  },
+  "timing_samples": {
+    "overview": [
+      577.61,
+      624.65,
+      782.43
+    ],
+    "adoption": [
+      876.38,
+      1063.89,
+      1081.95
+    ],
+    "tools": [
+      798.94,
+      611.62,
+      576.13
+    ],
+    "reliability": [
+      481.81,
+      479.33,
+      452.06
+    ],
+    "cost": [
+      543.95,
+      606.64,
+      509.89
+    ],
+    "protocol": [
+      245.71,
+      288.12,
+      218.75
+    ],
+    "digest": [
+      610.3,
+      713.99,
+      668.69
+    ],
+    "alerts": [
+      6.97,
+      23.77,
+      9.33
+    ],
+    "timeline": [
+      39.37,
+      65.38,
+      53.91
+    ]
+  },
+  "latency_budget_ms": 300.0,
+  "latency_statistic": "median_of_three_after_warmup"
+}
+```
+
+Host contention investigation immediately after that run:
+
+```sh
+uptime
+ps -eo pid,pcpu,pmem,comm,args --sort=-pcpu | head -15
+```
+
+Exit 0. At 16:35:44 UTC the load averages were `16.22, 7.15, 5.53`. The top
+processes included release/LTO `rustc` jobs writing to
+`/var/tmp/collector-v11-r1/target/release/deps`, including integration tests at
+313% CPU and read-performance tests at 208% CPU. No builds were running in this
+worker's worktree. The broad approximately fivefold slowdown affected every route,
+including cheap alerts and timeline requests, while correctness remained intact.
+This supports host contention as the cause but is not a substitute for a quiet
+repeat. Asked the coordinator to coordinate that repeat; did not change the budget,
+suppress findings, or stop another worker's processes.
+
+The coordinator accepted a quiet route timing repeat instead of another full
+nine-minute probe, requested both results with load averages, and explicitly
+instructed finalization after that repeat. Other workers' processes were untouched.
+
+Quiet repeat command (same third-run 100k project, after all `rustc` processes
+exited; same warmup plus three samples and unchanged 300 ms budget):
+
+```sh
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals ANALYTICS_PG_CONTAINER=signals-ci-latency-pg PYTHONUNBUFFERED=1
+python3 - <<'PYCODE'
+import importlib.util,time,json,os,subprocess,statistics
+from datetime import datetime,timezone
+print('waiting for release compilers',datetime.now(timezone.utc).isoformat(),'load',os.getloadavg(),flush=True)
+while subprocess.run(['pgrep','-x','rustc'],stdout=subprocess.DEVNULL).returncode==0:
+ time.sleep(2)
+print('compiler processes finished',datetime.now(timezone.utc).isoformat(),'load',os.getloadavg(),flush=True)
+spec=importlib.util.spec_from_file_location('probe','scripts/analytics-review-probe.py')
+p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
+try:
+ p.restart_server();c=p.Client()
+ project=p.psql("SELECT id FROM projects WHERE slug='perf' ORDER BY created_at DESC LIMIT 1").strip()
+ count=p.psql(f"SELECT count(*) FROM analytics_facts WHERE project_id='{project}'")
+ assert count=='100000',count
+ print('project',project,'facts',count,flush=True)
+ key=c.admin('keys',{'project_id':project,'label':'quiet timing repeat','scopes':['read']})['secret']
+ for route in ('overview','adoption','tools','reliability','cost','protocol','digest','alerts','timeline'):
+  suffix='sessions/bench-0/timeline' if route=='timeline' else route
+  url=f'/v1/projects/{project}/analytics/{suffix}?range=7d'
+  status,_,_=c.request('GET',url,key=key);assert status==200
+  samples=[]
+  for _ in range(3):
+   started=time.perf_counter();status,_,_=c.request('GET',url,key=key);assert status==200
+   samples.append((time.perf_counter()-started)*1000)
+  median=statistics.median(samples)
+  print(json.dumps({'route':route,'median_ms':round(median,2),'samples_ms':[round(s,2) for s in samples],'load':os.getloadavg(),'budget_ms':p.LATENCY_BUDGET_MS}),flush=True)
+  assert median<=p.LATENCY_BUDGET_MS,(route,median)
+ print('PASS all nine route medians under 300 ms',flush=True)
+finally:p.stop_server()
+PYCODE
+```
+
+Exit 0. Load averages below are 1-, 5-, and 15-minute averages and naturally remain
+high briefly after compiler exit; no release compiler remained during this repeat.
+The failed run's immediately-following load was 16.22/7.15/5.53 (recorded above).
+
+```text
+waiting for release compilers 2026-10-11T16:37:00.384497+00:00 load (12.2158203125, 8.4306640625, 6.1357421875)
+compiler processes finished 2026-10-11T16:37:00.399096+00:00 load (12.2158203125, 8.4306640625, 6.1357421875)
+project f618a973-3f50-4847-86c9-91fc66d7a382 facts 100000
+{"route": "overview", "median_ms": 128.07, "samples_ms": [128.07, 123.06, 164.41], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "adoption", "median_ms": 234.35, "samples_ms": [510.52, 234.35, 220.08], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "tools", "median_ms": 123.96, "samples_ms": [123.96, 123.0, 129.74], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "reliability", "median_ms": 96.05, "samples_ms": [95.56, 96.9, 96.05], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "cost", "median_ms": 136.9, "samples_ms": [137.41, 136.9, 136.06], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "protocol", "median_ms": 43.93, "samples_ms": [43.93, 43.32, 43.97], "load": [11.3974609375, 8.32373046875, 6.11328125], "budget_ms": 300.0}
+{"route": "digest", "median_ms": 165.35, "samples_ms": [163.25, 172.62, 165.35], "load": [10.564453125, 8.20166015625, 6.08544921875], "budget_ms": 300.0}
+{"route": "alerts", "median_ms": 0.8, "samples_ms": [0.92, 0.8, 0.75], "load": [10.564453125, 8.20166015625, 6.08544921875], "budget_ms": 300.0}
+{"route": "timeline", "median_ms": 9.69, "samples_ms": [9.93, 9.69, 9.39], "load": [10.564453125, 8.20166015625, 6.08544921875], "budget_ms": 300.0}
+PASS all nine route medians under 300 ms
+```
+
+Acceptance status: fmt, clippy, workspace tests, all seven ignored DB tests, SQLx
+check, schema check and full CI harness passed locally. Three consecutive full
+probes were executed: the first two passed completely, all three had zero semantic
+mismatches, and the third's latency-only failures under concurrent release builds
+passed on the coordinator-approved quiet timing repeat. No claim is made that
+three full probes exited zero. No alert logic was changed, no assertions were
+removed, and no additional sleeps were added to the probe. Remote GitHub CI has
+not been rerun because this worker does not push.
+
+Browser QA regenerated three tracked screenshots; they were restored to HEAD
+rather than included in this backend/CI change:
+
+```sh
+git restore --source=HEAD -- web/artifacts/v2-live/cost.png web/artifacts/v2-live/overview.png web/artifacts/v2-live/tools.png
+```
+
+Exit 0. No `web/` source or artifact changes remain in this task's diff.
+
+Cleanup and final verification:
+
+```sh
+ss -ltnp '( sport = :25448 or sport = :25449 or sport = :25483 )'
+docker stop signals-ci-latency-pg
+docker rm -v signals-ci-latency-pg
+rm -r /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+test ! -e /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+docker ps -a --filter name=signals-ci-latency-pg --format '{{.Names}}'
+ss -ltnp '( sport = :25439 or sport = :25448 or sport = :25449 or sport = :25483 )'
+git diff 37cec73 --name-only -- web spec deploy
+git diff --check
+git status --porcelain
+```
+
+All exited 0. Collector/probe ports were already closed; PostgreSQL stop/remove
+printed its container name, and the final container listing was empty. Final socket
+output was header-only, target was absent, ownership diff and whitespace checks
+were empty, and the post-commit status was clean. No work remains under the
+coordinator's corrected scope and accepted timing-repeat criterion; changes are
+committed locally without a push.
