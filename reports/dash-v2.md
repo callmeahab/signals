@@ -151,3 +151,92 @@ Opened generated Overview light/dark desktop, Overview dark mobile, and Adoption
 - Previous context-token totals are optional because the supplied overview contract has no token `prev`; absence says “No prior data.” Missing favourite tools, session reasons, SDK error classifications, schema validation and probes remain unknown.
 - Valid SDK code intentionally retains `signals.instrument`, `signals.asgi` and `signals.express`; test fixture email domains also retain their existing names. A broad literal `signals.` grep therefore finds code and fixtures, while the obsolete visible brand is removed. The old fonts and old accent have no tracked-web-source matches.
 - The existing Next example's seven-screen client verifies backward compatibility, packed ESM/types/CSS and host style isolation; the eleven-screen Vite suite exercises the new analytics client.
+
+
+## Fix pass r1
+
+Addressed both blockers and all seven should-fixes from `reviews/dash-v2-r1.md`.
+
+Changes by file:
+
+- `web/packages/ui/src/time.ts`, `index.ts`: shared range-to-bucket mapping and timestamp-based duration formatter (seconds, minutes/seconds, hours/minutes).
+- `web/apps/dashboard/src/demo-analytics.ts`: hourly 24h, daily 7d/30d and weekly 90d buckets; timestamps advance by the declared interval; weighted distribution preserves integer totals, including the final partial bucket; all catalogue dead tools are overview attention rows.
+- `web/apps/dashboard/src/client.ts`: derives request bucket from range for analytics and time-series requests.
+- `web/packages/ui/src/analytics.tsx`: subtitles and time axes use response bucket metadata; null SLO budgets omit progress entirely; handshake waiting copy depends on absent rate/p95; nullable bars omit numeric tracks instead of drawing zero. Audited screen `?? 0` expressions: no matches remain. Missing keys in the non-nullable sparse by-client count map still mean no calls for that client, not a null measurement.
+- `web/packages/ui/src/table-scroll.tsx`, `dashboard.tsx`: shared table wrapper with an overflow hint and keyboard-focusable desktop scroll region; mobile rows present every field as a divided, labeled list, preserving table semantics. Sessions use the shared timestamp formatter.
+- `web/packages/ui/src/styles.css`, `web/apps/dashboard/src/shell.css`: mobile list presentation, fixed 400 weight and no synthesis on every Krona element (including avatars and detail metrics), and 10.5px eyebrows/pills at all widths.
+- `web/apps/dashboard/index.html`: theme-color uses bowl yellow `#FBC118`.
+- `web/scripts/visual-qa.mjs`, `web/apps/dashboard/src/demo.ts`: fixed browser clock, seeded random/crypto, UTC and reduced-motion screenshots; visual QA holds demo live arrivals steady. Font readiness precedes every screenshot. Added per-screen assertions for Krona weight/synthesis, label sizes, unclipped mobile fields and desktop scroll affordances.
+- `web/test/review-r1/probe.mjs`, `web/scripts/test.mjs`: review probe now runs in `bun run test`; expanded checks cover exact bucket spacing/counts, rendered bucket subtitles/axes and duration boundaries, with the original dead-tool/null-budget/handshake assertions retained. Corrected the probe's hard-coded all-daily expectation to the fix brief's hourly/day/week mapping, and replaced its copied old duration formula with assertions against the formatter actually used by the screen.
+- `web/artifacts/v2/` and the three existing Setup PNGs: committed the final deterministic screenshot set. A subsequent full test run left every tracked screenshot byte-identical and the worktree clean.
+
+Verification (from `web/`, with Bun on PATH):
+
+`BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run check` — exit 0.
+
+```text
+$ bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+```
+
+`BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run build` — exit 0.
+
+```text
+dist/assets/index-Db3vLRZa.js                                     301.08 kB │ gzip: 92.33 kB
+
+✓ built in 335ms
+```
+
+`PLAYWRIGHT_CHANNEL=chromium BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run test` — exit 0.
+
+```text
+$ bun scripts/test.mjs
+Snippet UUID QA passed: randomUUID deleted, UUIDv7 timestamp/version/variant, missing and throwing crypto fallbacks.
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.
+review-r1 probe passed
+
+  VITE v8.3.2  ready in 93 ms
+
+  ➜  Local:   http://127.0.0.1:23330/
+Visual QA passed: 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+```
+
+`PLAYWRIGHT_CHANNEL=chromium BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run test:next` — exit 0.
+
+```text
+
+▲ Next.js 16.3.8
+- Local:         http://127.0.0.1:23331
+- Network:       http://127.0.0.1:23331
+✓ Ready in 66ms
+✓ Running next.config.mjs took 7ms
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.
+```
+
+Additional executed checks:
+
+```sh
+bun test/review-r1/probe.mjs
+```
+
+```text
+review-r1 probe passed
+```
+
+After committing screenshots, ran the full `bun run test` again and then `git status --porcelain`:
+
+```text
+Visual QA passed: 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+TEST_EXIT:0
+```
+
+`git status --porcelain` emitted no output. `git diff --check` also emitted no output.
+
+```sh
+grep -R -n -E '\?\? ?0' web/packages/ui/src --include='*.tsx'
+```
+
+No matches (grep exit 1). Viewed the regenerated 390px Sessions screenshot to verify the divided list and the `8 s` duration visually; all eleven screens also pass the automated layout assertions in both themes.
+
+During implementation, lint caught imports placed before a client directive and a browser-only `window` reference in the QA script; moved the directive back to the first line and used `globalThis`. Final checks above are green. No r1 findings remain open; the original report's backend-integration notes remain applicable.
