@@ -1771,3 +1771,112 @@ All exited 0; final upgrade output:
 Applied 9/migrate analytics hourly arrivals (21.16597ms)
 31|t
 ```
+
+Rust and database acceptance (final migration, fresh database):
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+cargo sqlx prepare --workspace -- --all-targets
+cargo fmt --all --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+cargo sqlx prepare --check --workspace -- --all-targets
+cargo run --locked -p signals-xtask -- --check
+SIGNALS_BENCH_ROWS=100000 cargo test --locked --release --workspace -- --ignored --test-threads=1
+cargo build --locked --bin signals
+cargo build --locked --release --bin signals
+```
+
+All exited 0. After the lock-only migration refinement and fresh-database swap,
+fmt, clippy, workspace tests, SQLx check and the complete ignored database suite
+were repeated and passed. The new migration changes no SQL query shapes, and
+metadata remained unchanged. Final outputs (fmt was silent):
+
+```text
+    Finished `dev` profile [unoptimized] target(s) in 2.85s
+query data written to .sqlx in the workspace root; please check this into version control
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 2.95s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 2.67s
+     Running `target/debug/signals-xtask --check`
+Official schemas parsed; runtime validation replaces generated wire types
+test three_day_analytics_contract_and_idempotence ... ok
+test histogram_eligibility_avoids_raw_partitions_and_tracks_late_arrivals ... ok
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+test thirty_day_dashboard_measurements ... ok
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 5.15s
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `release` profile [optimized] target(s) in 41.83s
+```
+
+Workspace tests passed (9 core, 5 server, 7 store). All eight ignored DB tests
+passed, including the new partition-plan test; explicit `TEST_DATABASE_URL` and
+`.sqlx/dev.sql` were used on the final database.
+
+CI harness port collision and isolation fix:
+
+The first full harness invocation used the established `SIGNALS_URL` port 25483
+and default analytics ports 25448/25449. Spec, transport and browser QA all passed,
+but the analytics child could not bind 25448 (`Address already in use`). Its old
+readiness check reached a different collector already there, producing wire/fixture
+mismatches and finally an empty timestamp from this worker's separate database.
+The harness exited 1; this was not a plan-guard result. The coordinator confirmed
+in `msg_d770a10713b7` that the conflicting collector was their verification run and
+had been stopped, then instructed continuing on the chosen isolated ports.
+
+`scripts/analytics-review-probe.py` now checks that collector and mock-prober ports
+are unused before starting and checks child exit during readiness. This prevents
+silently accepting an already-running unrelated collector after a bind failure.
+No other worker's process was stopped by this task. Targeted check:
+
+```sh
+python3 - <<'PY'
+import importlib.util,socket,errno
+from urllib.parse import urlparse
+spec=importlib.util.spec_from_file_location('probe','scripts/analytics-review-probe.py');p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
+with socket.socket() as occupied:
+ occupied.bind(('127.0.0.1',0));occupied.listen()
+ p.ADDRESS=urlparse(f'http://127.0.0.1:{occupied.getsockname()[1]}')
+ try:p.restart_server()
+ except OSError as error:assert error.errno==errno.EADDRINUSE
+ else:raise AssertionError('occupied collector port was accepted')
+ assert p.SERVER is None
+ print('PASS occupied port rejected before collector launch or fixture requests')
+PY
+```
+
+Exit 0, printing the PASS line above. Final harness uses explicit ports
+27483/27448/27449; the command and final result follow below. Both harness attempts
+use disk-backed TMPDIR and `SIGNALS_PROBE_LATENCY_BUDGET_MS=900`.
+
+The isolated rerun on 27483/27448/27449 passed spec, transport, browser QA,
+rollup idempotence, restart consistency, analytics comparisons and sustained-error
+firing without reporting findings, but its process tree was terminated with
+SIGTERM (exit 143) at 17:38:34 UTC before the final stages. Socket inspection showed
+its ports closed. This invocation is recorded as interrupted, not passed; asked
+the coordinator about external cleanup before restarting.
+
+The coordinator confirmed the SIGTERM was their cleanup using a process-name
+match, explicitly authorized a fresh full harness run, and stated subsequent
+cleanup would target only their recorded PIDs. No code change was needed for this
+interruption; rerunning on the same isolated ports.

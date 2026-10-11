@@ -210,3 +210,7 @@ lock through backfill and trigger installation to avoid missed arrivals. Product
 at `crates/signals-store/queries/analytics_histograms.sql`. The probe creates its
 own 31 populated daily partitions, and CI explicitly runs the database regression
 for late arrivals, transaction rollback, retention, and the executed query plan.
+
+On a shared development host, select unused `ANALYTICS_REVIEW_URL` and
+`ANALYTICS_REVIEW_PROBE_PORT` values for the review probe. It rejects occupied
+ports before launching its collector or sending fixture requests.
