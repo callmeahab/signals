@@ -193,7 +193,13 @@ impl<'a> Metrics<'a> {
     }
     pub fn rollup(&self, divisor: f64) -> Value {
         let (retry, corrected) = retries(self.calls.iter().copied());
-        json!({"calls":self.calls.len(),"errors":self.errors(),"error_kinds":self.error_kinds(),"cancelled":self.calls.iter().filter(|e|e.attrs["cancelled"]==true).count(),"timeouts":self.error_kinds()["timeout"],"input_bytes_sum":self.sum("input_bytes"),"output_bytes_sum":self.sum("output_bytes"),"output_chars_sum":self.sum("output_chars"),"input_hist":self.payload_hist("input_bytes"),"output_hist":self.payload_hist("output_bytes"),"latency_hist":histogram(self.calls.iter().filter_map(|e|e.duration_ms)),"retries":retry,"self_corrected":corrected,"tokens":self.tokens(divisor)})
+        let schema = |key: &str| {
+            self.calls
+                .iter()
+                .any(|e| e.attrs[key].is_boolean())
+                .then(|| self.calls.iter().filter(|e| e.attrs[key] == false).count())
+        };
+        json!({"calls":self.calls.len(),"errors":self.errors(),"error_kinds":self.error_kinds(),"cancelled":self.calls.iter().filter(|e|e.attrs["cancelled"]==true).count(),"timeouts":self.error_kinds()["timeout"],"input_bytes_sum":self.sum("input_bytes"),"output_bytes_sum":self.sum("output_bytes"),"output_chars_sum":self.sum("output_chars"),"output_items_sum":self.sum("output_items"),"schema_failures":{"input":schema("input_schema_valid"),"output":schema("output_schema_valid")},"input_hist":self.payload_hist("input_bytes"),"output_hist":self.payload_hist("output_bytes"),"latency_hist":histogram(self.calls.iter().filter_map(|e|e.duration_ms)),"retries":retry,"self_corrected":corrected,"tokens":self.tokens(divisor)})
     }
     fn sum(&self, key: &str) -> Option<i64> {
         self.average(key)

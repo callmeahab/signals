@@ -60,6 +60,7 @@ async fn v11_storage_protocol_and_delivery() {
         to: now,
     };
     let events = data.selected(w, &Filters::default());
+    assert!(data.protocol(&[])["sampling"]["requests"].is_null());
     let protocol = data.protocol(&events);
     assert_eq!(protocol["sampling"]["requests"], 1);
     assert_eq!(protocol["sampling"]["p95"], 310);
@@ -126,11 +127,17 @@ async fn v11_storage_protocol_and_delivery() {
     let hook = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let hook_port = hook.local_addr().unwrap().port();
     let (hook_tx, mut hook_rx) = mpsc::channel(10);
+    let fail_hook = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let fail_receiver = fail_hook.clone();
     let app = axum::Router::new().route(
         "/",
         axum::routing::post(move |axum::Json(v): axum::Json<Value>| {
             let sender = hook_tx.clone();
+            let fail = fail_receiver.clone();
             async move {
+                if fail.load(std::sync::atomic::Ordering::SeqCst) {
+                    return axum::http::StatusCode::SERVICE_UNAVAILABLE;
+                }
                 sender.send(v).await.unwrap();
                 axum::http::StatusCode::NO_CONTENT
             }
@@ -184,6 +191,30 @@ async fn v11_storage_protocol_and_delivery() {
     .await
     .unwrap();
     assert_eq!(delivered, 4);
+    // A failed webhook retries without repeating the successful SMTP channel.
+    fail_hook.store(true, std::sync::atomic::Ordering::SeqCst);
+    sqlx::query(
+        "INSERT INTO alerts_log(project_id,rule,state,details) VALUES($1,'errors','ok','{}')",
+    )
+    .bind(project.id)
+    .execute(&store.pool)
+    .await
+    .unwrap();
+    delivery::queue(&store, monday).await.unwrap();
+    delivery::flush(&store).await.unwrap();
+    assert!(mail_rx
+        .recv()
+        .await
+        .unwrap()
+        .contains("multipart/alternative"));
+    assert!(hook_rx.try_recv().is_err());
+    let pending:i64=sqlx::query_scalar("SELECT count(*) FROM notification_outbox WHERE project_id=$1 AND delivered_at IS NULL AND attempts=1").bind(project.id).fetch_one(&store.pool).await.unwrap();
+    assert_eq!(pending, 1);
+    fail_hook.store(false, std::sync::atomic::Ordering::SeqCst);
+    sqlx::query("UPDATE notification_outbox SET next_attempt_at=now() WHERE project_id=$1 AND delivered_at IS NULL").bind(project.id).execute(&store.pool).await.unwrap();
+    delivery::flush(&store).await.unwrap();
+    assert_eq!(hook_rx.recv().await.unwrap()["state"], "ok");
+    assert!(mail_rx.try_recv().is_err());
     smtp_task.abort();
     hook_task.abort();
     // Leave no channels for later workers in the same isolated test database.

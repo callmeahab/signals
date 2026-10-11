@@ -1,9 +1,9 @@
 {
-  "mode": "vendored-unverified",
-  "conformance_verified": false,
+  "mode": "official",
+  "conformance_verified": true,
   "tag": "v1.1.0",
   "commit": "a32f922beb302853863b39aa27edf2286f5881a7",
-  "source": "https://github.com/mcpramen/signals-spec",
+  "source": "https://github.com/vuk88/signals-spec",
   "sha256": {
     "batch.schema.json": "078bb8aefe5b7736960ac8c752fdd84093f66808c7344fec11b862ee86b70c73",
     "events.schema.json": "2e8c5e270917cc860ce7872b77077f580c2e1c0661dc53bc9a0cba528a71232e",

@@ -304,8 +304,22 @@ async fn main() -> Result<()> {
                 loop {
                     tokio::select! {_=interval.tick()=>{if let Err(e)=worker_store.rollup().await{tracing::error!(error=%e,"rollup failed");}
                     if let Err(e)=worker_store.evaluate_alerts().await{tracing::error!(error=%e,"alerts evaluation failed");}
-                    if let Err(e)=signals_server::delivery::run(&worker_store).await{tracing::error!(error=%e,"notification worker failed");}
                     if let Err(e)=signals_server::prober::run(&worker_store).await{tracing::error!(error=%e,"prober failed");}ticks+=1;if ticks.is_multiple_of(10){if let Err(e)=worker_store.maintain().await{tracing::error!(error=%e,"maintenance failed");}}},_=worker_shutdown.changed()=>break}
+                }
+            });
+            let delivery_store = store.clone();
+            let mut delivery_shutdown = shutdown.clone();
+            let delivery_worker = tokio::spawn(async move {
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+                loop {
+                    tokio::select! {
+                        _ = interval.tick() => {
+                            if let Err(e) = signals_server::delivery::run(&delivery_store).await {
+                                tracing::error!(error=%e,"notification worker failed");
+                            }
+                        },
+                        _ = delivery_shutdown.changed() => break
+                    }
                 }
             });
             let listener = tokio::net::TcpListener::bind(bind).await?;
@@ -325,6 +339,7 @@ async fn main() -> Result<()> {
                 _=draining.changed()=>{match tokio::time::timeout(std::time::Duration::from_secs(10),&mut server_task).await{Ok(result)=>{result??;},Err(_)=>server_task.abort()}}
             }
             worker.abort();
+            delivery_worker.abort();
             listener_task.abort();
             store.pool.close().await;
         }
