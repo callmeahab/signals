@@ -889,3 +889,105 @@ PY
 Exit 0, with the same 39/39 valid and 49/49 invalid results for both identity and
 gzip, and the transport PASS line above. This runs the original spec and transport
 scripts without modifying any assertions or tracked harness files.
+
+Independent analytics review probe:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH
+export CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+cargo build --locked --release --bin signals
+ANALYTICS_PG_CONTAINER=signals-settings-read-pg PYTHONUNBUFFERED=1 python3 scripts/analytics-review-probe.py
+```
+
+Build exited 0; probe exited 1 with zero semantic mismatches and one latency
+finding. All other checks, including executed query-plan guards, passed. Final
+output was `FINDINGS 1 MISMATCHES 0`; the complete findings artifact is preserved
+below before target cleanup:
+
+```json
+{
+  "findings": [
+    {
+      "severity": "should-fix",
+      "id": "perf-reliability",
+      "detail": "447.28 ms"
+    }
+  ],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 175.53,
+    "adoption": 265.83,
+    "tools": 132.46,
+    "reliability": 447.28,
+    "cost": 139.07,
+    "protocol": 49.64,
+    "digest": 191.19,
+    "alerts": 2.03,
+    "timeline": 13.93
+  }
+}
+```
+
+Repeated the same warmup plus three timing samples on the existing 100k-event
+project, using a freshly started release server and the probe's request helper:
+
+```sh
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals ANALYTICS_PG_CONTAINER=signals-settings-read-pg
+python3 - <<'PYCODE'
+import importlib.util,time,json
+spec=importlib.util.spec_from_file_location('probe','scripts/analytics-review-probe.py')
+p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
+try:
+ p.restart_server(); c=p.Client()
+ project=p.psql("SELECT id FROM projects WHERE slug='perf' ORDER BY created_at DESC LIMIT 1").strip()
+ key=c.admin('keys',{'project_id':project,'label':'timing repeat','scopes':['read']})['secret']
+ for route in ('overview','adoption','tools','reliability','cost','protocol','digest','alerts'):
+  url=f'/v1/projects/{project}/analytics/{route}?range=7d'
+  c.request('GET',url,key=key)
+  samples=[]
+  for _ in range(3):
+   started=time.perf_counter();status,_,_=c.request('GET',url,key=key);assert status==200
+   samples.append(round((time.perf_counter()-started)*1000,2))
+  print(route,json.dumps(samples),flush=True)
+finally:p.stop_server()
+PYCODE
+```
+
+Exit 0; all repeated measurements were below 300 ms:
+
+```text
+overview [179.09, 174.76, 175.15]
+adoption [256.17, 221.88, 227.97]
+tools [135.89, 167.04, 138.63]
+reliability [94.1, 97.65, 106.54]
+cost [154.22, 146.75, 146.13]
+protocol [46.53, 45.26, 46.49]
+digest [177.01, 162.07, 183.25]
+alerts [1.96, 1.92, 1.99]
+```
+
+The coordinator accepted finalization with both the 447.28 ms measurement and
+94–107 ms repeat recorded, explicitly requiring no fresh full probe. The
+coordinator also confirmed that the integration branch (`dash-v2`) already merged
+the settings-read implementation commit `71cc3d4`. No analytics query changes or
+threshold relaxation were made for this settings task. Remaining external work is
+the dashboard worker's browser QA update noted above; no settings-read work remains.
+
+Cleanup and ownership checks:
+
+```sh
+docker stop signals-settings-read-pg
+docker rm -v signals-settings-read-pg
+rm -r /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+test ! -e /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+docker ps -a --filter name=signals-settings-read-pg --format '{{.Names}}'
+ss -ltnp '( sport = :25439 or sport = :25448 or sport = :25449 or sport = :25483 )'
+git diff f00e64b --name-only -- web spec deploy
+git diff --check
+```
+
+All exited 0: stop/remove each printed `signals-settings-read-pg`; no matching
+container remained, socket output was header-only, target was absent, ownership
+diff and whitespace check were empty. Changes are committed locally; no push.
