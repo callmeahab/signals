@@ -5,8 +5,15 @@
     "declaration": true,
     "rootDir": "src",
     "outDir": "dist",
-    "types": ["react"]
+    "types": [
+      "react"
+    ],
+    "allowJs": true
   },
-  "include": ["src"],
-  "exclude": ["dist"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "dist"
+  ]
 }

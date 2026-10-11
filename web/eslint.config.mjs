@@ -5,6 +5,7 @@ import hooks from 'eslint-plugin-react-hooks';
 export default tseslint.config(
   { ignores: ['dist/**', '**/dist/**', 'node_modules/**', 'artifacts/**'] },
   js.configs.recommended,
+  { files: ['packages/ui/src/charts/renderers.js'], languageOptions: { globals: { document: 'readonly' } }, rules: { 'no-unused-vars': 'off' } },
   ...tseslint.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],

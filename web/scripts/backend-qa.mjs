@@ -9,7 +9,7 @@ const docker=process.argv.includes('--docker');
 const base=process.env.SIGNALS_URL??(docker?'http://127.0.0.1:8350':'http://127.0.0.1:8300');
 const replica=process.env.SIGNALS_REPLICA_URL??(docker?'http://127.0.0.1:8351':base);
 const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL??'chromium'});
-mkdirSync('artifacts/v2-live',{recursive:true});
+mkdirSync('artifacts/v3-live',{recursive:true});
 try {
  await checkLoginStyles(browser,base);
  const context=await browser.newContext({viewport:{width:1440,height:1000},colorScheme:'light'});
@@ -57,15 +57,15 @@ try {
  for(const screen of ['overview','adoption','tools','reliability','cost','protocol']){
   await visit(screen,`analytics/${screen}`);
   await expect(page.getByRole('button',{name:'Try again'})).toHaveCount(0);
-  if(screen==='overview'){await expect(page.locator('.tile').filter({hasText:'Tool calls'}).locator('strong')).toHaveText('26');await expect(page.locator('.tile').filter({hasText:'Tool success'}).locator('strong')).toHaveText('92.3%');await expect(page.getByText('Browser QA client',{exact:true})).toBeVisible();await expect(page.getByRole('img',{name:'Stacked calls by client'}).locator('rect')).toHaveCount(1);}
+  if(screen==='overview'){await expect(page.locator('.tile').filter({hasText:'Tool calls'}).locator('strong')).toHaveText('26');await expect(page.locator('.tile').filter({hasText:'Tool success'}).locator('strong')).toHaveText('92.3%');await expect(page.locator('.legend').getByText('Browser QA client',{exact:true})).toBeVisible();await expect(page.getByRole('img',{name:'Stacked calls by client'}).locator('rect:not(.hit)')).toHaveCount(1);}
   if(screen==='adoption')await expect(page.getByRole('row').filter({hasText:'Browser QA client'})).toContainText('26');
   if(screen==='tools'){await expect(page.getByRole('row').filter({has:page.getByRole('button',{name:'search_documents',exact:true})})).toContainText('12');await expect(page.getByRole('row').filter({has:page.getByRole('button',{name:'get_customer',exact:true})})).toContainText('12');}
-  if(screen==='reliability'){await expect(page.getByText('96%',{exact:true})).toBeVisible();await expect(page.locator('.tile').filter({hasText:'Hallucinated tools'}).locator('strong')).toHaveText('1');await expect(page.locator('.tile').filter({hasText:'Hallucinated tools'})).toContainText(hallucinated);}
+  if(screen==='reliability'){await expect(page.getByText('96%',{exact:true}).first()).toBeVisible();await expect(page.locator('.tile').filter({hasText:'Hallucinated tools'}).locator('strong')).toHaveText('1');await expect(page.locator('.tile').filter({hasText:'Hallucinated tools'})).toContainText(hallucinated);}
   if(screen==='tools'){assert.deepEqual((await page.locator('tbody button.row-button').allTextContents()).sort(),catalogued);await expect(page.locator('.dead-tool')).toHaveText([deadTool]);await expect(page.getByRole('button',{name:hallucinated,exact:true})).toHaveCount(0);}
-  if(screen==='overview')await expect(page.getByRole('row').filter({hasText:deadTool})).toContainText('dead');
+  if(screen==='overview')await expect(page.locator('.ribrow').filter({hasText:deadTool})).toContainText('dead');
   if(screen==='cost'){await expect(page.locator('.tile').filter({hasText:'Context tokens'}).locator('strong')).toHaveText('≈ 260');await expect(page.getByRole('row').filter({hasText:caller}).first()).toContainText('260');}
-  if(screen==='protocol')await expect(page.getByRole('row').filter({hasText:'roots'})).toContainText('100%');
-  if(['overview','tools','cost'].includes(screen)){await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:`artifacts/v2-live/${screen}.png`,fullPage:true,animations:'disabled'});}
+  if(screen==='protocol')await expect(page.locator('.chart-dot-grid').filter({has:page.locator('table').filter({hasText:'roots'})})).toContainText('100');
+  if(['overview','tools','cost'].includes(screen)){await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:`artifacts/v3-live/${screen}.png`,fullPage:true,animations:'disabled'});}
  }
  await expect.poll(async()=>(await json(await page.request.get(route('sessions')))).items.length,{timeout:70000}).toBe(1);
  await visit('sessions','sessions');await page.locator('tbody .row-button').first().click();
@@ -118,5 +118,5 @@ try {
  await page.getByRole('button',{name:'Log out',exact:true}).click();await page.getByRole('button',{name:'Sign in',exact:true}).waitFor();
  assert.equal((await page.request.get(`${base}/v1/auth/me`)).status(),401);assert.deepEqual(failures,[]);
  await context.close();
- console.log('Backend browser QA passed: real v2 analytics, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.');
+ console.log('Backend browser QA passed: real v3 analytics, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.');
 } finally {await browser.close();}

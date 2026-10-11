@@ -16,8 +16,8 @@ for(const range of ['24h','7d','30d','90d']) {
  assert.equal(o.calls_by_client.points.reduce((n,p)=>n+Object.values(p.by_client).reduce((a,b)=>a+b,0),0),o.tiles.tool_calls.value);
  assert.equal(Object.values(o.tiles.active_users.by_kind).reduce((a,b)=>a+b,0),o.tiles.active_users.value);
  for(const p of a.active.points){assert.equal(p.new+p.returning,p.users);assert.equal(Object.values(p.by_kind).reduce((a,b)=>a+b,0),p.users);}
- for(const row of t.tools){assert.equal(sum(row.trend,'calls'),row.calls);assert.equal(sum(row.trend,'errors'),row.errors.tool);assert.equal(row.schema_failures.input,null);}
- assert.equal(routes.reliability.handshake.success_rate,null);
+ for(const row of t.tools){assert.equal(sum(row.trend,'calls'),row.calls);assert.equal(sum(row.trend,'errors'),row.errors.tool);assert.equal(row.schema_failures.input,null);assert.equal(row.latency.buckets.edges.length,61);assert.equal(row.latency.buckets.edges.at(-1),null);assert.equal(row.latency.buckets.counts.length,60);assert.equal(row.latency.buckets.counts.reduce((a,b)=>a+b,0),row.calls);assert(row.latency.p50<=row.latency.p95&&row.latency.p95<=row.latency.p99);}
+ assert.equal(routes.reliability.handshake.success_rate,null);assert.deepEqual(o.tiles.latency.sparkline,routes.reliability.latency_over_time.points.map(p=>p.p95));assert.equal(a.active.points.reduce((n,p)=>n+p.sessions,0),o.tiles.sessions.value);
  assert.equal(routes.reliability.availability,null);
  assert.equal(routes.protocol.sampling.requests,null);
  for(const value of Object.values(routes)){assert(value.generated_at);assert.equal(Date.parse(value.range.to)-Date.parse(value.range.from),Date.parse(value.range.prev_to)-Date.parse(value.range.prev_from));}

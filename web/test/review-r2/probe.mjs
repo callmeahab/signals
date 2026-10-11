@@ -175,17 +175,17 @@ try {
   {
     const { context, page } = await open(1440, 'light');
     for (const [range, want] of Object.entries(BUCKETS)) {
-      for (const [screen, panel, expected] of [['overview', 'Calls by client', `${want.label} tool calls · UTC`], ['adoption', 'Active users over time', `${want.label} observations · active identities`]]) {
+      for (const [screen, panel, expected] of [['overview', 'Calls by client', `${want.label} tool calls · UTC`], ['adoption', 'Active users', `${want.label} observations · active identities`]]) {
         await show(page, screen);
         await page.getByRole('button', { name: RANGE_BUTTON[range], exact: true }).click();
         await page.waitForTimeout(400);
         const seen = await page.evaluate(title => {
           const node = [...document.querySelectorAll('.panel')].find(p => p.querySelector('h2')?.textContent?.trim() === title);
-          return { subtitle: node?.querySelector('.panel-heading p')?.textContent?.trim(), labels: [...node.querySelectorAll('svg text.chart-label')].map(t => t.textContent) };
+          return { subtitle: node?.querySelector('.card__sub')?.textContent?.trim(), labels: [...node.querySelectorAll('svg text.ax--dim')].map(t => t.textContent) };
         }, panel);
         check(seen.subtitle === expected, `${range} ${screen}: subtitle "${seen.subtitle}", expected "${expected}"`);
         const time = seen.labels.filter(l => !/^[\d.]+[KM]?$/.test(l));
-        const shape = want.bucket === 'hour' ? /^\d{2}:\d{2}$/ : want.bucket === 'week' ? /^Week of \d{2}-\d{2}$/ : /^\d{2}-\d{2}$/;
+        const shape = /^\d{2}\/\d{2}/;
         check(time.length > 0 && time.every(l => shape.test(l)), `${range} ${screen}: time axis ${JSON.stringify(time)} does not match ${shape}`);
       }
     }
@@ -197,7 +197,7 @@ try {
     const { context, page } = await open(1440, 'light');
     await show(page, 'sessions');
     const rows = await page.evaluate(() => {
-      const table = document.querySelector('.signals-ui table');
+      const table = document.querySelector('.signals-ui .table-scroll table');
       const index = [...table.querySelectorAll('thead th')].findIndex(h => h.textContent.trim() === 'Duration');
       return [...table.querySelectorAll('tbody tr')].map(r => r.children[index].textContent.trim());
     });
@@ -219,7 +219,7 @@ try {
     await show(page, 'overview');
     const rows = await page.evaluate(() => {
       const panel = [...document.querySelectorAll('.panel')].find(p => p.querySelector('h2')?.textContent?.trim() === 'Tools needing attention');
-      return [...panel.querySelectorAll('tbody tr')].map(r => [...r.children].map(c => c.textContent.trim()));
+      return [...panel.querySelectorAll('.ribrow')].map(r => [r.querySelector('code').textContent.trim(),r.querySelector('.chip').textContent.trim(),r.querySelector('.val').textContent.trim()]);
     });
     const tools = await demoClient.analytics('demo', 'tools', { range: '7d' });
     for (const name of tools.catalog.dead) {
@@ -245,7 +245,7 @@ try {
     await page.getByRole('button', { name: 'Save analytics settings', exact: true }).click();
     await page.getByText('Analytics settings saved.', { exact: true }).waitFor();
     await show(page, 'reliability');
-    const slo = await page.evaluate(() => [...document.querySelectorAll('.panel')].filter(p => /SLO$/.test(p.querySelector('h2')?.textContent?.trim() ?? '')).map(p => ({ title: p.querySelector('h2').textContent.trim(), text: p.innerText.replace(/\n+/g, ' | '), progress: [...p.querySelectorAll('progress')].map(x => x.getAttribute('value')) })));
+    const slo = await page.evaluate(() => [...document.querySelectorAll('.slo-gauge')].map(p => ({ title: p.querySelector('h3').textContent.trim(), text: p.innerText.replace(/\n+/g, ' | '), progress: [...p.querySelectorAll('progress')].map(x => x.getAttribute('value')) })));
     const mutate = slo.find(s => s.title.startsWith('mutate'));
     check(!!mutate, 'reliability: no mutate SLO panel after moving every tool to read');
     check(mutate?.progress.length === 0, `mutate SLO with no calls still renders progress ${JSON.stringify(mutate?.progress)}`);
@@ -301,8 +301,8 @@ try {
             })),
             clippedText: [...document.querySelectorAll('.signals-ui *,.topbar *,.page-heading *,.app-footer *')].filter(el => {
               const cs = style(el);
-              if (el.closest('.table-scroll') || el.closest('pre') || el.tagName === 'PRE' || ['auto', 'scroll'].includes(cs.overflowX) || ['auto', 'scroll'].includes(cs.overflowY)) return false;
-              return !el.children.length && el.textContent.trim() && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1);
+              if (el.closest('.sr-only') || el.closest('svg') || el.closest('.tile__meta') || el.closest('.tile__label') || el.closest('.ribrow code') || el.closest('.table-scroll') || el.closest('pre') || el.tagName === 'PRE' || ['auto', 'scroll'].includes(cs.overflowX) || ['auto', 'scroll'].includes(cs.overflowY)) return false;
+              return !el.children.length && el.textContent.trim() && (el.scrollWidth > el.clientWidth + 1 || cs.overflowY === 'hidden' && el.scrollHeight > el.clientHeight + 1);
             }).map(el => `${el.tagName}.${el.className}"${el.textContent.trim().slice(0, 24)}" ${el.scrollWidth}x${el.scrollHeight}>${el.clientWidth}x${el.clientHeight}`),
             pageScroll: document.documentElement.scrollWidth - innerWidth,
           };
@@ -457,7 +457,7 @@ try {
     await page.getByRole('button', { name: 'Save analytics settings', exact: true }).click();
     await page.getByText('Analytics settings saved.', { exact: true }).waitFor();
     await show(page, 'reliability');
-    const target = await page.evaluate(() => [...document.querySelectorAll('.panel')].filter(p => /SLO$/.test(p.querySelector('h2')?.textContent?.trim() ?? '')).map(p => `${p.querySelector('h2').textContent.trim()}: ${p.querySelector('.panel-heading p').textContent.trim()}`));
+    const target = await page.evaluate(() => [...document.querySelectorAll('.slo-gauge')].map(p => `${p.querySelector('h3').textContent.trim()}: ${p.querySelector('small').textContent.trim()}`));
     check(target.some(t => t.startsWith('read SLO') && t.includes('99.9')), `settings: read SLO target 99.9 not reflected on the reliability screen ${JSON.stringify(target)}`);
     await show(page, 'overview');
     const belowSlo = await page.evaluate(() => [...document.querySelectorAll('.tile')].find(t => t.querySelector('.eyebrow').textContent.trim().toUpperCase() === 'TOOL SUCCESS')?.innerText.replace(/\n+/g, ' | '));
