@@ -1,0 +1,226 @@
+{
+  "overview": {
+    "attention": [
+      {
+        "calls": 2,
+        "p95": 4,
+        "slo_class": "read",
+        "status": "error",
+        "success_rate": 50,
+        "tool": "get_product"
+      },
+      {
+        "calls": 2,
+        "p95": 4,
+        "slo_class": "read",
+        "status": "error",
+        "success_rate": 50,
+        "tool": "search_flights"
+      },
+      {
+        "calls": 1,
+        "p95": 1,
+        "slo_class": "mutate",
+        "status": "error",
+        "success_rate": 0,
+        "tool": "echo"
+      },
+      {
+        "calls": 59,
+        "p95": 224,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "search_products"
+      },
+      {
+        "calls": 1,
+        "p95": 6,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "get_delivery_quote"
+      },
+      {
+        "calls": 1,
+        "p95": 4,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "get_menu"
+      },
+      {
+        "calls": 1,
+        "p95": 4,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "get_room_options"
+      },
+      {
+        "calls": 1,
+        "p95": 4,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "get_seat_map"
+      },
+      {
+        "calls": 1,
+        "p95": 4,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "get_ticket_options"
+      },
+      {
+        "calls": 1,
+        "p95": 4,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "search_events"
+      },
+      {
+        "calls": 1,
+        "p95": 4,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "search_hotels"
+      },
+      {
+        "calls": 1,
+        "p95": 8,
+        "slo_class": "mutate",
+        "status": "ok",
+        "success_rate": 100,
+        "tool": "book_ticket"
+      },
+      {
+        "calls": 1,
+        "p95": 6,
+        "slo_class": "mutate",
+        "status": "ok",
+        "success_rate": 100,
+        "tool": "create_order"
+      },
+      {
+        "calls": 1,
+        "p95": 6,
+        "slo_class": "mutate",
+        "status": "ok",
+        "success_rate": 100,
+        "tool": "place_food_order"
+      },
+      {
+        "calls": 1,
+        "p95": 6,
+        "slo_class": "mutate",
+        "status": "ok",
+        "success_rate": 100,
+        "tool": "reserve_room"
+      },
+      {
+        "calls": 1,
+        "p95": 6,
+        "slo_class": "mutate",
+        "status": "ok",
+        "success_rate": 100,
+        "tool": "reserve_tickets"
+      }
+    ],
+    "calls_by_client": {
+      "buckets": "day",
+      "points": [
+        {
+          "by_client": {
+            "e2e-rtxbox": 69,
+            "mcp": 7
+          },
+          "t": "2026-10-11"
+        }
+      ]
+    },
+    "cohorts": {
+      "kind": "weekly",
+      "rows": [
+        {
+          "cohort_start": "2026-10-05",
+          "retained_pct": [
+            null
+          ],
+          "size": 2
+        }
+      ]
+    },
+    "funnel": [
+      {
+        "count": 2,
+        "step": "connected"
+      },
+      {
+        "count": 2,
+        "step": "listed_tools"
+      },
+      {
+        "count": 2,
+        "step": "first_call"
+      },
+      {
+        "count": 1,
+        "step": "five_calls"
+      },
+      {
+        "count": null,
+        "eligible": 0,
+        "step": "returned_day_7"
+      }
+    ],
+    "generated_at": "2026-10-11T18:50:41.679100695Z",
+    "range": {
+      "from": "2026-10-04T18:50:41.679100695Z",
+      "prev_from": "2026-09-27T18:50:41.679100695Z",
+      "prev_to": "2026-10-04T18:50:41.679100695Z",
+      "to": "2026-10-11T18:50:41.679100695Z"
+    },
+    "tiles": {
+      "active_users": {
+        "by_kind": {
+          "key": 0,
+          "network": 2,
+          "strong": 0
+        },
+        "new": 2,
+        "prev": 0,
+        "value": 2
+      },
+      "context_tokens": {
+        "estimated": true,
+        "per_call": 111,
+        "value": 8438
+      },
+      "latency": {
+        "method": "histogram",
+        "p50": 4,
+        "p95": 8,
+        "p99": 224,
+        "prev_p95": null
+      },
+      "sessions": {
+        "calls_per_session": 7.6,
+        "prev": 0,
+        "value": 10
+      },
+      "success_rate": {
+        "prev": null,
+        "tools_below_slo": 3,
+        "value": 96.1
+      },
+      "tool_calls": {
+        "prev": 0,
+        "value": 76
+      }
+    }
+  }
+}

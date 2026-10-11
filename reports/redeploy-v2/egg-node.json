@@ -1,0 +1,1436 @@
+{
+  "overview": {
+    "attention": [
+      {
+        "calls": 2,
+        "p95": 2,
+        "slo_class": "mutate",
+        "status": "error",
+        "success_rate": 50,
+        "tool": "book_ticket"
+      },
+      {
+        "calls": 2,
+        "p95": 2,
+        "slo_class": "read",
+        "status": "error",
+        "success_rate": 50,
+        "tool": "get_product"
+      },
+      {
+        "calls": 2,
+        "p95": 5,
+        "slo_class": "read",
+        "status": "error",
+        "success_rate": 50,
+        "tool": "search_flights"
+      },
+      {
+        "calls": 1,
+        "p95": 1,
+        "slo_class": "mutate",
+        "status": "error",
+        "success_rate": 0,
+        "tool": "echo"
+      },
+      {
+        "calls": 1,
+        "p95": 1,
+        "slo_class": "mutate",
+        "status": "error",
+        "success_rate": 0,
+        "tool": "redeploy_v2_unknown_tool"
+      },
+      {
+        "calls": 64,
+        "p95": 8,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "search_products"
+      },
+      {
+        "calls": 1,
+        "p95": 4,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "get_menu"
+      },
+      {
+        "calls": 1,
+        "p95": 5,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "get_room_options"
+      },
+      {
+        "calls": 1,
+        "p95": 10,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "get_seat_map"
+      },
+      {
+        "calls": 1,
+        "p95": 4,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "get_ticket_options"
+      },
+      {
+        "calls": 1,
+        "p95": 2,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "search_events"
+      },
+      {
+        "calls": 1,
+        "p95": 5,
+        "slo_class": "read",
+        "status": "warn",
+        "success_rate": 100,
+        "tool": "search_hotels"
+      },
+      {
+        "calls": 1,
+        "p95": 8,
+        "slo_class": "mutate",
+        "status": "ok",
+        "success_rate": 100,
+        "tool": "create_order"
+      },
+      {
+        "calls": 1,
+        "p95": 5,
+        "slo_class": "mutate",
+        "status": "ok",
+        "success_rate": 100,
+        "tool": "get_delivery_quote"
+      },
+      {
+        "calls": 1,
+        "p95": 4,
+        "slo_class": "mutate",
+        "status": "ok",
+        "success_rate": 100,
+        "tool": "place_food_order"
+      },
+      {
+        "calls": 1,
+        "p95": 5,
+        "slo_class": "mutate",
+        "status": "ok",
+        "success_rate": 100,
+        "tool": "reserve_room"
+      },
+      {
+        "calls": 1,
+        "p95": 4,
+        "slo_class": "mutate",
+        "status": "ok",
+        "success_rate": 100,
+        "tool": "reserve_tickets"
+      }
+    ],
+    "calls_by_client": {
+      "buckets": "day",
+      "points": [
+        {
+          "by_client": {
+            "e2e-rtxbox": 71,
+            "mcp": 8,
+            "redeploy-v2-egg-node": 4
+          },
+          "t": "2026-10-11"
+        }
+      ]
+    },
+    "cohorts": {
+      "kind": "weekly",
+      "rows": [
+        {
+          "cohort_start": "2026-10-05",
+          "retained_pct": [
+            null
+          ],
+          "size": 2
+        }
+      ]
+    },
+    "funnel": [
+      {
+        "count": 2,
+        "step": "connected"
+      },
+      {
+        "count": 2,
+        "step": "listed_tools"
+      },
+      {
+        "count": 2,
+        "step": "first_call"
+      },
+      {
+        "count": 1,
+        "step": "five_calls"
+      },
+      {
+        "count": null,
+        "eligible": 0,
+        "step": "returned_day_7"
+      }
+    ],
+    "generated_at": "2026-10-11T18:52:24.842683529Z",
+    "range": {
+      "from": "2026-10-04T18:52:24.842683529Z",
+      "prev_from": "2026-09-27T18:52:24.842683529Z",
+      "prev_to": "2026-10-04T18:52:24.842683529Z",
+      "to": "2026-10-11T18:52:24.842683529Z"
+    },
+    "tiles": {
+      "active_users": {
+        "by_kind": {
+          "key": 0,
+          "network": 2,
+          "strong": 0
+        },
+        "new": 2,
+        "prev": 0,
+        "value": 2
+      },
+      "context_tokens": {
+        "estimated": true,
+        "per_call": 99,
+        "value": 8195
+      },
+      "latency": {
+        "method": "histogram",
+        "p50": 1,
+        "p95": 8,
+        "p99": 10,
+        "prev_p95": null
+      },
+      "sessions": {
+        "calls_per_session": 5.9,
+        "prev": 0,
+        "value": 14
+      },
+      "success_rate": {
+        "prev": null,
+        "tools_below_slo": 5,
+        "value": 94
+      },
+      "tool_calls": {
+        "prev": 0,
+        "value": 83
+      }
+    }
+  },
+  "tools": {
+    "catalog": {
+      "advertised": 15,
+      "advertised_count": 15,
+      "catalog_hash": "ba7487f45db4fc4131946dcd994fa47b0a40c862066636427a87156c9270914a",
+      "dead": [],
+      "known": true,
+      "truncated": false,
+      "updated_at": "2026-10-11T18:52:07.223Z",
+      "used": 17
+    },
+    "generated_at": "2026-10-11T18:52:25.716062479Z",
+    "paths": [
+      {
+        "count": 51,
+        "pct": 37.8,
+        "sequence": [
+          "search_products",
+          "search_products"
+        ]
+      },
+      {
+        "count": 49,
+        "pct": 36.3,
+        "sequence": [
+          "search_products",
+          "search_products",
+          "search_products"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "book_ticket",
+          "search_hotels"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "book_ticket",
+          "search_hotels",
+          "get_room_options"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "create_order",
+          "search_flights"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "create_order",
+          "search_flights",
+          "get_seat_map"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_delivery_quote",
+          "search_events"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_delivery_quote",
+          "search_events",
+          "get_ticket_options"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_menu",
+          "get_delivery_quote"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_menu",
+          "get_delivery_quote",
+          "search_events"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_product",
+          "create_order"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_product",
+          "create_order",
+          "search_flights"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_product",
+          "search_flights"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_product",
+          "search_flights",
+          "echo"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_room_options",
+          "reserve_room"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_room_options",
+          "reserve_room",
+          "get_menu"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_seat_map",
+          "book_ticket"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_seat_map",
+          "book_ticket",
+          "search_hotels"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_ticket_options",
+          "reserve_tickets"
+        ]
+      },
+      {
+        "count": 1,
+        "pct": 0.7,
+        "sequence": [
+          "get_ticket_options",
+          "reserve_tickets",
+          "place_food_order"
+        ]
+      }
+    ],
+    "range": {
+      "from": "2026-10-04T18:52:25.716062479Z",
+      "prev_from": "2026-09-27T18:52:25.716062479Z",
+      "prev_to": "2026-10-04T18:52:25.716062479Z",
+      "to": "2026-10-11T18:52:25.716062479Z"
+    },
+    "tools": [
+      {
+        "calls": 2,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 1,
+          "unknown": null
+        },
+        "input_bytes_avg": 136,
+        "latency": {
+          "method": "histogram",
+          "p50": 2,
+          "p95": 2,
+          "p99": 2
+        },
+        "output_bytes_avg": 348,
+        "output_tokens_est": 87,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "mutate",
+        "success_rate": 50,
+        "tool": "book_ticket",
+        "trend": [
+          {
+            "calls": 2,
+            "errors": 1,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 213,
+        "latency": {
+          "method": "histogram",
+          "p50": 8,
+          "p95": 8,
+          "p99": 8
+        },
+        "output_bytes_avg": 666,
+        "output_tokens_est": 167,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "mutate",
+        "success_rate": 100,
+        "tool": "create_order",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 1,
+          "unknown": null
+        },
+        "input_bytes_avg": 19,
+        "latency": {
+          "method": "histogram",
+          "p50": 1,
+          "p95": 1,
+          "p99": 1
+        },
+        "output_bytes_avg": 40,
+        "output_tokens_est": 10,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "mutate",
+        "success_rate": 0,
+        "tool": "echo",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 1,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 252,
+        "latency": {
+          "method": "histogram",
+          "p50": 5,
+          "p95": 5,
+          "p99": 5
+        },
+        "output_bytes_avg": 831,
+        "output_tokens_est": 208,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "mutate",
+        "success_rate": 100,
+        "tool": "get_delivery_quote",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 29,
+        "latency": {
+          "method": "histogram",
+          "p50": 4,
+          "p95": 4,
+          "p99": 4
+        },
+        "output_bytes_avg": 580,
+        "output_tokens_est": 145,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "read",
+        "success_rate": 100,
+        "tool": "get_menu",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 2,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 1,
+          "unknown": null
+        },
+        "input_bytes_avg": 28,
+        "latency": {
+          "method": "histogram",
+          "p50": 1,
+          "p95": 2,
+          "p99": 2
+        },
+        "output_bytes_avg": 287,
+        "output_tokens_est": 72,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "read",
+        "success_rate": 50,
+        "tool": "get_product",
+        "trend": [
+          {
+            "calls": 2,
+            "errors": 1,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 82,
+        "latency": {
+          "method": "histogram",
+          "p50": 5,
+          "p95": 5,
+          "p99": 5
+        },
+        "output_bytes_avg": 886,
+        "output_tokens_est": 222,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "read",
+        "success_rate": 100,
+        "tool": "get_room_options",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 27,
+        "latency": {
+          "method": "histogram",
+          "p50": 10,
+          "p95": 10,
+          "p99": 10
+        },
+        "output_bytes_avg": 826,
+        "output_tokens_est": 207,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "read",
+        "success_rate": 100,
+        "tool": "get_seat_map",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 23,
+        "latency": {
+          "method": "histogram",
+          "p50": 4,
+          "p95": 4,
+          "p99": 4
+        },
+        "output_bytes_avg": 629,
+        "output_tokens_est": 157,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "read",
+        "success_rate": 100,
+        "tool": "get_ticket_options",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 110,
+        "latency": {
+          "method": "histogram",
+          "p50": 4,
+          "p95": 4,
+          "p99": 4
+        },
+        "output_bytes_avg": 752,
+        "output_tokens_est": 188,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "mutate",
+        "success_rate": 100,
+        "tool": "place_food_order",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": 0,
+          "protocol": 0,
+          "timeout": 0,
+          "tool": 0,
+          "unknown": 1
+        },
+        "input_bytes_avg": 2,
+        "latency": {
+          "method": "histogram",
+          "p50": 1,
+          "p95": 1,
+          "p99": 1
+        },
+        "output_bytes_avg": 40,
+        "output_tokens_est": 0,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "mutate",
+        "success_rate": 0,
+        "tool": "redeploy_v2_unknown_tool",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 1,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 204,
+        "latency": {
+          "method": "histogram",
+          "p50": 5,
+          "p95": 5,
+          "p99": 5
+        },
+        "output_bytes_avg": 537,
+        "output_tokens_est": 134,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "mutate",
+        "success_rate": 100,
+        "tool": "reserve_room",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 162,
+        "latency": {
+          "method": "histogram",
+          "p50": 4,
+          "p95": 4,
+          "p99": 4
+        },
+        "output_bytes_avg": 483,
+        "output_tokens_est": 121,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "mutate",
+        "success_rate": 100,
+        "tool": "reserve_tickets",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 24,
+        "latency": {
+          "method": "histogram",
+          "p50": 2,
+          "p95": 2,
+          "p99": 2
+        },
+        "output_bytes_avg": 376,
+        "output_tokens_est": 94,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "read",
+        "success_rate": 100,
+        "tool": "search_events",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 2,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 1,
+          "unknown": null
+        },
+        "input_bytes_avg": 66,
+        "latency": {
+          "method": "histogram",
+          "p50": 1,
+          "p95": 5,
+          "p99": 5
+        },
+        "output_bytes_avg": 360,
+        "output_tokens_est": 90,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "read",
+        "success_rate": 50,
+        "tool": "search_flights",
+        "trend": [
+          {
+            "calls": 2,
+            "errors": 1,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 1,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 84,
+        "latency": {
+          "method": "histogram",
+          "p50": 5,
+          "p95": 5,
+          "p99": 5
+        },
+        "output_bytes_avg": 386,
+        "output_tokens_est": 97,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "read",
+        "success_rate": 100,
+        "tool": "search_hotels",
+        "trend": [
+          {
+            "calls": 1,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      },
+      {
+        "calls": 64,
+        "errors": {
+          "cancelled": null,
+          "protocol": null,
+          "timeout": null,
+          "tool": 0,
+          "unknown": null
+        },
+        "input_bytes_avg": 24,
+        "latency": {
+          "method": "histogram",
+          "p50": 1,
+          "p95": 8,
+          "p99": 8
+        },
+        "output_bytes_avg": 377,
+        "output_tokens_est": 93,
+        "retries": {
+          "count": 0,
+          "self_corrected_pct": null
+        },
+        "schema_failures": {
+          "input": null,
+          "output": null
+        },
+        "slo_class": "read",
+        "success_rate": 100,
+        "tool": "search_products",
+        "trend": [
+          {
+            "calls": 64,
+            "errors": 0,
+            "t": "2026-10-11"
+          }
+        ]
+      }
+    ]
+  },
+  "reliability": {
+    "auth_failures": [],
+    "availability": null,
+    "cancellations": {
+      "count": 0,
+      "pct": 0
+    },
+    "error_codes": [
+      {
+        "code": -32602,
+        "count": 1,
+        "kind": "unknown_tool"
+      }
+    ],
+    "generated_at": "2026-10-11T18:52:26.597061955Z",
+    "hallucinated_tools": {
+      "count": 2,
+      "names": [
+        "echo",
+        "redeploy_v2_unknown_tool"
+      ]
+    },
+    "handshake": {
+      "attempts": 14,
+      "p95": 8,
+      "success_rate": 100
+    },
+    "range": {
+      "from": "2026-10-04T18:52:26.597061955Z",
+      "prev_from": "2026-09-27T18:52:26.597061955Z",
+      "prev_to": "2026-10-04T18:52:26.597061955Z",
+      "to": "2026-10-11T18:52:26.597061955Z"
+    },
+    "sessions_with_errors": {
+      "count": 2,
+      "pct": 14.3
+    },
+    "silent_failures": {
+      "count": 0
+    },
+    "slo": [
+      {
+        "burn_rate_1h": 0,
+        "burn_rate_6h": 0,
+        "class": "read",
+        "error_budget_pct": 0,
+        "success_rate": 97.3,
+        "target": 99.5
+      },
+      {
+        "burn_rate_1h": 49.99999999999996,
+        "burn_rate_6h": 49.99999999999996,
+        "class": "mutate",
+        "error_budget_pct": 0,
+        "success_rate": 66.7,
+        "target": 98
+      }
+    ],
+    "timeouts": {
+      "count": 0,
+      "pct": 0
+    }
+  },
+  "cost": {
+    "billing_periods": [
+      {
+        "caller": "a98c34aec1e4d7a4ba6d913083003d59688541c32eb19336e9334d2f973f947a",
+        "calls": 2,
+        "period": "2026-10",
+        "tokens": 189
+      },
+      {
+        "caller": "f83447c7a31f5b19a0449c3a4a87dbfe7b1d7a7a038f8e80d9b374fa1b4bb0c3",
+        "calls": 81,
+        "period": "2026-10",
+        "tokens": 8007
+      }
+    ],
+    "by_tenant": [
+      {
+        "caller": "a98c34aec1e4d7a4ba6d913083003d59688541c32eb19336e9334d2f973f947a",
+        "calls": 2,
+        "identity_kind": "network",
+        "tokens": 189
+      },
+      {
+        "caller": "f83447c7a31f5b19a0449c3a4a87dbfe7b1d7a7a038f8e80d9b374fa1b4bb0c3",
+        "calls": 81,
+        "identity_kind": "network",
+        "tokens": 8007
+      }
+    ],
+    "by_tool": [
+      {
+        "calls": 2,
+        "pct": 2.1,
+        "tokens": 174,
+        "tool": "book_ticket"
+      },
+      {
+        "calls": 1,
+        "pct": 2,
+        "tokens": 167,
+        "tool": "create_order"
+      },
+      {
+        "calls": 1,
+        "pct": 0.1,
+        "tokens": 10,
+        "tool": "echo"
+      },
+      {
+        "calls": 1,
+        "pct": 2.5,
+        "tokens": 208,
+        "tool": "get_delivery_quote"
+      },
+      {
+        "calls": 1,
+        "pct": 1.8,
+        "tokens": 145,
+        "tool": "get_menu"
+      },
+      {
+        "calls": 2,
+        "pct": 1.8,
+        "tokens": 144,
+        "tool": "get_product"
+      },
+      {
+        "calls": 1,
+        "pct": 2.7,
+        "tokens": 222,
+        "tool": "get_room_options"
+      },
+      {
+        "calls": 1,
+        "pct": 2.5,
+        "tokens": 207,
+        "tool": "get_seat_map"
+      },
+      {
+        "calls": 1,
+        "pct": 1.9,
+        "tokens": 157,
+        "tool": "get_ticket_options"
+      },
+      {
+        "calls": 1,
+        "pct": 2.3,
+        "tokens": 188,
+        "tool": "place_food_order"
+      },
+      {
+        "calls": 1,
+        "pct": 0,
+        "tokens": 0,
+        "tool": "redeploy_v2_unknown_tool"
+      },
+      {
+        "calls": 1,
+        "pct": 1.6,
+        "tokens": 134,
+        "tool": "reserve_room"
+      },
+      {
+        "calls": 1,
+        "pct": 1.5,
+        "tokens": 121,
+        "tool": "reserve_tickets"
+      },
+      {
+        "calls": 1,
+        "pct": 1.1,
+        "tokens": 94,
+        "tool": "search_events"
+      },
+      {
+        "calls": 2,
+        "pct": 2.2,
+        "tokens": 180,
+        "tool": "search_flights"
+      },
+      {
+        "calls": 1,
+        "pct": 1.2,
+        "tokens": 97,
+        "tool": "search_hotels"
+      },
+      {
+        "calls": 64,
+        "pct": 72.6,
+        "tokens": 5950,
+        "tool": "search_products"
+      }
+    ],
+    "estimated": true,
+    "generated_at": "2026-10-11T18:52:27.402147058Z",
+    "payload_hist": {
+      "buckets": [
+        "<1K",
+        "1-4K",
+        "4-16K",
+        "16-64K",
+        ">64K"
+      ],
+      "input": [
+        83,
+        0,
+        0,
+        0,
+        0
+      ],
+      "output": [
+        83,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "per_call": 99,
+    "range": {
+      "from": "2026-10-04T18:52:27.402147058Z",
+      "prev_from": "2026-09-27T18:52:27.402147058Z",
+      "prev_to": "2026-10-04T18:52:27.402147058Z",
+      "to": "2026-10-11T18:52:27.402147058Z"
+    },
+    "total_tokens_est": 8195
+  },
+  "adoption": {
+    "active": {
+      "bucket": "day",
+      "dau": 2,
+      "mau": 2,
+      "points": [
+        {
+          "by_kind": {
+            "key": 0,
+            "network": 2,
+            "strong": 0
+          },
+          "new": 2,
+          "returning": 0,
+          "t": "2026-10-11",
+          "users": 2
+        }
+      ],
+      "wau": 2
+    },
+    "clients": [
+      {
+        "calls": 1,
+        "capabilities": [],
+        "name": "e2e-rtxbox",
+        "pct": 7.1,
+        "sessions": 1,
+        "version": "book-20261011005925"
+      },
+      {
+        "calls": 50,
+        "capabilities": [],
+        "name": "e2e-rtxbox",
+        "pct": 7.1,
+        "sessions": 1,
+        "version": "burst-20261011005925"
+      },
+      {
+        "calls": 1,
+        "capabilities": [],
+        "name": "e2e-rtxbox",
+        "pct": 7.1,
+        "sessions": 1,
+        "version": "collector-20261011010724"
+      },
+      {
+        "calls": 1,
+        "capabilities": [],
+        "name": "e2e-rtxbox",
+        "pct": 7.1,
+        "sessions": 1,
+        "version": "node-restart-20261011010724"
+      },
+      {
+        "calls": 18,
+        "capabilities": [],
+        "name": "e2e-rtxbox",
+        "pct": 7.1,
+        "sessions": 1,
+        "version": "tools-20261011005925"
+      },
+      {
+        "calls": 8,
+        "capabilities": [],
+        "name": "mcp",
+        "pct": 57.1,
+        "sessions": 8,
+        "version": "0.1.0"
+      },
+      {
+        "calls": 4,
+        "capabilities": [],
+        "name": "redeploy-v2-egg-node",
+        "pct": 7.1,
+        "sessions": 1,
+        "version": "1.0"
+      }
+    ],
+    "funnel": {
+      "steps": [
+        {
+          "count": 2,
+          "dropoff_pct": 0,
+          "step": "connected"
+        },
+        {
+          "count": 2,
+          "dropoff_pct": 0,
+          "step": "listed_tools"
+        },
+        {
+          "count": 2,
+          "dropoff_pct": 0,
+          "step": "first_call"
+        },
+        {
+          "count": 1,
+          "dropoff_pct": 50,
+          "step": "five_calls"
+        },
+        {
+          "count": null,
+          "dropoff_pct": null,
+          "eligible": 0,
+          "step": "returned_day_7"
+        }
+      ]
+    },
+    "generated_at": "2026-10-11T18:52:28.200822620Z",
+    "identity_quality": {
+      "key": 0,
+      "network": 2,
+      "strong": 0
+    },
+    "protocol_versions": [
+      {
+        "sessions": 14,
+        "version": "2025-11-25"
+      }
+    ],
+    "range": {
+      "from": "2026-10-04T18:52:28.200822620Z",
+      "prev_from": "2026-09-27T18:52:28.200822620Z",
+      "prev_to": "2026-10-04T18:52:28.200822620Z",
+      "to": "2026-10-11T18:52:28.200822620Z"
+    },
+    "retention": {
+      "daily": {
+        "d1": null,
+        "d30": null,
+        "d7": null
+      },
+      "weekly": [
+        {
+          "cohort_start": "2026-10-05",
+          "retained_pct": [
+            null
+          ],
+          "size": 2
+        }
+      ]
+    },
+    "transports": [
+      {
+        "sessions": 14,
+        "transport": "streamable-http"
+      }
+    ]
+  }
+}
