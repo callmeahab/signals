@@ -32,9 +32,9 @@ export async function checkLoginStyles(browser, base) {
           };
         });
         const label = `${width}/${theme}`;
-        assert.match(styles.bodyFont, /Manrope/, `${label}: body font`);
-        assert.match(styles.headingFont, /Unbounded/, `${label}: heading font`);
-        assert(styles.loadedFonts.some(f => /Manrope/.test(f)) && styles.loadedFonts.some(f => /Unbounded/.test(f)), `${label}: fonts loaded`);
+        assert.match(styles.bodyFont, /Urbanist/, `${label}: body font`);
+        assert.match(styles.headingFont, /Krona One/, `${label}: heading font`);
+        assert(styles.loadedFonts.some(f => /Urbanist/.test(f)) && styles.loadedFonts.some(f => /Krona One/.test(f)), `${label}: fonts loaded`);
         assert(styles.primary && styles.margin === '0px' && styles.cardBorder !== '0px', `${label}: document theme and card styles`);
         assert.equal(styles.dark, theme === 'dark', `${label}: theme applied`);
         assert.equal(styles.buttonDisplay, 'inline-flex', `${label}: styled sign-in button`);

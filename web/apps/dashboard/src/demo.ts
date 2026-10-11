@@ -1,4 +1,4 @@
-import { demoAnalytics, demoTimeline, setRules } from './demo-analytics';
+import { demoAnalytics, demoTimeline, setRules, setAnalyticsSettings } from './demo-analytics';
 import type { Caller, EventAttrs, EventType, Key, Overview, Point, Project, Range, Session, SignalEvent, SignalsClient, Tool, User } from '@mcpramen/signals-ui';
 export const demoProject: Project = { id:'demo',name:'Northwind MCP',slug:'northwind',retention_days:30,rate_events_per_min:600,rate_bytes_per_min:5242880 };
 const tools = ['search_documents','get_customer','list_orders','get_inventory','create_ticket','fetch_document'];
@@ -10,7 +10,7 @@ const points = (range: Range): Point[] => Array.from({length:range==='24h'?24:ra
   return {ts:range==='30d'?ts((29-i)*24):ts((range==='24h'?23:167)-i),requests,errors:Math.max(0,Math.round(requests*.012+(i%9===0?12:0))),sessions:Math.round(requests*.06),callers:Math.round(requests*.025),latency_p50:80+(i%7)*12,latency_p95:210+(i%8)*24};
 });
 const callerRows:Caller[] = ['Production app','Avery Chen','Support workspace','Network a18c72','Development key','Jordan Lee'].map((label,i)=>({id:String(i+1),label,kind:i===3?'network':i%2?'strong':'key',calls:3800-i*550,errors:i%3*4,sessions:28-i*3,clients:[clients[i%4]],favourite_tools:[tools[i%tools.length]],first_seen:ts(24*12+i),last_seen:ts(i*.02)}));
-const sessionRows:Session[] = Array.from({length:12},(_,i)=>({session_id:`demo-session-${i}`,client_name:clients[i%4],caller_label:callerRows[i%6].label,started_at:ts(i*.2),ended_at:i<2?null:ts(i*.2-.12),calls:12+i*2,errors:i%5===0?1:0,transport:'streamable-http',reason:i<2?null:'client'}));
+const sessionRows:Session[] = Array.from({length:12},(_,i)=>({session_id:`demo-session-${i}`,client_name:clients[i%4],caller_label:callerRows[i%6].label,started_at:ts(i*.2),ended_at:i<2?null:ts(i*.2-8400/3600000),calls:12+i*2,errors:i%5===0?1:0,transport:'streamable-http',reason:i<2?null:'client'}));
 const eventTypes:EventType[] = ['session.started','mcp.initialize','tool.called','resource.read','prompt.get','mcp.request','log','error','custom','session.ended'];
 function event(i:number):SignalEvent {
   const type = eventTypes[i % eventTypes.length];
@@ -48,7 +48,7 @@ export const demoClient:SignalsClient = {
   async keys(){return [...keys];},
   async createKey(_p,label,scopes) {const secret=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');const key:Key={id:crypto.randomUUID(),key_id:crypto.randomUUID().replaceAll('-',''),label,scopes,created_at:new Date().toISOString(),last_used_at:null,revoked_at:null};keys=[key,...keys];return {key,secret:`sgk_${key.key_id}_${secret}`};},
   async revokeKey(_p,id){keys=keys.map(k=>k.id===id?{...k,revoked_at:new Date().toISOString()}:k);},
-  async updateProject(_p,settings){return {...demoProject,...settings};},
+  async updateProject(_p,settings){setAnalyticsSettings(settings);Object.assign(demoProject,settings);return {...demoProject};},
   async users(){return [...demoUsers];},
   async createUser(_p,email,_password,role){const user={id:crypto.randomUUID(),email,role};demoUsers=[...demoUsers,user];return user;},
 };

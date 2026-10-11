@@ -205,3 +205,4 @@ body{font-weight:500;font-size:14px}h1,h2,h3,h4,.metric-value{font-weight:400!im
 @media(min-width:1100px){.tile-grid:has(>.tile:nth-child(6)){grid-template-columns:repeat(6,minmax(0,1fr))}.tile{padding:20px 16px}.tile>strong{font-size:23px}}
 @media(max-width:760px){.analytics-grid{grid-template-columns:1fr}.tile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{padding:17px}.tile>strong{font-size:22px}.alert-rule{grid-template-columns:1fr 1fr}.alert-rule>label:first-child{grid-column:1/-1}.bar-row{grid-template-columns:minmax(80px,1fr) minmax(30px,1fr) auto;gap:8px}.panel-heading{padding-inline:16px}.panel form{padding:16px}.timeline li{grid-template-columns:62px 1fr;gap:8px}.status-pill{font-size:10px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+.dead-tool{display:inline-block;max-width:100%;overflow-wrap:anywhere}.tile-grid,.analytics-grid{min-width:0}.tile .eyebrow{line-height:1.5}
