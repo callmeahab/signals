@@ -16,6 +16,7 @@ use serde_json::{json, Value};
 use signals_core::{parse_batch, validate_batch, MAX_BODY};
 use signals_store::{checked_query, checked_query_as, checked_query_scalar};
 use signals_store::{hash, random_secret, Project};
+use sqlx::Row;
 use std::{convert::Infallible, net::SocketAddr, sync::atomic::Ordering};
 use uuid::Uuid;
 
@@ -570,7 +571,26 @@ pub struct Settings {
     pub probe_url: Option<String>,
     pub probe_key: Option<String>,
 }
-#[utoipa::path(patch,path="/v1/projects/{project}",params(("project"=uuid::Uuid,Path)),request_body=Settings,responses((status=200,description="Project with analytics settings",body=Value),(status=400,description="Invalid settings"),(status=401,description="Invalid credentials"),(status=403,description="Owner required")),security(("session"=[])))]
+#[utoipa::path(get,path="/v1/projects/{project}",params(("project"=uuid::Uuid,Path)),responses((status=200,description="Project and safe analytics settings",body=crate::openapi::ProjectDocument),(status=401,description="Session required"),(status=403,description="Project membership required"),(status=404,description="Project not found")),security(("session"=[])))]
+pub async fn get_project(
+    State(app): State<App>,
+    Path(project): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<Json<Value>> {
+    let user = auth::user(&app, &headers).await?;
+    let row = checked_query!("SELECT id,tenant_id,slug,name,retention_days,rate_events_per_min,rate_bytes_per_min,analytics_settings FROM projects WHERE id=$1 AND deleted_at IS NULL",project).fetch_optional(&app.store.pool).await?.ok_or_else(|| Error::not_found("Project not found"))?;
+    let project = <Project as sqlx::FromRow<sqlx::postgres::PgRow>>::from_row(&row)?;
+    if project.tenant_id != user.tenant_id {
+        return Err(Error::forbidden(
+            "This account cannot access this operation",
+        ));
+    }
+    Ok(Json(auth::project_document(
+        project,
+        row.get("analytics_settings"),
+    )?))
+}
+#[utoipa::path(patch,path="/v1/projects/{project}",params(("project"=uuid::Uuid,Path)),request_body=Settings,responses((status=200,description="Project with safe analytics settings",body=crate::openapi::ProjectDocument),(status=400,description="Invalid settings"),(status=401,description="Invalid credentials"),(status=403,description="Owner required")),security(("session"=[])))]
 pub async fn update_project(
     State(app): State<App>,
     Path(p): Path<Uuid>,
@@ -583,7 +603,7 @@ pub async fn update_project(
         .ok_or_else(|| Error::bad("Expected settings object"))?;
     // Existing dashboard clients round-trip the project document. These fields
     // were ignored by the former typed Settings extractor and remain read-only.
-    for key in ["id", "tenant_id", "slug"] {
+    for key in ["id", "tenant_id", "slug", "probe_key_set"] {
         object.remove(key);
     }
     let name = object.remove("name");
@@ -610,12 +630,7 @@ pub async fn update_project(
     let result:Project=checked_query_as!("UPDATE projects SET name=coalesce($2,name),retention_days=coalesce($3,retention_days),rate_events_per_min=coalesce($4,rate_events_per_min),rate_bytes_per_min=coalesce($5,rate_bytes_per_min) WHERE id=$1 RETURNING id,tenant_id,slug,name,retention_days,rate_events_per_min,rate_bytes_per_min",p,name.as_ref().and_then(Value::as_str),retention.as_ref().and_then(Value::as_i64).map(|n|n as i32),rate.as_ref().and_then(Value::as_i64).map(|n|n as i32),bytes.as_ref().and_then(Value::as_i64)).fetch_one(&mut *tx).await?;
     let settings = crate::analytics::save_settings(&mut tx, p, input).await?;
     tx.commit().await?;
-    let mut result = serde_json::to_value(result).map_err(Error::internal)?;
-    result
-        .as_object_mut()
-        .unwrap()
-        .extend(settings.as_object().unwrap().clone());
-    Ok(Json(result))
+    Ok(Json(auth::project_document(result, settings)?))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub struct TenantInput {
@@ -655,7 +670,7 @@ pub struct ProjectInput {
     pub slug: String,
     pub name: String,
 }
-#[utoipa::path(post,path="/v1/admin/projects",request_body=ProjectInput,responses((status=200,description="Success",body=crate::openapi::ProjectDocument), (status=400,description="Invalid request",body=crate::openapi::ErrorDocument),(status=401,description="Invalid credentials"),(status=403,description="Scope or tenant denied")),security(("adminToken"=[])))]
+#[utoipa::path(post,path="/v1/admin/projects",request_body=ProjectInput,responses((status=200,description="Success",body=crate::openapi::ProvisionedProject), (status=400,description="Invalid request",body=crate::openapi::ErrorDocument),(status=401,description="Invalid credentials"),(status=403,description="Scope or tenant denied")),security(("adminToken"=[])))]
 pub async fn create_project(
     State(app): State<App>,
     headers: HeaderMap,

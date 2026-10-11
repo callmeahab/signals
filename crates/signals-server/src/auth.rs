@@ -211,8 +211,34 @@ pub async fn verify_login(app: &App, email: &str, password: &str) -> Result<User
     .await?)
 }
 pub async fn account(app: &App, user: User) -> Result<serde_json::Value> {
-    let projects:Vec<Project>=checked_query_as!("SELECT id,tenant_id,slug,name,retention_days,rate_events_per_min,rate_bytes_per_min FROM projects WHERE tenant_id=$1 AND deleted_at IS NULL ORDER BY name" ,user.tenant_id).fetch_all(&app.store.pool).await?;
+    let rows=checked_query!("SELECT id,tenant_id,slug,name,retention_days,rate_events_per_min,rate_bytes_per_min,analytics_settings FROM projects WHERE tenant_id=$1 AND deleted_at IS NULL ORDER BY name",user.tenant_id).fetch_all(&app.store.pool).await?;
+    let projects = rows
+        .iter()
+        .map(|row| project_document(Project::from_row(row)?, row.get("analytics_settings")))
+        .collect::<Result<Vec<_>>>()?;
     Ok(serde_json::json!({"user":user,"projects":projects}))
+}
+/// The common public project shape for session reads and owner updates.
+/// Only known settings are copied; the credential itself never enters the document.
+pub fn project_document(
+    project: Project,
+    settings: serde_json::Value,
+) -> Result<serde_json::Value> {
+    let mut document = serde_json::to_value(project).map_err(Error::internal)?;
+    for key in [
+        "slo_classes",
+        "slo_targets",
+        "token_divisor",
+        "digest",
+        "alerts",
+        "probe_url",
+    ] {
+        document[key] = settings[key].clone();
+    }
+    document["probe_key_set"] = serde_json::json!(settings["probe_key"]
+        .as_str()
+        .is_some_and(|key| !key.is_empty()));
+    Ok(document)
 }
 pub fn cookie(app: &App, value: &str, max_age: i64) -> String {
     format!(

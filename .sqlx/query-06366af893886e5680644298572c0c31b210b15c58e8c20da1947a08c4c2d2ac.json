@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id,tenant_id,slug,name,retention_days,rate_events_per_min,rate_bytes_per_min FROM projects WHERE tenant_id=$1 AND deleted_at IS NULL ORDER BY name",
+  "query": "SELECT id,tenant_id,slug,name,retention_days,rate_events_per_min,rate_bytes_per_min,analytics_settings FROM projects WHERE id=$1 AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -79,6 +79,17 @@
             "name": "rate_bytes_per_min"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "analytics_settings",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "projects",
+            "name": "analytics_settings"
+          }
+        }
       }
     ],
     "parameters": {
@@ -93,8 +104,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "465d28d7e2272c3dc1c609c4cea247abf7e91ee809fc24c73f050ac35dd68251"
+  "hash": "06366af893886e5680644298572c0c31b210b15c58e8c20da1947a08c4c2d2ac"
 }
