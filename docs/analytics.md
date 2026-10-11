@@ -171,3 +171,25 @@ The probe credential is never returned. `probe_key_set` is false before a key is
 configured or after an owner clears it with `{"probe_key":null}`. It is a derived,
 read-only field ignored by PATCH, so round-tripping the document preserves the key.
 Authentication/login account responses use the same safe project serializer.
+
+### Analytics latency checks
+
+`scripts/analytics-review-probe.py` warms each route, then measures three requests
+and gates on their median. `SIGNALS_PROBE_LATENCY_BUDGET_MS` must be a finite,
+positive number; it defaults to **300 ms** for local release probes. CI sets
+**900 ms** for shared runners. The findings artifact includes the budget, median,
+and individual samples. Semantic mismatches and non-200 responses always fail,
+regardless of the latency budget.
+
+For stage-level profiling on a disposable local database, run:
+
+```sh
+cargo run --release -p signals-store --example analytics_profile -- --seed
+# Use the PROJECT_ID printed by the seed command:
+PROJECT_ID=<uuid> cargo run --release -p signals-store --example analytics_profile
+```
+
+The first iteration loads an uncached snapshot; subsequent iterations reuse it.
+Restart the disposable PostgreSQL instance before profiling to clear its shared
+buffers (the operating system file cache remains). The profile reports snapshot
+loading, overview calculation, and current/previous histogram read times separately.
