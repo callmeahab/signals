@@ -9,7 +9,7 @@ import '@fontsource/ibm-plex-mono/500.css';
 import '../../../packages/ui/src/styles.css';
 import './shell.css';
 import { auth, client } from './client';
-import { demoClient, demoProject } from './demo';
+import { demoClient, demoProject, truncatedDemoProject } from './demo';
 
 const isDemo = import.meta.env.VITE_DEMO === '1';
 const nav: {id:Screen;label:string;description:string}[] = [
@@ -32,7 +32,7 @@ function App(){
   const [range,setRange]=useState<Range>('7d');
   const [dark,setDark]=useState(()=>localStorage.getItem('signals-theme')==='dark'||(!localStorage.getItem('signals-theme')&&matchMedia('(prefers-color-scheme: dark)').matches));
   const [mobile,setMobile]=useState(false);
-  const [account,setAccount]=useState<{user:User;projects:Project[]}|null>(isDemo?{user:{id:'demo',email:'you@northwind.dev',role:'owner'},projects:[demoProject]}:null);
+  const [account,setAccount]=useState<{user:User;projects:Project[]}|null>(isDemo?{user:{id:'demo',email:'you@northwind.dev',role:'owner'},projects:[demoProject,truncatedDemoProject]}:null);
   const [projectId,setProjectId]=useState('');
   const [ready,setReady]=useState(isDemo);
   const [loginError,setLoginError]=useState('');
