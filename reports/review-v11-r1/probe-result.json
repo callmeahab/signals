@@ -1,0 +1,181 @@
+{
+  "findings": [],
+  "verified": [
+    {
+      "claim": "server boot",
+      "detail": "GET /readyz 200 with SIGNALS_CONFORMANCE_CLOCK=sent_at"
+    },
+    {
+      "claim": "vendored v1.1.0 fixtures, identity and gzip",
+      "detail": "212 cases matched the reference pipeline"
+    },
+    {
+      "claim": "v1.0.15 fixtures against the v1.1 reference and collector",
+      "detail": "176 cases matched the reference pipeline"
+    },
+    {
+      "claim": "crafted v1.1 caps, enums, and cross-field rules",
+      "detail": "160 cases matched the reference pipeline"
+    },
+    {
+      "claim": "sdk recordings posted",
+      "detail": "{\"accepted\": 62, \"files\": [\"conformance-stateful.ndjson collector 202 rejected []\", \"review-r1-extra.ndjson collector 202 rejected []\", \"review-r1-auth.ndjson collector 202 rejected []\", \"basic.ndjson collector 202 rejected []\", \"review-v11-r2-live.ndjson collector 202 rejected []\", \"review-v11-r2-auth.ndjson collector 202 rejected []\"]}"
+    },
+    {
+      "claim": "supplement batch matches reference and is stored",
+      "detail": "{\"collector\": {\"status\": 202, \"error\": null, \"accepted\": 14, \"rejected\": []}, \"reference\": {\"id\": \"supplement\", \"status\": 202, \"error\": null, \"accepted\": 14, \"rejected\": []}}"
+    },
+    {
+      "claim": "analytics routes 200",
+      "detail": "[200, 200, 200, 200, 200]"
+    },
+    {
+      "claim": "facts keep v1.1 metric attrs",
+      "detail": "{\"tool\": \"listed_tool\", \"is_error\": true, \"cancelled\": false, \"error_code\": -32000, \"error_kind\": \"timeout\", \"request_id\": \"req-timeout\", \"duration_ms\": 1500, \"input_bytes\": 1, \"output_bytes\": 4, \"output_chars\": 100, \"output_items\": 2, \"output_kinds\": [\"text\"], \"progress_events\": 2, \"first_progress_ms\": 25, \"input_schema_valid\": false, \"output_schema_valid\": false}"
+    },
+    {
+      "claim": "derived lands in analytics facts",
+      "detail": "2"
+    },
+    {
+      "claim": "tool_catalog stores names, annotations, schema_hash, catalog_hash",
+      "detail": "{\"tool\": \"listed_tool\", \"annotations\": [\"readOnly\"], \"schema_hash\": \"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\", \"catalog_hash\": \"1111111111111111111111111111111111111111111111111111111111111111\", \"truncated\": false}"
+    },
+    {
+      "claim": "identities.kind follows subject_kind precedence",
+      "detail": "[[\"key\", \"k_review\"], [\"key\", \"kid_api\"], [\"key\", \"kid_header\"], [\"strong\", \"demo-user\"], [\"strong\", \"user-oauth\"]]"
+    },
+    {
+      "claim": "initialize duration and error are columns",
+      "detail": "[{\"duration_ms\": 42, \"is_error\": false, \"attrs\": {\"is_error\": false, \"duration_ms\": 42, \"client_capabilities\": [\"sampling\"], \"server_capabilities\": [\"tools\"], \"requested_protocol_version\": \"2025-11-25\"}}, {\"duration_ms\": 80, \"is_error\": true, \"attrs\": {\"is_error\": true, \"error_kind\": \"internal\", \"duration_ms\": 80, \"client_capabilities\": [], \"server_capabilities\": [], \"requested_protocol_version\": \"2025-11-25\"}}]"
+    },
+    {
+      "claim": "handshake success_rate",
+      "detail": "{\"path\": \"handshake.success_rate\", \"value\": 85.7}"
+    },
+    {
+      "claim": "handshake p95",
+      "detail": "{\"path\": \"handshake.p95\", \"value\": 80}"
+    },
+    {
+      "claim": "timeout count",
+      "detail": "{\"path\": \"timeouts.count\", \"value\": 1}"
+    },
+    {
+      "claim": "hallucinated count on a complete catalogue",
+      "detail": "{\"path\": \"hallucinated_tools.count\", \"value\": 21}"
+    },
+    {
+      "claim": "context tokens",
+      "detail": "{\"path\": \"tiles.context_tokens.value\", \"value\": 197}"
+    },
+    {
+      "claim": "sampling requests",
+      "detail": "{\"path\": \"sampling.requests\", \"value\": 2}"
+    },
+    {
+      "claim": "elicitation requests",
+      "detail": "{\"path\": \"elicitation.requests\", \"value\": 1}"
+    },
+    {
+      "claim": "tasks created",
+      "detail": "{\"path\": \"tasks.created\", \"value\": 2}"
+    },
+    {
+      "claim": "discovery requests",
+      "detail": "{\"path\": \"discovery.requests\", \"value\": 12}"
+    },
+    {
+      "claim": "discovery p95",
+      "detail": "{\"path\": \"discovery.p95\", \"value\": 7}"
+    },
+    {
+      "claim": "long calls",
+      "detail": "{\"path\": \"progress.long_calls\", \"value\": 1}"
+    },
+    {
+      "claim": "auth failure reasons",
+      "detail": "[\"expired\", \"invalid\", \"missing\", \"other\", \"scope\"]"
+    },
+    {
+      "claim": "schema failure counts",
+      "detail": "{\"input\": 1, \"output\": 1}"
+    },
+    {
+      "claim": "error split is populated",
+      "detail": "{\"cancelled\": 0, \"protocol\": 0, \"timeout\": 1, \"tool\": 0, \"unknown\": 0}"
+    },
+    {
+      "claim": "ghost_tool is hallucinated against the complete catalogue",
+      "detail": "[\"bad_out\", \"badout\", \"bare\", \"echo\", \"fail\", \"ghost_tool\", \"goodout\", \"mixed\", \"no-such-tool\", \"progress\", \"sample\", \"slow\", \"structonly\"]"
+    },
+    {
+      "claim": "error_code above 2^53 keeps its decimal digits",
+      "detail": "9007199254740993"
+    },
+    {
+      "claim": "tokens come from output_chars",
+      "detail": "{\"verdict\": {\"status\": 202, \"error\": null, \"accepted\": 1, \"rejected\": []}, \"total_tokens_est\": 25, \"by_tool\": [{\"calls\": 1, \"pct\": 100.0, \"tokens\": 25, \"tool\": \"chars_only\"}]}"
+    },
+    {
+      "claim": "a complete tools.listed marks only uncalled listed tools dead",
+      "detail": "{\"dead\": [\"beta\"], \"snap\": {\"tools\": [\"alpha\", \"beta\"], \"truncated\": false, \"advertised\": 2, \"hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"status\": 200}"
+    },
+    {
+      "claim": "failed tools.listed does not clear a known catalogue",
+      "detail": "{\"dead\": [\"beta\"], \"snap\": {\"tools\": [\"alpha\", \"beta\"], \"truncated\": false, \"advertised\": 2, \"hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"status\": 200}"
+    },
+    {
+      "claim": "list_changed replaces the catalogue",
+      "detail": "{\"dead\": [\"delta\"], \"snap\": {\"tools\": [\"alpha\", \"delta\"], \"truncated\": false, \"advertised\": 2, \"hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"}, \"status\": 200}"
+    },
+    {
+      "claim": "truncated tools.listed with catalog_hash does not mark unlisted tools dead",
+      "detail": "{\"dead\": [], \"snap\": {\"tools\": [\"alpha\"], \"truncated\": true, \"advertised\": 9, \"hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}, \"status\": 200}"
+    },
+    {
+      "claim": "truncated catalogue does not call unlisted tools hallucinated",
+      "detail": "{\"count\": null, \"names\": []}"
+    },
+    {
+      "claim": "delivery probe exit",
+      "detail": "{\"outbox\": [{\"attempts\": 1, \"channel\": \"smtp\", \"dedupe_key\": \"digest:2026-W41\", \"delivered\": true}, {\"attempts\": 1, \"channel\": \"webhook\", \"dedupe_key\": \"digest:2026-W41\", \"delivered\": true}, {\"attempts\": 1, \"channel\": \"smtp\", \"dedupe_key\": \"alert:39\", \"delivered\": true}, {\"attempts\": 1, \"channel\": \"webhook\", \"dedupe_key\": \"alert:39\", \"delivered\": true}, {\"attempts\": 1, \"channel\": \"smtp\", \"dedupe_key\": \"alert:40\", \"delivered\": true}, {\"attempts\": 1, \"channel\": \"webhook\", \"dedupe_key\": \"alert:40\", \"delivered\": true}, {\"attempts\": 2, \"channel\": \"smtp\", \"dedupe_key\": \"alert:41\", \"delivered\": true}, {\"attempts\": 2, \"channel\": \"webhook\", \"dedupe_key\": \"alert:41\", \"delivered\": true}], \"project_id\": \"a94e6e1e-e40a-4a9f-835e-a23979a732a1\"}"
+    },
+    {
+      "claim": "digest email and webhook were delivered",
+      "detail": "{\"mails\": 9, \"digest_mails\": 1, \"digest_hooks\": 1, \"subjects\": [\"<script>&\\\"probe \\u00b7 volume: no_data\", \"<script>&\\\"probe \\u00b7 latency: no_data\", \"<script>&\\\"probe \\u00b7 errors: no_data\", \"<script>&\\\"probe \\u00b7 destructive: no_data\", \"<script>&\\\"probe \\u00b7 burn: no_data\", \"<script>&\\\"probe \\u00b7 weekly digest 2026-W41\", \"<script>&\\\"probe \\u00b7 errors: firing\", \"<script>&\\\"probe \\u00b7 errors: ok\", \"<script>&\\\"probe \\u00b7 latency: firing\"]}"
+    },
+    {
+      "claim": "email is multipart plain and html in the mcpramen look",
+      "detail": "{\"subject\": \"<script>&\\\"probe \\u00b7 weekly digest 2026-W41\", \"html_has_brand\": true, \"krona\": true, \"escaped\": true, \"raw_script\": false, \"text_excerpt\": \"<script>&\\\"probe \\u00b7 weekly digest 2026-W41\\r\\n\\r\\n0 tool calls, compared with 0 in the previous week.\\r\\n0 new identities and 0 returning identities.\\r\\n\\r\\nTool | Calls (previous; change %) | Success % | p95 ms\\r\\n\\r\\nError kinds: {\\\"cancelled\\\":null,\\\"protocol\\\":null,\\\"timeout\\\":null,\\\"tool\\\":0,\\\"unknown\\\":null}\\r\\nDead tools: []\\r\\nNew identities: 0; returning: 0\\r\\n\", \"html_excerpt\": \"<!doctype html><html><body style=\\\"margin:0;background:#fafaf9;color:#292524;font-family:Arial,sans-serif\\\"><div style=\\\"max-width:640px;margin:32px auto;padding:28px;border:1px solid #e7e5e4;border-top:4px solid #ca8a04;background:#fff\\\"><h1 style=\\\"font-family:'Krona One',Arial,sans-serif;font-size:22px;color:#a16207\\\">mcpramen signals</h1><h2 style=\\\"font-size:18px\\\">&lt;script&gt;&amp;&quot;probe \\u00b7 weekly digest 2026-W41</h2><pre style=\\\"white-space:pre-wrap;overflow-wrap:anywhere;font-family:Arial,s\"}"
+    },
+    {
+      "claim": "webhook digest is JSON",
+      "detail": "{\"content_type\": [\"application/json\"], \"week\": \"2026-W41\", \"keys\": [\"data\", \"project\", \"project_id\", \"range\", \"type\", \"week\"]}"
+    },
+    {
+      "claim": "alert transitions deliver once each",
+      "detail": "[[\"volume\", \"no_data\"], [\"latency\", \"no_data\"], [\"errors\", \"no_data\"], [\"destructive\", \"no_data\"], [\"burn\", \"no_data\"], [\"errors\", \"firing\"], [\"errors\", \"ok\"], [\"latency\", \"firing\"]]"
+    },
+    {
+      "claim": "a refused delivery retries without crashing and does not resend the digest",
+      "detail": "{\"outbox\": [{\"attempts\": 1, \"channel\": \"smtp\", \"dedupe_key\": \"digest:2026-W41\", \"delivered\": true}, {\"attempts\": 1, \"channel\": \"webhook\", \"dedupe_key\": \"digest:2026-W41\", \"delivered\": true}, {\"attempts\": 1, \"channel\": \"smtp\", \"dedupe_key\": \"alert:39\", \"delivered\": true}, {\"attempts\": 1, \"channel\": \"webhook\", \"dedupe_key\": \"alert:39\", \"delivered\": true}, {\"attempts\": 1, \"channel\": \"smtp\", \"dedupe_key\": \"alert:40\", \"delivered\": true}, {\"attempts\": 1, \"channel\": \"webhook\", \"dedupe_key\": \"alert:40\", \"delivered\": true}, {\"attempts\": 2, \"channel\": \"smtp\", \"dedupe_key\": \"alert:41\", \"delivered\": true}, {\"attempts\": 2, \"channel\": \"webhook\", \"dedupe_key\": \"alert:41\", \"delivered\": true}], \"project_id\": \"a94e6e1e-e40a-4a9f-835e-a23979a732a1\"}"
+    },
+    {
+      "claim": "collector stayed up after delivery failures",
+      "detail": "{\"readyz\": 200, \"exit\": null}"
+    },
+    {
+      "claim": "docker-compose.yml config sets postgres shm_size 1g",
+      "detail": "{\"exit\": 0, \"stderr\": \"\", \"shm\": [\"shm_size: \\\"1073741824\\\"\"]}"
+    },
+    {
+      "claim": "deploy/compose/compose.yaml config sets postgres shm_size 1g",
+      "detail": "{\"exit\": 0, \"stderr\": \"\", \"shm\": [\"shm_size: \\\"1073741824\\\"\"]}"
+    },
+    {
+      "claim": "README documents shm_size 1g",
+      "detail": "documented"
+    }
+  ]
+}
