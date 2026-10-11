@@ -30,6 +30,8 @@ try {
       check(fonts.loaded.some(f => /IBM Plex Mono/.test(f)), `${width}/${theme}: mono loaded`);
       check(/Krona One/.test(fonts.heading) && fonts.loaded.some(f => /Krona One/.test(f)), `${width}/${theme}: Krona One loaded`);
       await page.evaluate(() => document.fonts.ready);
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(500);
       await page.screenshot({ path: `artifacts/v3/overview-${width}-${theme}.png`, fullPage: true, animations: 'disabled' });
       for (const screen of ['overview', 'adoption', 'tools', 'reliability', 'sessions', 'callers', 'cost', 'protocol', 'live', 'settings', 'setup']) {
         await page.goto(`${base}/#${screen}`);
@@ -40,15 +42,16 @@ try {
         await page.evaluate(() => document.fonts.ready);
       const charts=page.locator('.v3-chart');
       for(const chart of await charts.all()){check(await chart.locator('svg').count()===1,`${screen}: chart SVG`);check(await chart.locator('table.sr-only').count()===1,`${screen}: chart table twin`);check(await chart.getAttribute('tabindex')==='0',`${screen}: keyboard inspection`);}
-      const expected={overview:['stacked-area','donut','funnel','heatmap','ribbon','sparkline'],adoption:['stacked-area','donut','histogram','funnel','heatmap'],tools:['ribbon','sankey','histogram'],reliability:['gauge','ribbon','band'],sessions:['gantt'],cost:['treemap','donut','histogram'],protocol:['dot-grid'],live:['area','donut']};
+      const expected={overview:['stacked-area','donut','funnel','heatmap','ribbon','sparkline'],adoption:['stacked-area','donut','histogram','funnel','heatmap'],tools:['ribbon','sankey','histogram'],reliability:['gauge','ribbon','band'],sessions:['gantt'],cost:['treemap','bars','histogram'],protocol:['dot-grid'],live:['area','donut']};
+      if(await charts.count()){await charts.first().focus();await page.keyboard.press('ArrowRight');check(await page.getByRole('tooltip').count()===1,`${screen}: keyboard tooltip shown`);await page.locator('h1').click();}
       for(const kind of expected[screen]??[])check(await page.locator(`[data-chart="${kind}"]`).count()>0,`${screen}: ${kind} present`);
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/${screen}-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
         const layout = await page.evaluate(() => ({
           krona: [...document.querySelectorAll('body *')].filter(el => getComputedStyle(el).fontFamily.includes('Krona One')).every(el => getComputedStyle(el).fontWeight === '400' && getComputedStyle(el).fontSynthesis === 'none'),
           mono: [...document.querySelectorAll('.eyebrow,.status-pill')].every(el => getComputedStyle(el).fontSize === '10.5px'),
-          tables: [...document.querySelectorAll('.table-scroll')].every(el => innerWidth <= 600
-            ? [...el.querySelectorAll('tbody tr')].every(row => getComputedStyle(row).display === 'flex') && [...el.querySelectorAll('td')].every(cell => cell.scrollWidth <= cell.clientWidth + 1)
-            : el.scrollWidth <= el.clientWidth + 1 || !!el.parentElement.querySelector('.table-scroll-hint'))
+          tables: [...document.querySelectorAll('.table-scroll')].every(el => el.scrollWidth <= el.clientWidth + 1 || el.tabIndex===0 && !!el.parentElement.querySelector('.table-scroll-hint'))
         }));
         check(layout.krona, `${screen} ${width}/${theme}: Krona weight and synthesis`);
         check(layout.mono, `${screen} ${width}/${theme}: 10.5px eyebrows and pills`);
@@ -60,10 +63,14 @@ try {
       await page.getByRole('button', {name:'Python',exact:true}).click();
       check((await page.locator('.copy-block').last().innerText()).includes('signals.asgi(mcp.streamable_http_app())'), 'Python SDK snippet');
       await page.evaluate(() => document.fonts.ready);
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/setup-python-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.getByRole('button', {name:'Node.js',exact:true}).click();
       check((await page.locator('.copy-block').last().innerText()).includes('app.use(signals.express())'), 'Node SDK snippet');
       await page.evaluate(() => document.fonts.ready);
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/setup-node-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.getByRole('button', {name:'cURL',exact:true}).click();
       const curl = await page.locator('.copy-block pre').last().innerText();
@@ -73,6 +80,8 @@ try {
       check(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(batch.events[0].id), 'raw example UUIDv7');
       check(curl.includes('Bearer $SIGNALS_KEY'), 'raw example authorization');
       await page.evaluate(() => document.fonts.ready);
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/setup-curl-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.goto(`${base}/#tools`);
       await page.getByRole('button', { name: 'search_products', exact: true }).click();
@@ -80,12 +89,16 @@ try {
       await page.getByRole('heading',{name:'Error split',exact:true}).waitFor();
       check(await page.getByRole('dialog').locator('.chart-stacked-area').count()===1,'tool calls and errors chart');
       check((await page.getByRole('dialog').innerText()).includes('Self-corrected'),'tool recovery metrics');
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/tool-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.keyboard.press('Escape');
       await page.goto(`${base}/#sessions`);
       await page.locator('.table-scroll tbody .row-button').first().click();
       await page.locator('.timeline li').first().waitFor();
       check(await page.locator('.timeline li').count()===6,'active session timeline contract events');
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/session-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.keyboard.press('Escape');
       await page.goto(`${base}/#callers`);

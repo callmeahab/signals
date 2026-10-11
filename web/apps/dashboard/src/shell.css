@@ -15,3 +15,5 @@
 @media(prefers-reduced-motion:reduce){.page-heading{animation:none}.range-thumb{transition:none}}
 
 .topbar nav{position:relative}.nav-thumb{position:absolute;left:0;bottom:0;width:1px;height:2.5px;background:var(--primary);border-radius:3px;transform-origin:left center;transition:transform 420ms var(--ease-bounce);box-shadow:0 0 14px color-mix(in oklch,var(--primary) 70%,transparent);pointer-events:none}.topbar nav a[aria-current=page]:after{display:none}.signal-dot{animation-duration:2.4s}@media(prefers-reduced-motion:reduce){.nav-thumb{transition:none}}
+
+@media(max-width:560px){.topbar-inner{flex-wrap:nowrap;height:60px}.topbar nav{order:initial;flex:1;height:60px}.topbar nav a{height:60px}.brand-app,.brand-separator{display:none}.topbar-inner>.icon-button:first-of-type{margin-left:0}}

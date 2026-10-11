@@ -185,7 +185,7 @@ try {
         }, panel);
         check(seen.subtitle === expected, `${range} ${screen}: subtitle "${seen.subtitle}", expected "${expected}"`);
         const time = seen.labels.filter(l => !/^[\d.]+[KM]?$/.test(l));
-        const shape = /^\d{2}\/\d{2}/;
+        const shape = want.bucket === 'hour' ? /^\d{2}:\d{2}$/ : want.bucket === 'week' ? /^Week of \d{2}-\d{2}$/ : /^\d{2}\/\d{2}$/;
         check(time.length > 0 && time.every(l => shape.test(l)), `${range} ${screen}: time axis ${JSON.stringify(time)} does not match ${shape}`);
       }
     }
@@ -316,12 +316,8 @@ try {
         check(m.clippedText.length === 0, `${where}: clipped text ${JSON.stringify(m.clippedText.slice(0, 3))}`);
         m.tables.forEach((t, i) => {
           check(t.clipped.length === 0, `${where} table ${i}: clipped cells ${JSON.stringify(t.clipped.slice(0, 3))}`);
-          if (width <= 600) {
-            check(t.rowDisplay.every(d => d === 'flex'), `${where} table ${i}: mobile rows display ${JSON.stringify(t.rowDisplay)}, expected flex list`);
-            check(!t.headVisible, `${where} table ${i}: mobile keeps the header row visible`);
-            check(t.unlabelled.length === 0, `${where} table ${i}: mobile fields without a label ${JSON.stringify(t.unlabelled.slice(0, 3))}`);
-            check(t.labelsRendered.every(c => c && c !== 'none' && c !== '""'), `${where} table ${i}: mobile field label not rendered (${JSON.stringify(t.labelsRendered)})`);
-          } else if (t.overflows) {
+          check(t.headVisible, `${where} table ${i}: header remains visible`);
+          if (t.overflows) {
             check(t.hint, `${where} table ${i}: scrolls with no visible affordance`);
             check(t.focusable, `${where} table ${i}: scroll region is not keyboard focusable`);
           }

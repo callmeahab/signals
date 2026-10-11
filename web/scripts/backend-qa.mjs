@@ -63,7 +63,7 @@ try {
   if(screen==='reliability'){await expect(page.getByText('96%',{exact:true}).first()).toBeVisible();await expect(page.locator('.tile').filter({hasText:'Hallucinated tools'}).locator('strong')).toHaveText('1');await expect(page.locator('.tile').filter({hasText:'Hallucinated tools'})).toContainText(hallucinated);}
   if(screen==='tools'){assert.deepEqual((await page.locator('tbody button.row-button').allTextContents()).sort(),catalogued);await expect(page.locator('.dead-tool')).toHaveText([deadTool]);await expect(page.getByRole('button',{name:hallucinated,exact:true})).toHaveCount(0);}
   if(screen==='overview')await expect(page.locator('.ribrow').filter({hasText:deadTool})).toContainText('dead');
-  if(screen==='cost'){await expect(page.locator('.tile').filter({hasText:'Context tokens'}).locator('strong')).toHaveText('≈ 260');await expect(page.getByRole('row').filter({hasText:caller}).first()).toContainText('260');}
+  if(screen==='cost'){await expect(page.locator('.tile').filter({hasText:'Context tokens'}).locator('strong')).toHaveText('≈ 260');await expect(page.locator('.chart-bars table')).toContainText('260');}
   if(screen==='protocol')await expect(page.locator('.chart-dot-grid').filter({has:page.locator('table').filter({hasText:'roots'})})).toContainText('100');
   if(['overview','tools','cost'].includes(screen)){await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:`artifacts/v3-live/${screen}.png`,fullPage:true,animations:'disabled'});}
  }

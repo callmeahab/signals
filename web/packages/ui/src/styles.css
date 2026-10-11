@@ -658,3 +658,8 @@ td .mono{font-size:12.5px}
 @media(prefers-reduced-motion:reduce){.plot.on,.stroke-draw.on,.growx.on,.growy.on{animation:none!important}}
 
 .tile,.card{contain:layout style}.card{will-change:transform}.tile__value{height:1.15em}.chartbox>div:first-child{contain:layout style}
+
+.analytics-settings .alert-rule{grid-template-columns:minmax(0,1fr) 76px 76px 58px;gap:10px}.analytics-settings .alert-rule input[type=number]{width:100%;min-width:0}.settings-title{font:600 14px var(--sans);margin:0 0 12px}.analytics-save{margin-top:20px}.analytics-settings .alert-rule label:first-child{font-size:13px}.analytics-settings h3{font-family:var(--sans)}
+@media(max-width:600px){.table-scroll{overflow:auto;max-width:100%}.table-scroll table{display:table;min-width:100%;width:max-content}.table-scroll thead{display:table-header-group;position:static;width:auto;height:auto;clip-path:none;overflow:visible}.table-scroll tbody{display:table-row-group}.table-scroll tbody tr{display:table-row}.table-scroll th,.table-scroll td{display:table-cell;white-space:nowrap;max-width:none;min-width:0;width:auto;padding:10px 12px}.table-scroll td::before{display:none}.analytics-settings .alert-rule{grid-template-columns:1fr 1fr}.analytics-settings .alert-rule>label:first-child{grid-column:1/-1}}
+
+.card td{font-variant-numeric:tabular-nums}

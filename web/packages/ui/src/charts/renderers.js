@@ -41,13 +41,18 @@ function arcPath(cx, cy, r, a0, a1) {
   return `M${px(x0)},${px(y0)}A${r},${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${px(x1)},${px(y1)}`;
 }
 /* how often an x label fits without colliding, given the plot width */
+const axisDate = (labels, iso) => {
+  if (!iso.includes('T') || labels.length < 2) return f.day(iso);
+  const gap = Date.parse(labels[1]) - Date.parse(labels[0]);
+  return gap < 60000 ? iso.slice(11,19) : gap < 86400000 ? iso.slice(11,16) : gap >= 604800000 ? `Week of ${iso.slice(5,10)}` : f.day(iso);
+};
 const labelEvery = (n, iw, minPx = 48) => Math.max(1, Math.ceil(minPx / Math.max(1, iw / Math.max(1, n - 1))));
 
 function niceTicks(max, n = 4) {
   if (max <= 0) return [0];
   const raw = max / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
   const step = [1, 2, 2.5, 5, 10].find((m) => m * mag >= raw) * mag;
-  const out = []; for (let v = 0; v <= max + step * 0.001; v += step) out.push(v);
+  const out = []; for (let v = 0; v <= Math.ceil(max / step) * step + step * 0.001; v += step) out.push(v);
   return out;
 }
 
@@ -95,9 +100,9 @@ function stackedArea({ labels, series, h = 260, yfmt = f.compact, unit = '' }) {
         <stop offset="100%" stop-color="${l.color}" stop-opacity=".30"/></linearGradient>`).join('');
     const grid = ticks.map((t) => `<line class="gridline" x1="${pad.l}" y1="${px(y(t))}" x2="${px(pad.l + iw)}" y2="${px(y(t))}"/>
         <text class="ax" x="${pad.l - 8}" y="${px(y(t) + 3.5)}" text-anchor="end">${yfmt(t)}</text>`).join('');
-    const every = labelEvery(n, iw);
+    const every = labelEvery(n, iw, labels.length>1&&Date.parse(labels[1])-Date.parse(labels[0])>=604800000?110:48);
     const xlab = labels.map((l, i) => (i % every && i !== n - 1) ? '' :
-      `<text class="ax ax--dim" x="${px(x(i))}" y="${h - 7}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${esc(f.day(l))}</text>`).join('');
+      `<text class="ax ax--dim" x="${px(x(i))}" y="${h - 7}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${esc(axisDate(labels,l))}</text>`).join('');
     const html = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img">
       <defs>${defs}</defs>${grid}
       <g class="plot">
@@ -122,7 +127,7 @@ function stackedArea({ labels, series, h = 260, yfmt = f.compact, unit = '' }) {
         xh.style.opacity = '1'; line.setAttribute('x1', px(x(i))); line.setAttribute('x2', px(x(i)));
         let c = 0;
         layers.forEach((l, k) => { c += l.values[i]; dots[k].setAttribute('cx', px(x(i))); dots[k].setAttribute('cy', px(y(c))); });
-        tip.innerHTML = `<div class="tip__t">${esc(f.day(labels[i]))}</div>` +
+        tip.innerHTML = `<div class="tip__t">${esc(axisDate(labels,labels[i]))}</div>` +
           [...layers].reverse().map((l) => `<div class="tip__r"><span><i style="background:${l.color}"></i>${esc(l.name)}</span><b>${f.int(l.values[i])}</b></div>`).join('') +
           `<div class="tip__sum"><span>total${unit}</span><b class="tnum">${f.int(totals[i])}</b></div>`;
         tip.classList.add('on');
@@ -171,7 +176,7 @@ function bandChart({ labels, lo, mid, hi, h = 220 }) {
         <path d="${curve(P(lo))}" fill="none" stroke="var(--chart-3)" stroke-width="2" stroke-linecap="round"/>
       </g>
       <line class="axline" x1="${pad.l}" y1="${px(pad.t + ih)}" x2="${px(pad.l + iw)}" y2="${px(pad.t + ih)}"/>
-      ${labels.map((l, i) => (i % labelEvery(n, iw) && i !== n - 1) ? '' : `<text class="ax ax--dim" x="${px(x(i))}" y="${h - 7}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${esc(f.day(l))}</text>`).join('')}
+      ${labels.map((l, i) => (i % labelEvery(n, iw, labels.length>1&&Date.parse(labels[1])-Date.parse(labels[0])>=604800000?110:48) && i !== n - 1) ? '' : `<text class="ax ax--dim" x="${px(x(i))}" y="${h - 7}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${esc(axisDate(labels,l))}</text>`).join('')}
       <text class="ax" x="${px(pad.l + iw + 5)}" y="${px(y(hi[n - 1]) + 3.5)}" style="fill:var(--chart-2)">p99</text>
       <text class="ax" x="${px(pad.l + iw + 5)}" y="${px(y(mid[n - 1]) + 3.5)}" style="fill:var(--primary-ink)">p95</text>
       <text class="ax" x="${px(pad.l + iw + 5)}" y="${px(y(lo[n - 1]) + 3.5)}" style="fill:var(--chart-3)">p50</text>
