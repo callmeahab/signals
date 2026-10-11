@@ -240,3 +240,93 @@ grep -R -n -E '\?\? ?0' web/packages/ui/src --include='*.tsx'
 No matches (grep exit 1). Viewed the regenerated 390px Sessions screenshot to verify the divided list and the `8 s` duration visually; all eleven screens also pass the automated layout assertions in both themes.
 
 During implementation, lint caught imports placed before a client directive and a browser-only `window` reference in the QA script; moved the directive back to the first line and used `globalThis`. Final checks above are green. No r1 findings remain open; the original report's backend-integration notes remain applicable.
+
+
+## Fix pass r2
+
+Fixed the blocker and both should-fixes in `reviews/dash-v2-r2.md`. The contract remains unchanged: analytics bucket metadata is response-only. This supersedes the r1 report's statement that analytics requests derive and send a bucket.
+
+Changes by file:
+
+- `web/apps/dashboard/src/client.ts`: removed the injected analytics `bucket` parameter; analytics retains the requested range, including 90d. Legacy reads clamp 90d to 30d, and legacy time-series requests use only 1h/1d buckets. The same legacy range bound applies to caller history, overview, tools and callers.
+- `web/apps/dashboard/src/demo-analytics.ts`: attention rows sort by status (error, warn, dead, ok), then descending calls within each band. Existing server-selected demo buckets and response-driven screen labels remain intact.
+- `web/scripts/analytics-shapes.mjs`: independent, compact JSON-shape descriptions for all eight analytics route responses and session timelines; validates nested required/optional keys, arrays, maps, nullability, primitive types and integer counts, rejecting unexpected keys. Previously documented optional frontend additions are explicitly listed, and the incomplete prose-only alerts/digest/timeline envelopes remain identified as UI expectations rather than a changed backend contract.
+- `web/scripts/spec-qa.mjs`: validates serialized demo responses against those shapes for all four ranges and every demo session timeline; negative fixtures prove missing keys, extra keys and wrong types are rejected.
+- `web/scripts/test.mjs`: includes both review probes in the standard test command.
+- `web/test/review-r2/probe.mjs`: retained all original checks and added legacy range validation; restored fetch/location after the request spy so server readiness and later tests use the real fetch implementation. Used explicit globalThis references to satisfy the existing lint configuration.
+- `web/artifacts/v2/overview-1440-{light,dark}.png`: regenerated and committed the two changed screenshots showing descending attention-call counts; all other screenshots stayed unchanged.
+
+Verification commands ran from `web/` with Bun on PATH:
+
+`BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run check` — exit 0.
+
+```text
+$ bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+```
+
+`BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run build` — exit 0.
+
+```text
+dist/assets/index-D1xdhruj.js                                     300.99 kB │ gzip: 92.28 kB
+
+✓ built in 430ms
+```
+
+`PLAYWRIGHT_CHANNEL=chromium BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run test` — exit 0.
+
+```text
+$ bun scripts/test.mjs
+Snippet UUID QA passed: randomUUID deleted, UUIDv7 timestamp/version/variant, missing and throwing crypto fallbacks.
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+Demo contract shapes passed: 8 analytics routes × 4 ranges, all session timelines, missing/extra keys and type-drift guards.
+Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.
+review-r1 probe passed
+review-r2 probe passed
+
+  VITE v8.3.2  ready in 94 ms
+
+  ➜  Local:   http://127.0.0.1:23330/
+Visual QA passed: 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+```
+
+`PLAYWRIGHT_CHANNEL=chromium BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run test:next` — exit 0.
+
+```text
+
+▲ Next.js 16.3.8
+- Local:         http://127.0.0.1:23331
+- Network:       http://127.0.0.1:23331
+✓ Ready in 69ms
+✓ Running next.config.mjs took 7ms
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.
+```
+
+After committing the screenshot changes, ran:
+
+```sh
+PLAYWRIGHT_CHANNEL=chromium BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run test
+git status --porcelain
+```
+
+The full rerun passed, including both probes and shape checks:
+
+```text
+$ bun scripts/test.mjs
+Snippet UUID QA passed: randomUUID deleted, UUIDv7 timestamp/version/variant, missing and throwing crypto fallbacks.
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+Demo contract shapes passed: 8 analytics routes × 4 ranges, all session timelines, missing/extra keys and type-drift guards.
+Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.
+review-r1 probe passed
+review-r2 probe passed
+
+  VITE v8.3.2  ready in 100 ms
+
+  ➜  Local:   http://127.0.0.1:23330/
+Visual QA passed: 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+REPEAT_EXIT:0
+```
+
+`git status --porcelain` produced no output after that run. `git diff --check` also produced no output. Earlier in this pass, lint flagged undeclared runtime globals in the new checks and imported review probe; explicit globalThis references resolved them before the final successful checks.
+
+No round-two findings remain open. The original backend integration notes remain applicable; legacy 90-day requests intentionally fall back to the collector's supported 30-day maximum, while analytics continues to support 90 days.
