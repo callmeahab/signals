@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT received_at_watermark FROM rollup_cursor WHERE name='analytics'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "received_at_watermark",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "rollup_cursor",
+            "name": "received_at_watermark"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6cd9e69b59d20ec5568c1842411037f57f59aba306099aa273d06c03a5b28e73"
+}

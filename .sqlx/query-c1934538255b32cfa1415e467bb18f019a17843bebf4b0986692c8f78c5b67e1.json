@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE projects SET analytics_revision=analytics_revision+1,analytics_settings=analytics_settings || $2::jsonb || jsonb_build_object('slo_classes',coalesce(analytics_settings->'slo_classes','{}'::jsonb)||coalesce($2::jsonb->'slo_classes','{}'::jsonb),'slo_targets',coalesce(analytics_settings->'slo_targets','{}'::jsonb)||coalesce($2::jsonb->'slo_targets','{}'::jsonb),'digest',coalesce(analytics_settings->'digest','{}'::jsonb)||coalesce($2::jsonb->'digest','{}'::jsonb)) WHERE id=$1 RETURNING analytics_settings-'probe_key' AS settings",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "settings",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c1934538255b32cfa1415e467bb18f019a17843bebf4b0986692c8f78c5b67e1"
+}

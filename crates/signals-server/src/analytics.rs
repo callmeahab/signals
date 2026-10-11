@@ -153,7 +153,7 @@ pub async fn read(
         app.store.analytics_alerts(project).await?
     } else {
         let data = app.store.analytics_data(project, w.to).await?;
-        match name.as_str() {
+        let mut value = match name.as_str() {
             "overview" => data.overview(w, &f),
             "adoption" => data.adoption(w, &f),
             "tools" => data.tools(w, &data.selected(w, &f)),
@@ -164,9 +164,45 @@ pub async fn read(
             }
             "cost" => data.cost(&data.selected(w, &f)),
             "protocol" => data.protocol(&data.selected(w, &f)),
-            "digest" => data.digest(w, &f),
+            "digest" => {
+                tracing::info!(%project,from=%w.from,to=%w.to,"weekly digest computed; delivery is log-only");
+                data.digest(w, &f)
+            }
             _ => unreachable!(),
+        };
+        if !w.exact()
+            && f.client.is_none()
+            && f.tool.is_none()
+            && f.caller.is_none()
+            && f.transport.is_none()
+            && matches!(name.as_str(), "overview" | "tools" | "digest")
+        {
+            let hist = app.store.analytics_histograms(project, w, &data).await?;
+            if name == "overview" {
+                if let Some(latency) = hist.get("") {
+                    value["tiles"]["latency"] = latency.clone();
+                }
+                let previous = app
+                    .store
+                    .analytics_histograms(project, w.previous(), &data)
+                    .await?;
+                value["tiles"]["latency"]["prev_p95"] = previous
+                    .get("")
+                    .map(|v| v["p95"].clone())
+                    .unwrap_or(Value::Null);
+            } else if let Some(tools) = value["tools"].as_array_mut() {
+                for tool in tools {
+                    if let Some(latency) = tool["tool"].as_str().and_then(|t| hist.get(t)) {
+                        if name == "tools" {
+                            tool["latency"] = latency.clone();
+                        } else {
+                            tool["p95"] = latency["p95"].clone();
+                        }
+                    }
+                }
+            }
         }
+        value
     };
     result["range"] = w.json();
     result["generated_at"] = json!(now);
@@ -318,13 +354,17 @@ pub async fn update_rules(
     auth::read(&app, &headers, project, true).await?;
     let rules = value.get("rules").unwrap_or(&value);
     validate_rules(rules)?;
-    checked_query!("UPDATE projects SET analytics_settings=jsonb_set(analytics_settings,'{alerts}',$2) WHERE id=$1",project,rules).execute(&app.store.pool).await?;
+    checked_query!("UPDATE projects SET analytics_revision=analytics_revision+1,analytics_settings=jsonb_set(analytics_settings,'{alerts}',$2) WHERE id=$1",project,rules).execute(&app.store.pool).await?;
     Ok(Json(json!({"rules":rules})))
 }
-pub async fn save_settings(app: &App, project: Uuid, input: Value) -> crate::Result<Value> {
+pub async fn save_settings(
+    connection: &mut sqlx::PgConnection,
+    project: Uuid,
+    input: Value,
+) -> crate::Result<Value> {
     validate_settings(&input)?;
     // Merge nested maps in SQL under the row lock, avoiding lost updates between owners.
-    let result:Value=checked_query_scalar!("UPDATE projects SET analytics_settings=analytics_settings || $2::jsonb || jsonb_build_object('slo_classes',coalesce(analytics_settings->'slo_classes','{}'::jsonb)||coalesce($2::jsonb->'slo_classes','{}'::jsonb),'slo_targets',coalesce(analytics_settings->'slo_targets','{}'::jsonb)||coalesce($2::jsonb->'slo_targets','{}'::jsonb),'digest',coalesce(analytics_settings->'digest','{}'::jsonb)||coalesce($2::jsonb->'digest','{}'::jsonb)) WHERE id=$1 RETURNING analytics_settings-'probe_key' AS settings",project,input).fetch_one(&app.store.pool).await?;
+    let result:Value=checked_query_scalar!("UPDATE projects SET analytics_revision=analytics_revision+1,analytics_settings=analytics_settings || $2::jsonb || jsonb_build_object('slo_classes',coalesce(analytics_settings->'slo_classes','{}'::jsonb)||coalesce($2::jsonb->'slo_classes','{}'::jsonb),'slo_targets',coalesce(analytics_settings->'slo_targets','{}'::jsonb)||coalesce($2::jsonb->'slo_targets','{}'::jsonb),'digest',coalesce(analytics_settings->'digest','{}'::jsonb)||coalesce($2::jsonb->'digest','{}'::jsonb)) WHERE id=$1 RETURNING analytics_settings-'probe_key' AS settings",project,input).fetch_one(connection).await?;
     Ok(result)
 }
 #[cfg(test)]

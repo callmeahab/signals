@@ -124,3 +124,40 @@ pub async fn run(store: &Store) -> Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        extract::Json,
+        http::{HeaderMap, StatusCode},
+        response::{IntoResponse, Response},
+        routing::post,
+        Router,
+    };
+    async fn mock(headers: HeaderMap, Json(body): Json<Value>) -> Response {
+        assert_eq!(headers["authorization"], "Bearer probe-test-key");
+        match body["method"].as_str().unwrap(){
+            "initialize"=>([("mcp-session-id","probe-session")],Json(json!({"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-03-26","capabilities":{"tools":{}}}}))).into_response(),
+            "notifications/initialized"=>{assert_eq!(headers["mcp-session-id"],"probe-session");StatusCode::ACCEPTED.into_response()},
+            "tools/list"=>{assert_eq!(headers["mcp-session-id"],"probe-session");assert_eq!(headers["mcp-protocol-version"],"2025-03-26");let result=if body["params"]["cursor"]=="next"{json!({"tools":[{"name":"c"}]})}else{json!({"tools":[{"name":"a"},{"name":"b"}],"nextCursor":"next"})};([( "content-type","text/event-stream")],format!("event: message\ndata: {}\n\n",json!({"jsonrpc":"2.0","id":2,"result":result}))).into_response()},
+            _=>StatusCode::BAD_REQUEST.into_response()
+        }
+    }
+    #[tokio::test]
+    async fn streamable_http_preserves_session_and_paginates_sse() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            axum::serve(
+                listener,
+                Router::new().route("/", post(mock).delete(|| async { StatusCode::NO_CONTENT })),
+            )
+            .await
+            .unwrap();
+        });
+        let result = probe(&Client::new(), &url, "probe-test-key").await;
+        server.abort();
+        assert_eq!(result.unwrap(), 3);
+    }
+}

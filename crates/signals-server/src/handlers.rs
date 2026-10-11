@@ -601,8 +601,10 @@ pub async fn update_project(
         return Err(Error::bad("Invalid project settings"));
     }
     crate::analytics::validate_settings(&input)?;
-    let result:Project=checked_query_as!("UPDATE projects SET name=coalesce($2,name),retention_days=coalesce($3,retention_days),rate_events_per_min=coalesce($4,rate_events_per_min),rate_bytes_per_min=coalesce($5,rate_bytes_per_min) WHERE id=$1 RETURNING id,tenant_id,slug,name,retention_days,rate_events_per_min,rate_bytes_per_min",p,name.as_ref().and_then(Value::as_str),retention.as_ref().and_then(Value::as_i64).map(|n|n as i32),rate.as_ref().and_then(Value::as_i64).map(|n|n as i32),bytes.as_ref().and_then(Value::as_i64)).fetch_one(&app.store.pool).await?;
-    let settings = crate::analytics::save_settings(&app, p, input).await?;
+    let mut tx = app.store.pool.begin().await?;
+    let result:Project=checked_query_as!("UPDATE projects SET name=coalesce($2,name),retention_days=coalesce($3,retention_days),rate_events_per_min=coalesce($4,rate_events_per_min),rate_bytes_per_min=coalesce($5,rate_bytes_per_min) WHERE id=$1 RETURNING id,tenant_id,slug,name,retention_days,rate_events_per_min,rate_bytes_per_min",p,name.as_ref().and_then(Value::as_str),retention.as_ref().and_then(Value::as_i64).map(|n|n as i32),rate.as_ref().and_then(Value::as_i64).map(|n|n as i32),bytes.as_ref().and_then(Value::as_i64)).fetch_one(&mut *tx).await?;
+    let settings = crate::analytics::save_settings(&mut tx, p, input).await?;
+    tx.commit().await?;
     let mut result = serde_json::to_value(result).map_err(Error::internal)?;
     result
         .as_object_mut()

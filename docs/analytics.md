@@ -1,0 +1,104 @@
+# Analytics read API v2
+
+The `/v1/projects/{project}/analytics/` endpoints share project-scoped read-key and
+session membership checks with the existing dashboard. Owner sessions (with origin
+checking) may PATCH project settings and PUT `/v1/projects/{project}/alerts`.
+The OpenAPI document at `/v1/openapi.json` describes the routes and response models.
+
+Requests accept `range=24h|7d|30d|90d`, defaulting to seven days, or both RFC 3339
+`from` and `to`. Windows are half-open, in UTC, and limited to 400 days. `range`
+cannot be combined with explicit timestamps. The immediately preceding window has
+the same duration. Optional `client`, `tool`, `caller`, and `transport` filters are
+exact matches; unknown query keys and malformed ranges return `invalid_filter`.
+Digest additionally accepts an ISO week (`week=2026-W41`). No matching events is a
+valid response. Missing measurements, denominators, and future protocol fields
+are null; a measured count of zero is zero.
+
+## Definitions
+
+- Identity precedence: OAuth subject (also a subject without `subject_kind`), then
+  caller key, then hashed network address. Kind is part of identity uniqueness;
+  equal strings in different kinds do not merge. Raw IPs never become identifiers.
+  v1.0's closed caller schema is unchanged; the precedence calculation also handles
+  `subject_kind` in stored data for a future vendored schema.
+- Calls count only `tool.called`. Success excludes calls with `is_error=true`.
+  Session depth counts tool calls; existing dashboard request counts retain their
+  original meaning. Session first/last tool and error state come from ordered events.
+- A retry is the next occurrence of the same tool in the same session within 30
+  seconds of its preceding failed occurrence. The retry is self-corrected when it
+  succeeds. Other tool calls may intervene. Events sort by timestamp then UUID.
+- Paths are consecutive pairs and triples of calls in the same session. Daily
+  storage retains the top 200, attributed to the last event's UTC day, including
+  paths across midnight; the read API returns the top 20. Percentages use all
+  observed pair/triple occurrences as their denominator.
+- SLO class uses a project override, catalogue destructive/read-only annotations,
+  then the documented `get_`, `list_`, `search_`, `find_`, `read_`, `fetch_`,
+  `describe_`, `lookup_` prefixes. Default success targets are 99.5% read and 98%
+  mutate. Burn is observed error fraction divided by the allowed error fraction.
+- Estimated tokens use output characters when present, otherwise output bytes,
+  divided by the project's positive `token_divisor` (default 4). Estimates are
+  summed before rounding to integer tokens. Missing payload measurements stay null.
+- The funnel counts new identities at each observed step. Day-seven return means
+  an event at least seven days after first seen. Daily retention counts activity
+  on the exact UTC anniversary day, excluding identities too young to observe it.
+  Weekly cohorts start on Monday; unfinished weeks are null.
+- Catalogue snapshots may be empty. The latest event-time snapshot controls the
+  advertised set, while individual tool records preserve first/last seen metadata.
+  `tools.listed` receives the normal envelope/depth/size validation with open attrs.
+  No other previously unknown event type is enabled.
+
+## Storage and freshness
+
+Migration 0004 adds identity and catalogue capture, analytics settings, extended
+sessions, hourly/daily analytics rollups, alert transitions, and probes. Identity
+and catalogue triggers execute only after successful event insertion, so replayed
+events do not inflate identity counters. Existing data is backfilled during migration
+and the first analytics worker run. Migration 0005 adds statement-level project
+revisions used to invalidate process-local read snapshots across collector processes.
+
+The minute worker uses the `analytics` rollup cursor with a transaction advisory
+lock and the existing ingest barrier. It replaces dirty hour/day aggregates rather
+than incrementing them. A late event dirties the affected session's buckets, so
+retries and paths are recomputed with neighboring events. Cursor updates and writes
+commit together. Running again without new events leaves aggregates unchanged.
+
+Hourly project and tool JSON aggregates include call/error counts, error kinds,
+cancellation/timeout counts, payload sums, five payload buckets, output characters,
+60 latency buckets, retries, corrections, and token estimates. Daily data includes
+identity kinds, acquisition, client/version and protocol/transport mixes, sessions,
+error sessions, and capabilities. Per-identity daily rows retain calls/errors/tokens.
+
+Analytics reads use project-revision-validated snapshots of retained raw events for
+filtered/session/cohort metrics. Up to 32 project snapshots are cached for at most
+60 seconds. A revision lookup detects new ingests and settings updates; this is not
+a substitute for the durable rollups. The worker warms a snapshot while rebuilding
+a dirty project. Raw-history-dependent fields currently stop at event retention;
+retained hourly/daily aggregates are not yet a full replacement for deleted raw
+history. Large cold snapshots require a database scan and additional memory.
+
+Unfiltered latency reads merge stored complete-hour histograms with raw boundary
+and dirty-hour histograms. Filtered reads build the same histogram from matching
+raw events. Windows shorter than six hours use exact nearest-rank percentiles.
+The 60 log-spaced bucket lower bounds cover 1–600,000 milliseconds with adjacent
+ratio about 1.253. Within that domain the rounding/bucket error is below 26%; values
+outside it clamp to the endpoints. Empty histograms return null. Responses include
+`method: histogram` or `method: exact`. Payload boundaries are 1024, 4096, 16384,
+and 65536 bytes, with boundaries included in the larger bucket.
+
+## Alerts, digest, and probing
+
+The worker evaluates five configurable rules each minute: current-hour volume
+against the preceding seven-day hourly average, current-hour p95 against the
+preceding 24 hours, errors in the trailing 15 minutes, destructive calls by clients
+absent from the baseline, and error-budget burn. Only transitions are inserted into
+`alerts_log`; missing evidence yields `no_data`. Digest computes weekly comparisons
+on demand. Delivery remains compute-only; alert details record `delivery: log_only`.
+No SMTP or webhook requests are sent.
+
+Probing is disabled until both `probe_url` and `probe_key` are configured. The worker
+performs initialize, initialized notification, and paginated tools/list over
+streamable HTTP, accepting JSON or SSE responses and retaining the MCP session and
+negotiated protocol headers. It bounds response size, total runtime and pagination,
+disables redirects, and attempts session cleanup. Keys are omitted from settings
+responses and errors. Availability is the fraction of successful probes in the
+window; `healthy_tools` remains null because discovery does not execute tools.

@@ -30,7 +30,7 @@ impl Store {
             .fetch_one(&mut *barrier)
             .await?;
         barrier.commit().await?;
-        let dirty=checked_query!("SELECT DISTINCT project_id,date_trunc('hour',ts) AS hour FROM events WHERE received_at>$1 AND received_at<=$2 ORDER BY project_id,hour",watermark,cutoff).fetch_all(&mut *tx).await?;
+        let dirty=checked_query!("WITH changed AS (SELECT project_id,ts,session_id FROM events WHERE received_at>$1 AND received_at<=$2) SELECT DISTINCT e.project_id,date_trunc('hour',e.ts) AS hour FROM events e WHERE EXISTS(SELECT 1 FROM changed c WHERE c.project_id=e.project_id AND (c.session_id=e.session_id OR c.ts=e.ts)) ORDER BY project_id,hour",watermark,cutoff).fetch_all(&mut *tx).await?;
         let mut projects = BTreeMap::<Uuid, BTreeSet<DateTime<Utc>>>::new();
         for r in dirty {
             projects
@@ -42,6 +42,22 @@ impl Store {
             let data = self
                 .analytics_data(project, DateTime::<Utc>::MAX_UTC)
                 .await?;
+            let mut previous = BTreeMap::new();
+            let mut retry_ids = BTreeSet::new();
+            let mut corrected_ids = BTreeSet::new();
+            for e in data.events.iter().filter(|e| e.call()) {
+                if let (Some(session), Some(tool)) = (&e.session_id, &e.tool) {
+                    if let Some(previous) = previous.insert((session, tool), e) {
+                        let previous: &crate::analytics::Fact = previous;
+                        if previous.is_error && e.ts - previous.ts <= Duration::seconds(30) {
+                            retry_ids.insert(e.id);
+                            if !e.is_error {
+                                corrected_ids.insert(e.id);
+                            }
+                        }
+                    }
+                }
+            }
             let mut days = BTreeSet::new();
             for hour in hours {
                 days.insert(hour.date_naive());
@@ -60,7 +76,14 @@ impl Store {
                     }
                 }
                 for (tool, events) in groups {
-                    let metrics = Metrics::new(events).rollup(data.divisor());
+                    let retries = events.iter().filter(|e| retry_ids.contains(&e.id)).count();
+                    let corrected = events
+                        .iter()
+                        .filter(|e| corrected_ids.contains(&e.id))
+                        .count();
+                    let mut metrics = Metrics::new(events).rollup(data.divisor());
+                    metrics["retries"] = json!(retries);
+                    metrics["self_corrected"] = json!(corrected);
                     checked_query!("INSERT INTO analytics_hourly VALUES($1,$2,$3,$4) ON CONFLICT(project_id,hour,tool) DO UPDATE SET metrics=EXCLUDED.metrics",project,hour,tool,metrics).execute(&mut *tx).await?;
                 }
             }
