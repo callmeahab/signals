@@ -712,3 +712,180 @@ only its header; target-existence, container-list, diff, protected-tree and fina
 working-tree checks produced no output. The temporary database, all task listeners
 and `target/` are gone. All changes are committed on the original task branch;
 nothing was pushed.
+
+## Settings read
+
+Merged main before implementation with `git merge main`:
+
+```text
+Updating 71e29ca..f00e64b
+Fast-forward
+57 files changed, 1795 insertions(+), 140 deletions(-)
+```
+
+Post-merge baseline: `f00e64b`; settings-read implementation: `71cc3d4`.
+
+Changes by file:
+
+- `crates/signals-server/src/auth.rs`: one explicit safe project serializer, used
+  by the account/session payload builder (`account` in this checkout). Account
+  queries fetch settings with projects in one query, preserving tenant/deletion
+  filtering and avoiding per-project queries. Only the six documented setting
+  fields and derived `probe_key_set` are copied; the credential is never copied.
+- `crates/signals-server/src/handlers.rs`: adds session-only project GET with
+  membership enforcement; PATCH uses the same serializer and ignores the derived
+  read-only flag on document round-trips.
+- `crates/signals-server/src/analytics.rs`: returns stored settings internally to
+  that serializer so it can derive key presence for PATCH without exposing the key.
+- `crates/signals-server/src/lib.rs`: registers project GET alongside PATCH.
+- `crates/signals-server/src/openapi.rs`: documents the GET route, session-only
+  security, and safe project shape shared by GET/PATCH/account. Keeps the unchanged
+  admin provisioning response in its own base-project schema.
+- `crates/signals-server/tests/analytics.rs`: extends the ignored integration test
+  with default settings, non-default PATCH/GET/auth-me equality, credential
+  redaction/clearing, safe document round-trips, missing sessions/API-key-only
+  rejection, cross-tenant denial, missing projects, and viewer read/write checks.
+- `.sqlx/`: regenerated metadata for the two project reads and settings update.
+- `docs/analytics.md`: documents the read contract, authorization, clearing and
+  derived flag behavior.
+
+The first build caught a missing `sqlx::Row` import in the new GET handler; adding
+it fixed compilation before the validation runs below. No storage migration was
+needed.
+
+Verification environment:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH
+export CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 SQLX_OFFLINE=false
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals
+export TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals
+docker run -d --name signals-settings-read-pg --shm-size=1g \
+  -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals \
+  -p 127.0.0.1:25439:5432 postgres:18.6-bookworm
+cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i signals-settings-read-pg psql -U postgres -d signals \
+  -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+```
+
+Migrations and preparation exited 0, ending in `CREATE TABLE`. Embedded assets were
+rebuilt from merged main without editing web sources:
+
+```sh
+cd web
+export BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache
+bun install --frozen-lockfile && bun run build
+```
+
+Exit 0; final output:
+
+```text
+dist/assets/index-D1xdhruj.js  300.99 kB │ gzip: 92.28 kB
+✓ built in 209ms
+```
+
+Targeted integration validation:
+
+```sh
+cargo test --locked -p signals-server --test analytics -- --ignored --nocapture
+```
+
+Exit 0; final output:
+
+```text
+PASS settings PATCH/GET/auth-me round-trip, key redaction and clearing, session membership and viewer access
+PASS 90-day metric responses survive raw retention; argument bodies and arbitrary attributes are excluded from analytics facts
+PASS empty tool names have distinct tool and project aggregate scopes
+PASS all nine analytics routes, both SDK source shapes, identities, retries, paths, nulls, filtering, replay and rollup idempotence
+test three_day_analytics_contract_and_idempotence ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+```
+
+Final Rust and query-metadata verification commands:
+
+```sh
+cargo sqlx prepare --workspace -- --all-targets
+cargo fmt --all --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+cargo sqlx prepare --workspace --check -- --all-targets
+cargo run --locked -p signals-xtask -- --check
+cargo build --locked --bin signals
+SIGNALS_BENCH_ROWS=100000 cargo test --locked --release --workspace -- --ignored --test-threads=1
+```
+
+All exited 0; formatting produced no output. Selected final output:
+
+```text
+    Finished `dev` profile [unoptimized] target(s) in 3.95s
+query data written to .sqlx in the workspace root; please check this into version control
+    Finished `dev` profile [unoptimized] target(s) in 2.33s
+    Finished `test` profile [unoptimized] target(s) in 3.11s
+    Finished `dev` profile [unoptimized] target(s) in 3.22s
+    Finished `dev` profile [unoptimized] target(s) in 1.88s
+Official schemas parsed; runtime validation replaces generated wire types
+    Finished `dev` profile [unoptimized] target(s) in 7.77s
+    Finished `release` profile [optimized] target(s) in 2m 35s
+test three_day_analytics_contract_and_idempotence ... ok
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+test thirty_day_dashboard_measurements ... ok
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+```
+
+Workspace unit tests passed (9 core, 5 server, 7 store), and all seven ignored
+database tests passed in release mode with the existing latency threshold intact.
+
+Conformance and browser QA:
+
+```sh
+PLAYWRIGHT_CHANNEL=chromium ANALYTICS_PG_CONTAINER=signals-settings-read-pg \
+  SIGNALS_URL=http://127.0.0.1:25483 PYTHONUNBUFFERED=1 python3 - <<'PY'
+import os, subprocess, tempfile
+with tempfile.TemporaryDirectory(prefix='settings-', dir='/var/tmp') as tmp:
+    subprocess.run(['python3', 'scripts/ci-conformance.py'],
+                   env={**os.environ, 'TMPDIR': tmp}, check=True)
+PY
+```
+
+The combined command exited 1 at the existing browser QA selector, after the spec,
+transport and login-style checks passed:
+
+```text
+identity: 39/39 valid fixtures matched
+identity: 49/49 invalid fixtures matched
+gzip: 39/39 valid fixtures matched
+gzip: 49/49 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+TimeoutError: waitFor: Timeout 30000ms exceeded.
+- waiting for getByRole('heading', { name: 'Overview.', exact: true }) to be visible
+```
+
+Merged dashboard v2 uses `Overview` instead. The coordinator confirmed in message
+`msg_1c7c757a0f4f` that its author is rewriting `web/scripts/backend-qa.mjs` in the
+dash-v2 worktree, instructed this worker not to edit `web/`, and accepted separate
+Rust/database/SQLx/spec/transport verification for this task. Browser QA remains
+that worker's responsibility; no web source was changed here.
+
+The spec and transport scripts were then run separately from browser QA, reusing
+the existing harness's isolated collector/provisioning/finally-cleanup code:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals
+export ANALYTICS_PG_CONTAINER=signals-settings-read-pg SIGNALS_URL=http://127.0.0.1:25483 PYTHONUNBUFFERED=1
+python3 - <<'PY'
+from pathlib import Path
+p = Path('scripts/ci-conformance.py').resolve()
+source = p.read_text().split('# Run the independent analytics review probe')[0]
+source = '\n'.join(line for line in source.splitlines() if '"qa:backend"' not in line)
+exec(compile(source, str(p), 'exec'), {'__file__': str(p), '__name__': '__main__'})
+PY
+```
+
+Exit 0, with the same 39/39 valid and 49/49 invalid results for both identity and
+gzip, and the transport PASS line above. This runs the original spec and transport
+scripts without modifying any assertions or tracked harness files.
