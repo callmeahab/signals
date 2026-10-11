@@ -676,7 +676,7 @@ td .mono{font-size:12.5px}
 .chart-gantt,.chart-sankey{overflow:visible}
 .chart-scroll{overflow:auto;max-width:100%;scrollbar-width:auto}
 .chart-scroll>.v3-chart{min-width:640px}
-.card{content-visibility:auto;contain-intrinsic-size:auto 350px}
+.card{content-visibility:visible}
 .chart-conversion text{font-size:10px}
 
 .plot{transform-origin:left center}.panel-heading>div{min-width:0}.panel-heading h2{overflow:visible;text-overflow:clip;white-space:normal}
@@ -703,3 +703,7 @@ td .mono{font-size:12.5px}
 
 .chart-histogram>div:first-child{animation:v3-rise 520ms var(--ease-out) backwards}.chart-histogram .growy.on{animation:none}
 @media(prefers-reduced-motion:reduce){.chart-histogram>div:first-child{animation:none}}
+
+@media(max-width:560px){.ribrow>.table-container{grid-area:r}}
+
+.signals-ui>.grid>.card:not(.card--entered){animation:none}

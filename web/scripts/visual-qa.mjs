@@ -2,6 +2,20 @@ import { contrastAndClip } from './contrast-clip.mjs';
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 
+async function settleCharts(page) {
+  // Exercise the same viewport trigger as a reader, including scrollable drawers.
+  for(const chart of await page.locator('.v3-chart').all()){
+    await chart.scrollIntoViewIfNeeded();
+    await chart.locator('svg').waitFor();
+  }
+  await page.evaluate(async()=>{
+    await document.fonts.ready;
+    for(const el of document.querySelectorAll('.drawer,.table-scroll')){el.scrollTop=0;el.scrollLeft=0;}
+    globalThis.scrollTo(0,0);
+    await new Promise(resolve=>globalThis.requestAnimationFrame(()=>globalThis.requestAnimationFrame(resolve)));
+  });
+}
+
 const base = process.env.BASE_URL ?? 'http://127.0.0.1:3300';
 mkdirSync('artifacts/v3', { recursive: true });
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? 'chrome' });
@@ -31,6 +45,7 @@ try {
       check(fonts.loaded.some(f => /IBM Plex Mono/.test(f)), `${width}/${theme}: mono loaded`);
       check(/Krona One/.test(fonts.heading) && fonts.loaded.some(f => /Krona One/.test(f)), `${width}/${theme}: Krona One loaded`);
       await page.evaluate(() => document.fonts.ready);
+      await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await page.screenshot({ path: `artifacts/v3/overview-${width}-${theme}.png`, fullPage: true, animations: 'disabled' });
@@ -54,6 +69,12 @@ try {
       if(screen==='adoption'){check(await page.locator('.chart-bars').count()===2,'Adoption transport and protocol bars');check(await page.locator('.card').filter({has:page.getByRole('heading',{name:'Clients',exact:true})}).locator('table').count()===1,'Adoption client table');check(await page.locator('.chart-funnel,.chart-heatmap').count()===0,'Adoption uses conversion curve');}
       if(screen==='live')check(await page.locator('.chart-sparkline').count()===2&&await page.locator('.chart-area,.chart-donut').count()===0,'Live two sparklines and bars');
       if(screen==='protocol')check(await page.locator('.chart-dot-grid').count()===2&&await page.locator('.tile').count()===6,'Protocol two grids and six tiles');
+      const tiles={adoption:['DAU','WAU','MAU','Stickiness','New users','D7 retention'],cost:['Context tokens','Per call','Heaviest tool','Tenants','Largest payload','Billing period'],protocol:['Sessions','Client capabilities','Server capabilities','Sampling','Elicitation','Tasks']};
+      if(tiles[screen])check(JSON.stringify(await page.locator('.tile__label').allTextContents())===JSON.stringify(tiles[screen]),`${screen}: approved tile set`);
+      if(screen==='adoption')check(await page.locator('.chart-donut').getAttribute('aria-label').then(v=>v.startsWith('Identity quality.')),'Adoption identity donut');
+      if(screen==='cost')check(await page.locator('.chart-bars').count()===2&&await page.getByRole('heading',{name:'Where the context goes',exact:true}).count()===1,'Cost payload and tenant bars');
+
+      await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/${screen}-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
@@ -72,12 +93,14 @@ try {
       await page.getByRole('button', {name:'Python',exact:true}).click();
       check((await page.locator('.copy-block').last().innerText()).includes('signals.asgi(mcp.streamable_http_app())'), 'Python SDK snippet');
       await page.evaluate(() => document.fonts.ready);
+      await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/setup-python-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.getByRole('button', {name:'Node.js',exact:true}).click();
       check((await page.locator('.copy-block').last().innerText()).includes('app.use(signals.express())'), 'Node SDK snippet');
       await page.evaluate(() => document.fonts.ready);
+      await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/setup-node-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
@@ -89,6 +112,7 @@ try {
       check(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(batch.events[0].id), 'raw example UUIDv7');
       check(curl.includes('Bearer $SIGNALS_KEY'), 'raw example authorization');
       await page.evaluate(() => document.fonts.ready);
+      await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/setup-curl-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
@@ -98,6 +122,7 @@ try {
       await page.getByRole('heading',{name:'Error split',exact:true}).waitFor();
       check(await page.getByRole('dialog').locator('.chart-stacked-area').count()===1,'tool calls and errors chart');
       check((await page.getByRole('dialog').innerText()).includes('Self-corrected'),'tool recovery metrics');
+      await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/tool-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
@@ -106,6 +131,7 @@ try {
       await page.locator('.table-scroll tbody .row-button').first().click();
       await page.locator('.timeline li').first().waitFor();
       check(await page.locator('.timeline li').count()===6,'active session timeline contract events');
+      await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await page.screenshot({path:`artifacts/v3/session-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
