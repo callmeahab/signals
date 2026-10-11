@@ -1,7 +1,7 @@
 # Collector analytics v2 implementation report
 
 Branch: `vuk88/analytics-v2`; base: `85a73a2`. Initial implementation commit:
-`2229759` (subsequent verification and fixes are committed on the same branch).
+`2229759`; final implementation commit: `59e22a7` (verification/report commits follow).
 No push, publication, or changes to tracked `web/`, `spec/`, or `deploy/` files.
 
 ## Changes by file
@@ -183,7 +183,7 @@ The three-day test compares serialized durable rollup/identity/path data before
 and after a second worker run; it also replays every ingested batch. The legacy
 30-day read benchmark passed its stricter 50 ms p95 requirement in release mode.
 Its generated `crates/signals-server/bench/artifacts/reads.json` reported p95 values
-from 0.86 ms (sessions) to 30.32 ms (tools), at 100,000 rows.
+from 1.96 ms (caller history) to 28.08 ms (timeseries), at 100,000 rows.
 
 The earlier debug-profile invocation of the same ignored suite failed only the
 legacy read-performance test's 50 ms threshold. Its final output was:
@@ -208,24 +208,24 @@ Final run exit 0. This adds 100,000 calls distributed over three UTC days to the
 populated its read snapshot. Final output, with the Docker build finished:
 
 ```text
-BENCH overview: 173.85 ms
-BENCH adoption: 214.16 ms
-BENCH tools: 117.68 ms
-BENCH reliability: 85.70 ms
-BENCH cost: 125.66 ms
-BENCH protocol: 40.64 ms
-BENCH digest: 150.20 ms
-BENCH alerts: 1.60 ms
-BENCH sessions/s-0-0/timeline: 3.18 ms
+BENCH overview: 205.12 ms
+BENCH adoption: 251.56 ms
+BENCH tools: 115.85 ms
+BENCH reliability: 109.46 ms
+BENCH cost: 138.81 ms
+BENCH protocol: 63.11 ms
+BENCH digest: 184.45 ms
+BENCH alerts: 2.11 ms
+BENCH sessions/s-0-0/timeline: 6.77 ms
 PASS all nine analytics routes, both SDK source shapes, identities, retries, paths, nulls, filtering, replay and rollup idempotence
 test three_day_analytics_contract_and_idempotence ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 28.23s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 34.34s
 ```
 
 An initial implementation measured overview at 406.60 ms; unnecessary calculations
 were removed. A later run overlapping the Docker release build measured 677.41 ms
-and failed its assertion; the final run above used the same final implementation
-without that build and passed. These are warmed single-request measurements, not
+and failed its assertion; an isolated rerun passed, as did the final implementation
+run above without a concurrent build. These are warmed single-request measurements, not
 cold-cache or sustained-concurrency latency guarantees.
 
 ### Wire and transport conformance
@@ -263,8 +263,8 @@ Final exit 0, using regenerated offline metadata:
 
 ```text
 Step 25/25 : CMD ["serve"]
- ---> a5934b9c6bdd
-Successfully built a5934b9c6bdd
+ ---> 8c298fa3a5e1
+Successfully built 8c298fa3a5e1
 ```
 
 ### Ownership check
@@ -342,3 +342,45 @@ PASS all nine analytics routes, both SDK source shapes, identities, retries, pat
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.20s
 ```
 
+
+## Final verification pass
+
+After the retention, sustained-alert, empty-tool and timeline-hash fixes, the
+format, strict clippy, workspace unit, schema and SQLx checks above were repeated
+and passed. Final log tails:
+
+```text
+# cargo clippy --locked --workspace --all-targets -- -D warnings
+Finished `dev` profile [unoptimized] target(s) in 3.41s
+# cargo sqlx prepare --workspace --check -- --all-targets
+Finished `dev` profile [unoptimized] target(s) in 5.86s
+# cargo test --locked --release --workspace --no-run
+Finished `release` profile [optimized] target(s) in 2m 50s
+```
+
+The final seven ignored database tests and the separate 100k analytics benchmark
+also passed; the timings in the sections above are from that final run. The final
+Docker image is `8c298fa3a5e1`. No requested implementation work remains; known
+measurement limits and design details are listed above.
+
+The final `cargo build --locked --bin signals` and
+`ANALYTICS_PG_CONTAINER=signals-analytics-v2-pg python3 scripts/analytics-conformance.py`
+rerun also exited 0: 39/39 valid and 49/49 invalid fixtures matched for both identity
+and gzip, followed by the transport PASS shown above.
+
+## Cleanup and handoff
+
+```sh
+docker stop signals-analytics-v2-pg
+docker rm -v signals-analytics-v2-pg
+rm -r /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+test ! -e /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+docker ps -a --filter name=signals-analytics-v2-pg --format '{{.Names}}'
+git diff --check
+git diff 85a73a2 --name-only -- web spec deploy
+```
+
+All exited 0. Stop/remove each printed `signals-analytics-v2-pg`; the remaining
+commands produced no output. The temporary database/container and local `target/`
+were removed, and the conformance harness terminated its server. Changes are
+committed on the task branch without pushing.
