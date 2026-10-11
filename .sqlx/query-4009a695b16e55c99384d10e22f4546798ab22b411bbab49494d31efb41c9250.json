@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM analytics_facts WHERE ts<clock_timestamp()-interval '400 days'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "4009a695b16e55c99384d10e22f4546798ab22b411bbab49494d31efb41c9250"
+}

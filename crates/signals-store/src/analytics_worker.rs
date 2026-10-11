@@ -32,6 +32,20 @@ impl Store {
         barrier.commit().await?;
         let dirty=checked_query!("WITH changed AS (SELECT project_id,ts,session_id FROM events WHERE received_at>$1 AND received_at<=$2) SELECT DISTINCT e.project_id,date_trunc('hour',e.ts) AS hour FROM events e WHERE EXISTS(SELECT 1 FROM changed c WHERE c.project_id=e.project_id AND (c.session_id=e.session_id OR c.ts=e.ts)) ORDER BY project_id,hour",watermark,cutoff).fetch_all(&mut *tx).await?;
         let mut projects = BTreeMap::<Uuid, BTreeSet<DateTime<Utc>>>::new();
+        if watermark.timestamp() == 0 {
+            for r in checked_query!(
+                "SELECT DISTINCT project_id,date_trunc('hour',ts) AS hour FROM analytics_facts"
+            )
+            .fetch_all(&mut *tx)
+            .await?
+            {
+                projects
+                    .entry(r.get("project_id"))
+                    .or_default()
+                    .insert(r.get("hour"));
+            }
+        }
+
         for r in dirty {
             projects
                 .entry(r.get("project_id"))
@@ -68,11 +82,11 @@ impl Store {
                     },
                     &Filters::default(),
                 );
-                let mut groups = BTreeMap::from([(String::new(), Vec::new())]);
+                let mut groups = BTreeMap::from([(None, Vec::new())]);
                 for e in es.iter().filter(|e| e.call()) {
-                    groups.get_mut("").unwrap().push(*e);
+                    groups.get_mut(&None).unwrap().push(*e);
                     if let Some(tool) = &e.tool {
-                        groups.entry(tool.clone()).or_default().push(*e);
+                        groups.entry(Some(tool.clone())).or_default().push(*e);
                     }
                 }
                 for (tool, events) in groups {
@@ -84,7 +98,7 @@ impl Store {
                     let mut metrics = Metrics::new(events).rollup(data.divisor());
                     metrics["retries"] = json!(retries);
                     metrics["self_corrected"] = json!(corrected);
-                    checked_query!("INSERT INTO analytics_hourly VALUES($1,$2,$3,$4) ON CONFLICT(project_id,hour,tool) DO UPDATE SET metrics=EXCLUDED.metrics",project,hour,tool,metrics).execute(&mut *tx).await?;
+                    checked_query!("INSERT INTO analytics_hourly(project_id,hour,tool,metrics,is_project) VALUES($1,$2,$3,$4,$5) ON CONFLICT(project_id,hour,tool,is_project) DO UPDATE SET metrics=EXCLUDED.metrics",project,hour,tool.as_deref().unwrap_or(""),metrics,tool.is_none()).execute(&mut *tx).await?;
                 }
             }
             for day in days {
@@ -183,7 +197,34 @@ impl Store {
             )
             .execute(&mut *tx)
             .await?;
-            for (rule, state, details) in states {
+            for (rule, mut state, mut details) in states {
+                if rule == "errors" {
+                    let configured = data.settings["alerts"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .find(|r| r["id"] == "errors")
+                        .unwrap()
+                        .clone();
+                    let prior=checked_query!("SELECT since,evaluated_at,rule FROM analytics_alert_pending WHERE project_id=$1",project).fetch_optional(&mut *tx).await?;
+                    let (since, last) = prior
+                        .as_ref()
+                        .filter(|r| r.get::<Value, _>("rule") == configured)
+                        .map(|r| {
+                            (
+                                r.get::<Option<DateTime<Utc>>, _>("since"),
+                                Some(r.get::<DateTime<Utc>, _>("evaluated_at")),
+                            )
+                        })
+                        .unwrap_or_default();
+                    let pending = sustained_breach(&state, since, last, now);
+                    if state == "firing" && pending.is_some_and(|t| now - t < Duration::minutes(15))
+                    {
+                        state = "ok".into();
+                    }
+                    details["pending_since"] = json!(pending);
+                    checked_query!("INSERT INTO analytics_alert_pending VALUES($1,$2,$3,$4) ON CONFLICT(project_id) DO UPDATE SET since=EXCLUDED.since,evaluated_at=EXCLUDED.evaluated_at,rule=EXCLUDED.rule",project,pending,now,configured).execute(&mut *tx).await?;
+                }
                 checked_query!("INSERT INTO alerts_log(project_id,rule,state,details) SELECT $1,$2,$3,$4 WHERE (SELECT state FROM alerts_log WHERE project_id=$1 AND rule=$2 ORDER BY ts DESC,id DESC LIMIT 1) IS DISTINCT FROM $3",project,rule,state,details).execute(&mut *tx).await?;
             }
             tx.commit().await?;
@@ -268,7 +309,7 @@ fn alert_states(data: &Data, now: DateTime<Utc>) -> Vec<(String, String, Value)>
                 "errors" => {
                     let es = data.selected(
                         Window {
-                            from: now - Duration::minutes(15),
+                            from: now - Duration::minutes(1),
                             to: now,
                         },
                         &f,
@@ -328,4 +369,41 @@ fn alert_states(data: &Data, now: DateTime<Utc>) -> Vec<(String, String, Value)>
             )
         })
         .collect()
+}
+
+fn sustained_breach(
+    state: &str,
+    since: Option<DateTime<Utc>>,
+    last: Option<DateTime<Utc>>,
+    now: DateTime<Utc>,
+) -> Option<DateTime<Utc>> {
+    if state != "firing" {
+        return None;
+    }
+    Some(if last.is_some_and(|t| now - t <= Duration::seconds(90)) {
+        since.unwrap_or(now)
+    } else {
+        now
+    })
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn errors_require_continuous_evidence() {
+        let start = Utc::now();
+        let since = sustained_breach("firing", None, None, start);
+        assert_eq!(since, Some(start));
+        let later = start + Duration::minutes(15);
+        assert_eq!(
+            sustained_breach("firing", since, Some(later - Duration::minutes(1)), later),
+            Some(start)
+        );
+        assert_eq!(
+            sustained_breach("firing", since, Some(start), later),
+            Some(later)
+        );
+        assert_eq!(sustained_breach("ok", since, Some(later), later), None);
+        assert_eq!(sustained_breach("no_data", since, Some(later), later), None);
+    }
 }

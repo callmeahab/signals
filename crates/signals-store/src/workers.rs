@@ -152,6 +152,25 @@ impl Store {
         checked_query!("DELETE FROM rollup_caller_daily WHERE day<current_date-400")
             .execute(&self.pool)
             .await?;
+        checked_query!(
+            "DELETE FROM analytics_facts WHERE ts<clock_timestamp()-interval '400 days'"
+        )
+        .execute(&self.pool)
+        .await?;
+        checked_query!(
+            "DELETE FROM analytics_hourly WHERE hour<clock_timestamp()-interval '400 days'"
+        )
+        .execute(&self.pool)
+        .await?;
+        checked_query!("DELETE FROM analytics_daily WHERE day<current_date-400")
+            .execute(&self.pool)
+            .await?;
+        checked_query!("DELETE FROM analytics_identity_daily WHERE day<current_date-400")
+            .execute(&self.pool)
+            .await?;
+        checked_query!("DELETE FROM analytics_paths WHERE day<current_date-400")
+            .execute(&self.pool)
+            .await?;
         checked_query!("DELETE FROM rate_windows WHERE window_start<now()-interval '2 minutes'")
             .execute(&self.pool)
             .await?;

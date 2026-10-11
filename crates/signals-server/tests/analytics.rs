@@ -104,7 +104,7 @@ async fn three_day_analytics_contract_and_idempotence() {
             events.push(event("mcp.initialize",1,json!({"requested_protocol_version":"2025-03-26","client_capabilities":["roots"],"server_capabilities":["tools"]})));
             events.push(event("tools.listed",2,json!({"count":3,"tools":[{"name":"get_item","annotations":["readOnly"],"schema_hash":"a"},{"name":"set_item","annotations":["destructive"]},{"name":"dead_tool"}],"catalog_hash":"catalog-1","future_optional":true})));
             for i in 0..6 {
-                events.push(event("tool.called",3+i,json!({"tool":if i<3{"get_item"}else{"set_item"},"duration_ms":100+i*10,"is_error":i==0,"input_bytes":100,"output_bytes":400,"output_chars":200,"output_kinds":["text"],"cancelled":false,"args":{"id":1}})));
+                events.push(event("tool.called",3+i,json!({"tool":if i<3{"get_item"}else{"set_item"},"duration_ms":100+i*10,"is_error":i==0,"input_bytes":100,"output_bytes":400,"output_chars":200,"output_kinds":["text"],"cancelled":false,"args":{"id":1},"private_note":"not-an-analytics-field"})));
             }
             events.push(event(
                 "session.ended",
@@ -257,6 +257,110 @@ async fn three_day_analytics_contract_and_idempotence() {
         .0,
         StatusCode::FORBIDDEN
     );
+    let mut retained = std::collections::BTreeMap::new();
+    for route in [
+        "overview",
+        "adoption",
+        "tools",
+        "reliability",
+        "cost",
+        "protocol",
+        "digest",
+    ] {
+        let (_, mut value) = call(
+            &app,
+            "GET",
+            &format!("{base}/{route}?range=90d"),
+            &key,
+            Value::Null,
+        )
+        .await;
+        value.as_object_mut().unwrap().remove("range");
+        value.as_object_mut().unwrap().remove("generated_at");
+        retained.insert(route, value);
+    }
+    let leaked:i64=sqlx::query_scalar("SELECT count(*) FROM analytics_facts WHERE project_id=$1 AND (attrs ? 'args' OR attrs ? 'private_note')").bind(project.id).fetch_one(&store.pool).await.unwrap();
+    assert_eq!(leaked, 0);
+    sqlx::query("DELETE FROM events WHERE project_id=$1")
+        .bind(project.id)
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    for (route, expected) in retained {
+        let (_, mut actual) = call(
+            &app,
+            "GET",
+            &format!("{base}/{route}?range=90d"),
+            &key,
+            Value::Null,
+        )
+        .await;
+        actual.as_object_mut().unwrap().remove("range");
+        actual.as_object_mut().unwrap().remove("generated_at");
+        assert_eq!(actual, expected, "{route} changed after raw retention");
+    }
+    let (_, retained_timeline) = call(
+        &app,
+        "GET",
+        &get("sessions/s-0-0/timeline"),
+        &key,
+        Value::Null,
+    )
+    .await;
+    assert_eq!(retained_timeline["events"].as_array().unwrap().len(), 10);
+    assert_eq!(retained_timeline["events"][3]["args_hash"], Value::Null);
+    println!("PASS 90-day metric responses survive raw retention; argument bodies and arbitrary attributes are excluded from analytics facts");
+    let empty_project = store
+        .project(tenant, "empty-tool", "Empty tool")
+        .await
+        .unwrap();
+    let (_, empty_key) = store
+        .create_key(
+            empty_project.id,
+            "test",
+            vec!["ingest".into(), "read".into()],
+        )
+        .await
+        .unwrap();
+    let mut empty_event = events[3].clone();
+    empty_event["id"] = json!(Uuid::now_v7());
+    empty_event["ts"] = json!(Utc::now());
+    empty_event["attrs"]["tool"] = json!("");
+    let batch = json!({"schema_version":1,"sent_at":Utc::now(),"source":{"sdk":"test","sdk_version":"1","server_name":"test","server_version":"1","instance_id":"test"},"events":[empty_event.clone()]});
+    let (status, accepted) = call(&app, "POST", "/v1/events", &empty_key, batch).await;
+    assert_eq!(status, StatusCode::ACCEPTED);
+    assert_eq!(accepted["accepted"], 1);
+    store.rollup().await.unwrap();
+    let totals:Vec<(bool,i64)>=sqlx::query_as("SELECT is_project,(metrics->>'calls')::bigint FROM analytics_hourly WHERE project_id=$1 ORDER BY is_project").bind(empty_project.id).fetch_all(&store.pool).await.unwrap();
+    assert_eq!(totals, vec![(false, 1), (true, 1)]);
+    println!("PASS empty tool names have distinct tool and project aggregate scopes");
+    empty_event["ts"] = json!(Utc::now() + Duration::milliseconds(1));
+    empty_event["attrs"]["args"] = json!({"id":2});
+    let second = json!({"schema_version":1,"sent_at":Utc::now(),"source":{"sdk":"test","sdk_version":"1","server_name":"test","server_version":"1","instance_id":"test"},"events":[empty_event]});
+    assert_eq!(
+        call(&app, "POST", "/v1/events", &empty_key, second).await.1["accepted"],
+        1
+    );
+    let (_, hashes) = call(
+        &app,
+        "GET",
+        &format!(
+            "/v1/projects/{}/analytics/sessions/s-0-0/timeline",
+            empty_project.id
+        ),
+        &empty_key,
+        Value::Null,
+    )
+    .await;
+    assert_eq!(
+        hashes["events"][0]["args_hash"],
+        hex::encode(signals_store::hash("{\"id\":1}"))
+    );
+    assert_eq!(
+        hashes["events"][1]["args_hash"],
+        hex::encode(signals_store::hash("{\"id\":2}"))
+    );
+
     if std::env::var("SIGNALS_ANALYTICS_BENCH").as_deref() == Ok("1") {
         sqlx::query("INSERT INTO events(project_id,ts,received_at,id,type,session_id,tool,duration_ms,is_error,client_name,client_version,attrs,client,caller) SELECT $1,$2+(g%250000)*interval '2 seconds',clock_timestamp(),gen_random_uuid(),'tool.called','bench-'||(g%100),'get_item',(g%6000)::int,g%97=0,CASE WHEN g%2=0 THEN 'Claude' ELSE 'Cursor' END,'1.0',jsonb_build_object('input_bytes',100,'output_bytes',400,'output_chars',200,'cancelled',false),jsonb_build_object('name',CASE WHEN g%2=0 THEN 'Claude' ELSE 'Cursor' END,'version','1.0'),jsonb_build_object('subject','bench-'||(g%100)) FROM generate_series(1,100000) g").bind(project.id).bind(from).execute(&store.pool).await.unwrap();
         store.rollup().await.unwrap();

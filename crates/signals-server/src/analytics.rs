@@ -12,6 +12,7 @@ use signals_store::{
     analytics::{Filters, Window},
     checked_query, checked_query_scalar,
 };
+use sqlx::Row;
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
@@ -179,7 +180,7 @@ pub async fn read(
         {
             let hist = app.store.analytics_histograms(project, w, &data).await?;
             if name == "overview" {
-                if let Some(latency) = hist.get("") {
+                if let Some(latency) = hist.get(&None) {
                     value["tiles"]["latency"] = latency.clone();
                 }
                 let previous = app
@@ -187,12 +188,15 @@ pub async fn read(
                     .analytics_histograms(project, w.previous(), &data)
                     .await?;
                 value["tiles"]["latency"]["prev_p95"] = previous
-                    .get("")
+                    .get(&None)
                     .map(|v| v["p95"].clone())
                     .unwrap_or(Value::Null);
             } else if let Some(tools) = value["tools"].as_array_mut() {
                 for tool in tools {
-                    if let Some(latency) = tool["tool"].as_str().and_then(|t| hist.get(t)) {
+                    if let Some(latency) = tool["tool"]
+                        .as_str()
+                        .and_then(|t| hist.get(&Some(t.to_owned())))
+                    {
                         if name == "tools" {
                             tool["latency"] = latency.clone();
                         } else {
@@ -229,6 +233,10 @@ pub async fn timeline(
     if events.is_empty() {
         return Err(Error::not_found("Session not found").into());
     }
+    let mut argument_hashes = BTreeMap::new();
+    for row in checked_query!("SELECT ts,id,attrs->'args' AS args FROM events WHERE project_id=$1 AND session_id=$2 AND attrs ? 'args'",project,&session).fetch_all(&app.store.pool).await? {
+        let args:Value=row.get("args");argument_hashes.insert((row.get::<DateTime<Utc>,_>("ts"),row.get::<Uuid,_>("id")),hex::encode(Sha256::digest(serde_json::to_vec(&args).map_err(Error::internal)?)));
+    }
     let start = events
         .iter()
         .find(|e| e.event_type == "session.started")
@@ -239,7 +247,7 @@ pub async fn timeline(
     let identity = events.iter().find_map(|e| e.identity());
     let transport = events.iter().find_map(|e| e.attrs["transport"].as_str());
     let selected = data.selected(w, &f);
-    let timeline:Vec<_>=selected.into_iter().filter(|e|e.session_id.as_ref()==Some(&session)).map(|e|{let mut v=json!({"id":e.id,"ts":e.ts,"offset_ms":(e.ts-start).num_milliseconds(),"type":e.event_type,"duration_ms":e.duration_ms,"is_error":e.is_error,"error_kind":e.attrs["error_kind"],"output_kinds":e.attrs["output_kinds"],"input_bytes":e.attrs["input_bytes"],"output_bytes":e.attrs["output_bytes"],"args_hash":e.attrs.get("args").map(|a|hex::encode(Sha256::digest(serde_json::to_vec(a).unwrap())))});for k in ["tool","method","uri","prompt"]{if let Some(value)=e.attrs.get(k){v[k]=value.clone();}}v}).collect();
+    let timeline:Vec<_>=selected.into_iter().filter(|e|e.session_id.as_ref()==Some(&session)).map(|e|{let mut v=json!({"id":e.id,"ts":e.ts,"offset_ms":(e.ts-start).num_milliseconds(),"type":e.event_type,"duration_ms":e.duration_ms,"is_error":e.is_error,"error_kind":e.attrs["error_kind"],"output_kinds":e.attrs["output_kinds"],"input_bytes":e.attrs["input_bytes"],"output_bytes":e.attrs["output_bytes"],"args_hash":argument_hashes.get(&(e.ts,e.id))});for k in ["tool","method","uri","prompt"]{if let Some(value)=e.attrs.get(k){v[k]=value.clone();}}v}).collect();
     Ok(Json(
         json!({"range":w.json(),"generated_at":now,"session":{"session_id":session,"client":client,"identity":identity.map(|(kind,key)|json!({"kind":kind,"key":key})),"transport":transport,"reason":end.and_then(|e|e.attrs.get("reason")),"duration_ms":end.map(|e|e.duration_ms.map(i64::from).unwrap_or((e.ts-start).num_milliseconds()))},"events":timeline}),
     ))

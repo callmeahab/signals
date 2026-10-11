@@ -62,23 +62,31 @@ than incrementing them. A late event dirties the affected session's buckets, so
 retries and paths are recomputed with neighboring events. Cursor updates and writes
 commit together. Running again without new events leaves aggregates unchanged.
 
-Hourly project and tool JSON aggregates include call/error counts, error kinds,
+Migration 0008 gives project totals an explicit scope flag, keeping legal empty
+tool names distinct from totals. Hourly project and tool JSON aggregates include call/error counts, error kinds,
 cancellation/timeout counts, payload sums, five payload buckets, output characters,
 60 latency buckets, retries, corrections, and token estimates. Daily data includes
 identity kinds, acquisition, client/version and protocol/transport mixes, sessions,
 error sessions, and capabilities. Per-identity daily rows retain calls/errors/tokens.
 
-Analytics reads use project-revision-validated snapshots of retained raw events for
-filtered/session/cohort metrics. Up to 32 project snapshots are cached for at most
-60 seconds. A revision lookup detects new ingests and settings updates; this is not
-a substitute for the durable rollups. The worker warms a snapshot while rebuilding
-a dirty project. Raw-history-dependent fields currently stop at event retention;
-retained hourly/daily aggregates are not yet a full replacement for deleted raw
-history. Large cold snapshots require a database scan and additional memory.
+Migration 0006 retains compact analytics facts for 400 days, independently of raw
+payload retention. Each successfully inserted event contributes only its timestamp,
+type, session/tool/client identifiers, identity metadata, and an allowlist of metric
+attributes. Arguments, arbitrary custom properties, log fields, source and raw IPs
+are excluded. This preserves exact filtered counts, funnels, cohorts, paths and
+session metadata for 90-day windows and their previous periods after raw events
+expire. Timeline argument hashes are computed from raw stored arguments while those
+arguments remain available; they become null after raw payload deletion.
 
-Unfiltered latency reads merge stored complete-hour histograms with raw boundary
+Analytics reads use project-revision-validated snapshots of these compact facts.
+Up to 32 project snapshots are cached for at most 60 seconds. A revision lookup
+detects new ingests, retention deletes and settings updates; this is not a substitute
+for durable rollups or facts. The worker warms a snapshot while rebuilding a dirty
+project. Large cold snapshots require a database scan and additional memory.
+
+Unfiltered latency reads merge stored complete-hour histograms with fact-derived boundary
 and dirty-hour histograms. Filtered reads build the same histogram from matching
-raw events. Windows shorter than six hours use exact nearest-rank percentiles.
+retained metric facts. Windows shorter than six hours use exact nearest-rank percentiles.
 The 60 log-spaced bucket lower bounds cover 1–600,000 milliseconds with adjacent
 ratio about 1.253. Within that domain the rounding/bucket error is below 26%; values
 outside it clamp to the endpoints. Empty histograms return null. Responses include
@@ -89,9 +97,11 @@ and 65536 bytes, with boundaries included in the larger bucket.
 
 The worker evaluates five configurable rules each minute: current-hour volume
 against the preceding seven-day hourly average, current-hour p95 against the
-preceding 24 hours, errors in the trailing 15 minutes, destructive calls by clients
-absent from the baseline, and error-budget burn. Only transitions are inserted into
-`alerts_log`; missing evidence yields `no_data`. Digest computes weekly comparisons
+preceding 24 hours, a one-minute error rate continuously above the threshold for
+15 minutes, destructive calls by clients absent from the baseline, and error-budget
+burn. A missing sample, a gap over 90 seconds between evaluations, disabling the
+rule, or changing its settings resets the pending error breach. Only transitions
+are inserted into `alerts_log`; missing evidence yields `no_data`. Digest computes weekly comparisons
 on demand. Delivery remains compute-only; alert details record `delivery: log_only`.
 No SMTP or webhook requests are sent.
 

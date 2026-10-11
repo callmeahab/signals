@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM analytics_identity_daily WHERE day<current_date-400",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "47151d7f96576701dce7d0b1cdef82ed6589ddfae080cbc4e770d4827d7f1710"
+}

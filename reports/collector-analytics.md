@@ -11,18 +11,25 @@ No push, publication, or changes to tracked `web/`, `spec/`, or `deploy/` files.
   identity-daily and path tables; alert transitions and probes.
 - `crates/signals-store/migrations/0005_analytics_revision.sql`: statement-level
   insert/delete revisions for cross-process read-cache invalidation.
+- `crates/signals-store/migrations/0006_analytics_facts.sql`: allowlisted event-time
+  metric facts, backfilled from existing events and retained independently of raw
+  payloads for 400 days; exact filtered/cohort history survives raw retention.
+- `crates/signals-store/migrations/0007_alert_pending.sql`: durable pending breaches
+  for the error-rate rule's fifteen-minute sustained threshold.
+- `crates/signals-store/migrations/0008_analytics_scope.sql`: separates project
+  totals from tools with legal empty names and requests a metric-fact backfill.
 - `crates/signals-core/src/lib.rs`: narrowly accepts `tools.listed` with existing
   envelope/depth/size validation and open attrs; other v1.0 acceptance is preserved.
 - `crates/signals-store/src/analytics.rs`: identity precedence, histograms and exact
   percentiles, filters, funnel/cohorts, retry/path definitions, costs, SLOs, all read
-  calculations, bounded project snapshot cache, and stored/raw histogram merging.
+  calculations, bounded project snapshot cache, and stored/fact-derived histogram merging.
 - `crates/signals-store/src/analytics_worker.rs`: incremental cursor-based rollups,
-  session-derived fields, five default alert evaluations, transition-only logging,
+  session-derived fields, five default alert evaluations with sustained error breaches, transition-only logging,
   and probe availability reads; late arrivals dirty related session buckets.
 - `crates/signals-store/src/{lib,workers}.rs`: module registration and existing worker
   integration without replacing legacy dashboard aggregates.
 - `crates/signals-server/src/analytics.rs`: all nine analytics GET routes, common
-  validation/error shape, timeline hashing, alert-rule PUT, settings validation and
+  validation/error shape, timestamp-plus-ID timeline hashing, alert-rule PUT, settings validation and
   persistence. Digest computation logs that delivery is log-only.
 - `crates/signals-server/src/handlers.rs`: owner-authenticated partial PATCH with
   atomic legacy/analytics settings updates and redacted probe key responses.
@@ -36,7 +43,8 @@ No push, publication, or changes to tracked `web/`, `spec/`, or `deploy/` files.
 - `crates/signals-server/tests/analytics.rs`: ignored three-day wire-ingest test
   using both SDK source shapes, several clients, errors/retries, every route's key
   numbers, exact short-window percentiles, retention, replay/rollup idempotence,
-  settings authorization/persistence, and optional 100k-call performance extension.
+  settings authorization/persistence, raw-retention independence, and optional
+  100k-call performance extension.
 - `.sqlx/`: regenerated checked-query metadata.
 - `docs/analytics.md`: definitions, rollups, precision, settings, workers and limits.
 - `scripts/analytics-conformance.py`: disposable-server conformance harness that
@@ -132,7 +140,7 @@ Checking signals-server v0.1.0
 Finished `dev` profile [unoptimized] target(s) in 6.04s
 ```
 
-Tests: 9 core, 5 server, and 4 store unit tests passed; 7 DB tests are ignored by the
+Tests: 9 core, 5 server, and 5 store unit tests passed; 7 DB tests are ignored by the
 ordinary workspace command and were run separately below. Relevant output:
 
 ```text
@@ -142,7 +150,8 @@ test analytics::tests::identity_precedence ... ok
 test analytics::tests::retry_and_path_boundaries ... ok
 test analytics::tests::funnel_and_cohorts ... ok
 test analytics::tests::percentile_error_bound ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+test analytics_worker::tests::errors_require_continuous_evidence ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 ```
 
 Schema-check output:
@@ -268,14 +277,13 @@ Exit 0, no output: no tracked changes in those trees.
 
 ## Limitations and design details requiring reviewer attention
 
-- Most filtered, identity, session, cohort and count calculations use cached
-  retained raw-event snapshots. Durable hourly histograms are used for clean full
-  hours, with raw boundary/dirty-hour fallback. Durable daily tables are maintained
-  but are not yet a complete substitute for deleted raw history across all routes.
-  A 90-day request against 30-day raw retention therefore does not provide a full
-  90-day reconstruction of every metric. This remains a design divergence.
+- An additional compact per-event metric projection is retained alongside the
+  requested aggregates. This supports exact arbitrary filters and session/cohort
+  history after raw payload retention, instead of attempting to reconstruct those
+  dimensions from lossy totals. Arguments and arbitrary attributes are excluded;
+  timeline argument hashes become null after their raw arguments expire.
 - The 300 ms result covers the worker-warmed synthetic dataset. Cold snapshots scan
-  retained project events, and snapshots consume memory (32 cached projects, 60 s
+  retained project metric facts, and snapshots consume memory (32 cached projects, 60 s
   maximum lifetime, plus project-revision invalidation). No cold-cache or concurrent
   load guarantee was established; the concurrent-build failure is recorded above.
 - `subject_kind` precedence is implemented and unit-tested for stored metadata, but
@@ -283,10 +291,54 @@ Exit 0, no output: no tracked changes in those trees.
   type is accepted ahead of the spec bump; optional attrs remain open.
 - Histogram error bounds apply within 1–600,000 ms; overflow/underflow clamps to the
   endpoint. Filtered histograms are reconstructed from matching retained events.
-- Alert error-rate evaluation uses the trailing 15-minute aggregate; it does not
-  require fifteen separate consecutive minute breaches. The contract does not
-  define a more detailed rule-state machine or exact JSON schema for digest/alerts.
+- The error rule now measures each trailing minute and requires a continuous
+  15-minute breach. Gaps over 90 seconds, missing samples and rule changes reset
+  pending state. Digest/alerts JSON fields follow the prose contract where it does
+  not supply a complete example schema.
 - Probe `healthy_tools` is null: initialize plus listing cannot establish whether
   individual tools execute successfully. Protocol fields the SDKs do not emit stay
   null. Delivery is intentionally compute/log-only, as requested.
+
+
+## Retention and sustained-alert follow-up
+
+Final review found and fixed a raw-retention gap before handoff. Migration 0006
+adds the metric projection described above, and migration 0007 makes the default
+error alert require sustained evidence. These additions were checked with:
+
+```sh
+cargo sqlx migrate run --source crates/signals-store/migrations
+cargo test --locked -p signals-server --test analytics -- --ignored --nocapture
+cargo sqlx prepare --workspace -- --all-targets
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+cargo test --locked --release --workspace --no-run
+```
+
+Migration/retention-test output:
+
+```text
+Applied 6/migrate analytics facts (2.821358ms)
+Applied 7/migrate alert pending (3.029661ms)
+PASS 90-day metric responses survive raw retention; argument bodies and arbitrary attributes are excluded from analytics facts
+PASS all nine analytics routes, both SDK source shapes, identities, retries, paths, nulls, filtering, replay and rollup idempotence
+test three_day_analytics_contract_and_idempotence ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.97s
+```
+
+The retention test compares all seven metric routes at `range=90d` before and
+after deleting the project's raw events, checks timeline continuity, and verifies
+that argument bodies/arbitrary properties never entered the retained facts.
+
+Additional compatibility regressions passed with the retention test: a legal empty
+tool name has separate tool/project totals, and repeated UUIDs at different event
+timestamps retain the correct distinct argument hashes. Output:
+
+```text
+Applied 8/migrate analytics scope (3.785381ms)
+PASS 90-day metric responses survive raw retention; argument bodies and arbitrary attributes are excluded from analytics facts
+PASS empty tool names have distinct tool and project aggregate scopes
+PASS all nine analytics routes, both SDK source shapes, identities, retries, paths, nulls, filtering, replay and rollup idempotence
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.20s
+```
 

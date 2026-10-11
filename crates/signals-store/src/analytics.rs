@@ -306,7 +306,7 @@ impl Store {
             }
         }
         let to = DateTime::<Utc>::MAX_UTC;
-        let events=checked_query_as!("SELECT ts,id,type AS event_type,session_id,tool,duration_ms,is_error,client_name,client_version,attrs,client,caller FROM events WHERE project_id=$1 AND ts<$2 ORDER BY ts,id",project,to).fetch_all(&self.pool).await?;
+        let events=checked_query_as!("SELECT ts,id,type AS event_type,session_id,tool,duration_ms,is_error,client_name,client_version,attrs,client,caller FROM analytics_facts WHERE project_id=$1 AND ts<$2 ORDER BY ts,id",project,to).fetch_all(&self.pool).await?;
         let settings: Value = crate::checked_query_scalar!(
             "SELECT analytics_settings FROM projects WHERE id=$1",
             project
@@ -787,18 +787,18 @@ impl Store {
         project: Uuid,
         w: Window,
         data: &Data,
-    ) -> Result<BTreeMap<String, Value>> {
+    ) -> Result<BTreeMap<Option<String>, Value>> {
         use chrono::Timelike;
         let watermark: DateTime<Utc> = crate::checked_query_scalar!(
             "SELECT received_at_watermark FROM rollup_cursor WHERE name='analytics'"
         )
         .fetch_one(&self.pool)
         .await?;
-        let rows=checked_query!("SELECT r.hour,r.tool,r.metrics->'latency_hist' AS hist FROM analytics_hourly r WHERE project_id=$1 AND hour>=$2 AND hour+interval '1 hour'<=$3 AND NOT EXISTS(SELECT 1 FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour AND e.ts<r.hour+interval '1 hour' AND e.received_at>$4)",project,w.from,w.to,watermark).fetch_all(&self.pool).await?;
-        let mut hist = BTreeMap::<String, Vec<i64>>::new();
+        let rows=checked_query!("SELECT r.hour,r.tool,r.is_project,r.metrics->'latency_hist' AS hist FROM analytics_hourly r WHERE project_id=$1 AND hour>=$2 AND hour+interval '1 hour'<=$3 AND NOT EXISTS(SELECT 1 FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour AND e.ts<r.hour+interval '1 hour' AND e.received_at>$4)",project,w.from,w.to,watermark).fetch_all(&self.pool).await?;
+        let mut hist = BTreeMap::<Option<String>, Vec<i64>>::new();
         let mut covered = BTreeSet::new();
         for row in rows {
-            let tool: String = row.get("tool");
+            let tool = (!row.get::<bool, _>("is_project")).then(|| row.get::<String, _>("tool"));
             let hour: DateTime<Utc> = row.get("hour");
             let bins: Value = row.get("hist");
             let h = hist.entry(tool.clone()).or_insert_with(|| vec![0; 60]);
@@ -815,7 +815,7 @@ impl Store {
                     .unwrap()
                     .with_nanosecond(0)
                     .unwrap();
-            for tool in std::iter::once("").chain(e.tool.as_deref()) {
+            for tool in std::iter::once(None).chain(e.tool.as_ref().map(|s| Some(s.clone()))) {
                 if !covered.contains(&(hour, tool.to_owned())) {
                     let h = hist.entry(tool.to_owned()).or_insert_with(|| vec![0; 60]);
                     if let Some(d) = e.duration_ms {

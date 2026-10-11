@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analytics_alert_pending VALUES($1,$2,$3,$4) ON CONFLICT(project_id) DO UPDATE SET since=EXCLUDED.since,evaluated_at=EXCLUDED.evaluated_at,rule=EXCLUDED.rule",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a5df11bd910f266906c3581be4de861b603fdd8a59a6f0dc82e010f2f3572d56"
+}
