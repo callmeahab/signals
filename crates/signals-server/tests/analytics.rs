@@ -36,6 +36,26 @@ async fn call(
         serde_json::from_slice(&r.into_body().collect().await.unwrap().to_bytes()).unwrap(),
     )
 }
+async fn session_call(
+    app: &axum::Router,
+    method: &str,
+    path: &str,
+    cookie: &str,
+    body: Value,
+) -> (StatusCode, Value) {
+    let request = Request::builder()
+        .method(method)
+        .uri(path)
+        .header("content-type", "application/json")
+        .header("cookie", cookie)
+        .body(Body::from(body.to_string()))
+        .unwrap();
+    let response = app.clone().oneshot(request).await.unwrap();
+    let status = response.status();
+    let body =
+        serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes()).unwrap();
+    (status, body)
+}
 #[tokio::test]
 #[ignore = "Requires isolated TEST_DATABASE_URL"]
 async fn three_day_analytics_contract_and_idempotence() {
@@ -242,6 +262,22 @@ async fn three_day_analytics_contract_and_idempotence() {
         .unwrap();
     let secret = "analytics-test-session";
     sqlx::query("INSERT INTO dashboard_sessions(secret_hash,user_id,expires_at) VALUES($1,$2,now()+interval '1 hour') ON CONFLICT(secret_hash) DO UPDATE SET user_id=EXCLUDED.user_id,expires_at=EXCLUDED.expires_at").bind(signals_store::hash(secret)).bind(owner).execute(&store.pool).await.unwrap();
+    let cookie = format!(
+        "signals_session={}",
+        auth::signed_cookie(&app_state, secret)
+    );
+    let (status, defaults) = session_call(
+        &app,
+        "GET",
+        &format!("/v1/projects/{}", project.id),
+        &cookie,
+        Value::Null,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(defaults["probe_key_set"], false);
+    assert_eq!(defaults["token_divisor"], 4);
+    assert!(defaults.get("probe_key").is_none());
     for (method, suffix, body) in [
         ("PATCH", "", json!({"slo_classes":{"get_item":"write"}})),
         ("PATCH", "", json!({"retention_days":0})),
@@ -274,7 +310,7 @@ async fn three_day_analytics_contract_and_idempotence() {
         assert_eq!(error["error"], "invalid_settings");
         assert!(!error["message"].as_str().unwrap().is_empty());
     }
-    let request=Request::builder().method("PATCH").uri(format!("/v1/projects/{}",project.id)).header("content-type","application/json").header("cookie",format!("signals_session={}",auth::signed_cookie(&app_state,secret))).body(Body::from(json!({"id":Uuid::new_v4(),"tenant_id":Uuid::new_v4(),"slug":"ignored-read-only","token_divisor":2,"slo_classes":{"get_item":"mutate"},"digest":{"enabled":true,"recipient":"owner@example.test"},"probe_key":"secret"}).to_string())).unwrap();
+    let request=Request::builder().method("PATCH").uri(format!("/v1/projects/{}",project.id)).header("content-type","application/json").header("cookie",format!("signals_session={}",auth::signed_cookie(&app_state,secret))).body(Body::from(json!({"id":Uuid::new_v4(),"tenant_id":Uuid::new_v4(),"slug":"ignored-read-only","token_divisor":2,"slo_classes":{"get_item":"mutate"},"slo_targets":{"read":99,"mutate":97},"digest":{"enabled":true,"recipient":"owner@example.test","webhook_url":"https://example.invalid/digest"},"alerts":[{"id":"volume","enabled":false,"threshold":4}],"probe_url":"https://example.invalid/mcp","probe_key":"secret"}).to_string())).unwrap();
     let response = app.clone().oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let settings: Value =
@@ -284,6 +320,113 @@ async fn three_day_analytics_contract_and_idempotence() {
     assert_eq!(settings["tenant_id"], tenant.to_string());
     assert_eq!(settings["slug"], project.slug);
     assert!(settings.get("probe_key").is_none());
+    assert_eq!(settings["probe_key_set"], true);
+    let cookie = format!(
+        "signals_session={}",
+        auth::signed_cookie(&app_state, secret)
+    );
+    let project_path = format!("/v1/projects/{}", project.id);
+    let (status, reread) = session_call(&app, "GET", &project_path, &cookie, Value::Null).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(reread, settings);
+    let (status, account) = session_call(&app, "GET", "/v1/auth/me", &cookie, Value::Null).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(account["projects"], json!([settings.clone()]));
+    assert!(!account.to_string().contains("\"probe_key\""));
+    // A document round-trip must ignore the derived flag and preserve the real key.
+    let (status, repeated) =
+        session_call(&app, "PATCH", &project_path, &cookie, settings.clone()).await;
+    assert_eq!(status, StatusCode::OK, "{repeated}");
+    assert_eq!(repeated, settings);
+    assert_eq!(
+        session_call(&app, "GET", &project_path, "", Value::Null)
+            .await
+            .0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        call(&app, "GET", &project_path, &key, Value::Null).await.0,
+        StatusCode::UNAUTHORIZED
+    );
+    let other_tenant = store
+        .tenant(&Uuid::new_v4().to_string(), "Other tenant", None)
+        .await
+        .unwrap();
+    let other = store.project(other_tenant, "other", "Other").await.unwrap();
+    assert_eq!(
+        session_call(
+            &app,
+            "GET",
+            &format!("/v1/projects/{}", other.id),
+            &cookie,
+            Value::Null
+        )
+        .await
+        .0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        session_call(
+            &app,
+            "GET",
+            &format!("/v1/projects/{}", Uuid::new_v4()),
+            &cookie,
+            Value::Null
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    sqlx::query("UPDATE users SET role='viewer' WHERE id=$1")
+        .bind(owner)
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        session_call(&app, "GET", &project_path, &cookie, Value::Null).await,
+        (StatusCode::OK, settings.clone())
+    );
+    assert_eq!(
+        session_call(
+            &app,
+            "PATCH",
+            &project_path,
+            &cookie,
+            json!({"token_divisor":3})
+        )
+        .await
+        .0,
+        StatusCode::FORBIDDEN
+    );
+    sqlx::query("UPDATE users SET role='owner' WHERE id=$1")
+        .bind(owner)
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    let (status, cleared) = session_call(
+        &app,
+        "PATCH",
+        &project_path,
+        &cookie,
+        json!({"probe_key":null,"probe_url":null}),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(cleared["probe_key_set"], false);
+    assert!(cleared.get("probe_key").is_none());
+    assert_eq!(
+        session_call(&app, "GET", &project_path, &cookie, Value::Null)
+            .await
+            .1,
+        cleared
+    );
+    assert_eq!(
+        session_call(&app, "GET", "/v1/auth/me", &cookie, Value::Null)
+            .await
+            .1["projects"],
+        json!([cleared])
+    );
+    println!("PASS settings PATCH/GET/auth-me round-trip, key redaction and clearing, session membership and viewer access");
     let (_, cost_after) = call(&app, "GET", &get("cost"), &key, Value::Null).await;
     assert_eq!(cost_after["total_tokens_est"], 3600);
     assert_eq!(

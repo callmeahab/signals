@@ -153,6 +153,16 @@ pub struct UserDocument {
     pub role: String,
 }
 #[derive(Serialize, Deserialize, ToSchema)]
+pub struct ProvisionedProject {
+    pub id: uuid::Uuid,
+    pub tenant_id: uuid::Uuid,
+    pub name: String,
+    pub slug: String,
+    pub retention_days: i32,
+    pub rate_events_per_min: i32,
+    pub rate_bytes_per_min: i64,
+}
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct ProjectDocument {
     pub id: uuid::Uuid,
     pub tenant_id: uuid::Uuid,
@@ -161,6 +171,13 @@ pub struct ProjectDocument {
     pub retention_days: i32,
     pub rate_events_per_min: i32,
     pub rate_bytes_per_min: i64,
+    pub slo_classes: serde_json::Value,
+    pub slo_targets: serde_json::Value,
+    pub token_divisor: f64,
+    pub digest: serde_json::Value,
+    pub alerts: serde_json::Value,
+    pub probe_url: Option<String>,
+    pub probe_key_set: bool,
 }
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct Account {
@@ -171,8 +188,8 @@ pub struct Account {
 #[derive(OpenApi)]
 #[openapi(info(title="Signals read and provisioning API",version="0.1.0",description="UTC times. Dashboard sessions and project-scoped read keys authorize reads. Project writes require an owner session. Admin keys provision resources. The ingest contract is served separately."),paths(
 crate::handlers::login,crate::handlers::logout,crate::handlers::me,crate::handlers::whoami,
-crate::handlers::overview,crate::handlers::timeseries,crate::handlers::tools,crate::handlers::tool_timeseries,crate::handlers::callers,crate::handlers::caller_timeseries,crate::handlers::sessions,crate::handlers::session_events,crate::handlers::events,crate::handlers::live,crate::handlers::keys,crate::handlers::create_key,crate::handlers::revoke_key,crate::handlers::update_project,crate::handlers::project_users,crate::handlers::project_create_user,crate::handlers::create_tenant,crate::handlers::create_project,crate::handlers::admin_key,crate::handlers::create_user,crate::handlers::admin_health
-),components(schemas(ErrorDocument,EventDocument,EventPage,Point,MetricPoint,Timeseries,Identity,CreatedResource,Health,Tool,Caller,Session,SessionPage,KeyDocument,MintedKey,Overview,ProjectDocument,UserDocument,Account,crate::handlers::Login,crate::handlers::Settings,crate::handlers::KeyInput,crate::handlers::TenantInput,crate::handlers::ProjectInput,crate::handlers::AdminKeyInput,crate::handlers::UserInput,crate::handlers::ProjectUserInput)),modifiers(&Security))]
+crate::handlers::overview,crate::handlers::timeseries,crate::handlers::tools,crate::handlers::tool_timeseries,crate::handlers::callers,crate::handlers::caller_timeseries,crate::handlers::sessions,crate::handlers::session_events,crate::handlers::events,crate::handlers::live,crate::handlers::keys,crate::handlers::create_key,crate::handlers::revoke_key,crate::handlers::get_project,crate::handlers::update_project,crate::handlers::project_users,crate::handlers::project_create_user,crate::handlers::create_tenant,crate::handlers::create_project,crate::handlers::admin_key,crate::handlers::create_user,crate::handlers::admin_health
+),components(schemas(ErrorDocument,EventDocument,EventPage,Point,MetricPoint,Timeseries,Identity,CreatedResource,Health,Tool,Caller,Session,SessionPage,KeyDocument,MintedKey,Overview,ProvisionedProject,ProjectDocument,UserDocument,Account,crate::handlers::Login,crate::handlers::Settings,crate::handlers::KeyInput,crate::handlers::TenantInput,crate::handlers::ProjectInput,crate::handlers::AdminKeyInput,crate::handlers::UserInput,crate::handlers::ProjectUserInput)),modifiers(&Security))]
 pub struct ReadApi;
 struct Security;
 impl utoipa::Modify for Security {
@@ -852,6 +869,28 @@ mod tests {
                 "#/components/schemas/AnalyticsSettingsError"
             );
         }
+        let project_get = &v["paths"]["/v1/projects/{project}"]["get"];
+        assert_eq!(project_get["security"], serde_json::json!([{"session":[]}]));
+        for method in ["get", "patch"] {
+            assert_eq!(
+                v["paths"]["/v1/projects/{project}"][method]["responses"]["200"]["content"]
+                    ["application/json"]["schema"]["$ref"],
+                "#/components/schemas/ProjectDocument"
+            );
+        }
+        let project = &v["components"]["schemas"]["ProjectDocument"]["properties"];
+        for field in [
+            "slo_classes",
+            "slo_targets",
+            "token_divisor",
+            "digest",
+            "alerts",
+            "probe_url",
+            "probe_key_set",
+        ] {
+            assert!(project[field].is_object());
+        }
+        assert!(project.get("probe_key").is_none());
         let funnel = &v["components"]["schemas"]["AnalyticsFunnelStep"];
         assert!(funnel["properties"]["eligible"].is_object());
         assert!(!funnel["required"]

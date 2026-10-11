@@ -156,3 +156,18 @@ PY
 
 The temporary directory is removed automatically. The CI script also runs the
 analytics probe; all findings or expected-value mismatches fail the command.
+
+## Reading project settings
+
+`GET /v1/projects/{project}` requires a dashboard session and membership in the
+project's tenant; owners and viewers may read it. API keys alone do not authorize
+this route. Missing or deleted projects return 404 and another tenant's project
+returns 403 for an authenticated session.
+
+GET, owner PATCH, and each project in `/v1/auth/me` return the same document:
+project ID, tenant ID, slug, name, retention and rate limits, plus `slo_classes`,
+`slo_targets`, `token_divisor`, `digest`, `alerts`, `probe_url` and `probe_key_set`.
+The probe credential is never returned. `probe_key_set` is false before a key is
+configured or after an owner clears it with `{"probe_key":null}`. It is a derived,
+read-only field ignored by PATCH, so round-tripping the document preserves the key.
+Authentication/login account responses use the same safe project serializer.

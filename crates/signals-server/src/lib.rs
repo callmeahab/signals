@@ -184,7 +184,7 @@ pub fn router(app: App) -> Router {
         .route("/v1/auth/me", get(me))
         .route(
             "/v1/projects/{project}",
-            axum::routing::patch(update_project),
+            get(get_project).patch(update_project),
         )
         .route(
             "/v1/projects/{project}/analytics/{name}",

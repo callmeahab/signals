@@ -398,7 +398,7 @@ pub async fn save_settings(
 ) -> crate::Result<Value> {
     validate_settings(&input)?;
     // Merge nested maps in SQL under the row lock, avoiding lost updates between owners.
-    let result:Value=checked_query_scalar!("UPDATE projects SET analytics_revision=analytics_revision+1,analytics_settings=analytics_settings || $2::jsonb || jsonb_build_object('slo_classes',coalesce(analytics_settings->'slo_classes','{}'::jsonb)||coalesce($2::jsonb->'slo_classes','{}'::jsonb),'slo_targets',coalesce(analytics_settings->'slo_targets','{}'::jsonb)||coalesce($2::jsonb->'slo_targets','{}'::jsonb),'digest',coalesce(analytics_settings->'digest','{}'::jsonb)||coalesce($2::jsonb->'digest','{}'::jsonb)) WHERE id=$1 RETURNING analytics_settings-'probe_key' AS settings",project,input).fetch_one(connection).await?;
+    let result:Value=checked_query_scalar!("UPDATE projects SET analytics_revision=analytics_revision+1,analytics_settings=analytics_settings || $2::jsonb || jsonb_build_object('slo_classes',coalesce(analytics_settings->'slo_classes','{}'::jsonb)||coalesce($2::jsonb->'slo_classes','{}'::jsonb),'slo_targets',coalesce(analytics_settings->'slo_targets','{}'::jsonb)||coalesce($2::jsonb->'slo_targets','{}'::jsonb),'digest',coalesce(analytics_settings->'digest','{}'::jsonb)||coalesce($2::jsonb->'digest','{}'::jsonb)) WHERE id=$1 RETURNING analytics_settings AS settings",project,input).fetch_one(connection).await?;
     Ok(result)
 }
 #[cfg(test)]
