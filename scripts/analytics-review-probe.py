@@ -612,7 +612,25 @@ def latency_value(calls, exact):
         bins = histogram(durations)
         point = lambda q: percentile(bins, q)
         method = "histogram"
-    return {"p50": point(0.5), "p95": point(0.95), "p99": point(0.99), "method": method}
+    return {"p50": point(0.5), "p95": point(0.95), "p99": point(0.99), "method": method, "buckets": {"edges": [600000 ** (b / 59) for b in range(60)] + [None], "counts": histogram(durations)} if durations else None}
+
+
+def latency_series_value(calls, window):
+    if not any(isinstance(e["duration_ms"], int) for e in calls):
+        return None
+    hourly = window[1] - window[0] <= timedelta(hours=48)
+    floor = lambda t: t.replace(minute=0, second=0, microsecond=0) if hourly else t.replace(hour=0, minute=0, second=0, microsecond=0)
+    grouped = defaultdict(list)
+    for event in calls:
+        grouped[floor(event["ts"])].append(event)
+    points = []
+    t = floor(window[0])
+    exact = window[1] - window[0] < timedelta(hours=6)
+    while t < window[1]:
+        value = latency_value(grouped[t], exact)
+        points.append({"t": fmt(t), **{k: value[k] for k in ("p50", "p95", "p99")}})
+        t += timedelta(hours=1) if hourly else timedelta(days=1)
+    return {"bucket": "hour" if hourly else "day", "method": "exact" if exact else "histogram", "points": points}
 
 
 def payload_hist(calls, key):
@@ -884,6 +902,8 @@ def expect_overview(all_events, window, filters, settings):
     funnel_rows, _ = funnel(events, window, first)
     latency = latency_value(calls, exact)
     latency["prev_p95"] = latency_value(prev_calls, exact)["p95"]
+    series = latency_series_value(calls, window)
+    latency["sparkline"] = [p["p95"] for p in series["points"]] if series else None
     tokens = token_total(calls, divisor_of(settings))
     return {
         "tiles": {
@@ -976,6 +996,7 @@ def expect_reliability(all_events, window, filters, settings):
         "sessions_with_errors": {"count": len(bad_sessions), "pct": rate(len(bad_sessions), len(sessions))},
         "silent_failures": {"count": silent if measured else None},
         "auth_failures": [{"reason": reason, "count": count} for reason, count in sorted(auth.items())],
+        "latency_over_time": latency_series_value(calls, window),
         "availability": None,
     }
 
@@ -1029,7 +1050,7 @@ REQUIRED = {
     "overview": ["range", "generated_at", "tiles", "calls_by_client", "funnel", "attention", "cohorts"],
     "adoption": ["range", "generated_at", "active", "clients", "protocol_versions", "transports", "retention", "funnel", "identity_quality"],
     "tools": ["range", "generated_at", "catalog", "tools", "paths"],
-    "reliability": ["range", "generated_at", "slo", "handshake", "timeouts", "cancellations", "error_codes", "hallucinated_tools", "sessions_with_errors", "silent_failures", "auth_failures", "availability"],
+    "reliability": ["range", "generated_at", "slo", "handshake", "timeouts", "cancellations", "error_codes", "hallucinated_tools", "sessions_with_errors", "silent_failures", "auth_failures", "availability", "latency_over_time"],
     "cost": ["range", "generated_at", "total_tokens_est", "per_call", "estimated", "by_tool", "by_tenant", "payload_hist", "billing_periods"],
     "protocol": ["range", "generated_at", "capabilities", "sampling", "elicitation", "tasks", "progress"],
     "digest": ["range", "generated_at", "tools", "top_error_kinds", "new", "returning", "dead_tools", "changes"],
@@ -1061,6 +1082,14 @@ def compare_route(name, body, events, settings, filters):
     require_keys(name, body)
     if name in ("alerts",) or not isinstance(body, dict) or "range" not in body:
         return
+    if name == "tools":
+        for tool in body.get("tools", []):
+            buckets = tool.get("latency", {}).get("buckets")
+            if tool["calls"] == 0:
+                if buckets is not None:
+                    finding("blocker", "latency-empty", str(tool))
+            elif not isinstance(buckets, dict) or len(buckets.get("edges", [])) != 61 or len(buckets.get("counts", [])) != 60 or buckets["edges"][-1] is not None or sum(buckets["counts"]) != tool["calls"] or any(type(n) is not int or n < 0 for n in buckets["counts"]):
+                finding("blocker", "latency-buckets", str(tool))
     window = window_of(body)
     span = window[1] - window[0]
     prev_span = window[0] - parse_ts(body["range"]["prev_from"])

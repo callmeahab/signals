@@ -242,6 +242,45 @@ async fn three_day_analytics_contract_and_idempotence() {
     assert_eq!(exact["tiles"]["latency"]["method"], "exact");
     assert_eq!(exact["tiles"]["latency"]["p50"], 120);
     assert_eq!(exact["tiles"]["latency"]["p95"], 150);
+    let (_, exact_series) = call(
+        &app,
+        "GET",
+        &exact_url.replace("/overview?", "/reliability?"),
+        &key,
+        Value::Null,
+    )
+    .await;
+    assert_eq!(exact_series["latency_over_time"]["method"], "exact");
+    assert_eq!(
+        exact["tiles"]["latency"]["sparkline"],
+        signals_store::analytics::latency_sparkline(&exact_series["latency_over_time"])
+    );
+    let (_, detailed) = call(
+        &app,
+        "GET",
+        &format!("{base}/tools?range=7d"),
+        &key,
+        Value::Null,
+    )
+    .await;
+    for tool in detailed["tools"].as_array().unwrap() {
+        if tool["calls"] == 0 {
+            assert!(tool["latency"]["buckets"].is_null());
+            continue;
+        }
+        let bins = &tool["latency"]["buckets"];
+        assert_eq!(bins["edges"].as_array().unwrap().len(), 61);
+        assert!(bins["edges"][60].is_null());
+        assert_eq!(
+            bins["counts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_i64().unwrap())
+                .sum::<i64>(),
+            tool["calls"].as_i64().unwrap()
+        );
+    }
     let (_, filtered) = call(
         &app,
         "GET",
