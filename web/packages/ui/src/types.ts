@@ -1,6 +1,7 @@
-export type Range = '24h' | '7d' | '30d';
-export type Screen = 'overview' | 'tools' | 'callers' | 'sessions' | 'live' | 'settings' | 'setup';
-export type Project = { id: string; name: string; slug: string; retention_days: number; rate_events_per_min: number; rate_bytes_per_min: number };
+import type { AnalyticsClient, AnalyticsSettings } from './analytics-types.js';
+export type Range = '24h' | '7d' | '30d' | '90d';
+export type Screen = 'overview' | 'adoption' | 'reliability' | 'cost' | 'protocol' | 'tools' | 'callers' | 'sessions' | 'live' | 'settings' | 'setup';
+export type Project = Partial<AnalyticsSettings> & { id: string; name: string; slug: string; retention_days: number; rate_events_per_min: number; rate_bytes_per_min: number };
 export type EventType = 'session.started' | 'session.ended' | 'mcp.initialize' | 'tool.called' | 'resource.read' | 'prompt.get' | 'mcp.request' | 'log' | 'error' | 'custom';
 export type ClientInfo = { name?: string; version?: string; protocol_version?: string };
 export type Source = { sdk: string; sdk_version: string; server_name: string; server_version: string; instance_id: string; hostname?: string };
@@ -16,8 +17,8 @@ export type EventAttrs = Record<string, unknown> & {
 // Read responses attach collector identity and batch source to the spec event envelope.
 export type SignalEvent = { id: string; ts: string; type: EventType; session_id?: string | null; caller_id?: string | null; client?: ClientInfo; caller?: { key_id?: string | null; subject?: string | null; ip_hash?: string | null; user_agent?: string | null }; source?: Source; attrs: EventAttrs };
 export type Tool = { tool: string; calls: number; errors: number; p50: number; p95: number; p99?: number; last_called: string; trend: number[] };
-export type Caller = { id: string; kind: string; label: string; calls: number; errors: number; sessions: number; clients: string[]; first_seen: string; last_seen: string };
-export type Session = { session_id: string; client_name: string; client?: ClientInfo; caller_label: string; started_at: string; ended_at: string | null; calls: number; errors: number; transport: string };
+export type Caller = { id: string; kind: string; label: string; calls: number; errors: number; sessions: number; clients: string[]; first_seen: string; last_seen: string; favourite_tools?:string[] };
+export type Session = { session_id: string; client_name: string; client?: ClientInfo; caller_label: string; started_at: string; ended_at: string | null; calls: number; errors: number; transport: string; reason?:string|null; duration_ms?:number|null };
 export type Point = { ts: string; requests: number; errors: number; sessions: number; callers: number; latency_p50: number; latency_p95: number; latency_p99?: number };
 export type Overview = { requests: number; tool_calls: number; errors: number; error_rate: number; sessions: number; unique_callers: number; p50: number; p95: number; p99?: number; top_tools?: Tool[]; deltas: Record<string, number | null>; clients: { name: string; count: number }[]; updated_at: string };
 export type Key = { id: string; key_id: string; label: string; scopes: string[]; created_at: string; last_used_at: string | null; revoked_at: string | null };
@@ -25,7 +26,7 @@ export type User = { id: string; email: string; role: 'owner' | 'viewer' };
 export type Page<T> = { items: T[]; next_cursor: string | null };
 export type EventFilter = { type?: EventType; tool?: string; q?: string; cursor?: string; caller?: string; since?: string; is_error?: boolean };
 
-export interface SignalsClient {
+export interface SignalsClient extends Partial<AnalyticsClient> {
   ingestUrl: string;
   toolTimeseries(project: string, tool: string, range: Range, signal?: AbortSignal): Promise<Point[]>;
   callerTimeseries(project: string, caller: string, range: Range, signal?: AbortSignal): Promise<Point[]>;
@@ -40,7 +41,7 @@ export interface SignalsClient {
   keys(project: string, signal?: AbortSignal): Promise<Key[]>;
   createKey(project: string, label: string, scopes: string[]): Promise<{ key: Key; secret: string }>;
   revokeKey(project: string, key: string): Promise<void>;
-  updateProject(project: string, settings: Pick<Project, 'name' | 'retention_days' | 'rate_events_per_min' | 'rate_bytes_per_min'>): Promise<Project>;
+  updateProject(project: string, settings: Pick<Project, 'name' | 'retention_days' | 'rate_events_per_min' | 'rate_bytes_per_min'> & Partial<AnalyticsSettings>): Promise<Project>;
   users(project: string, signal?: AbortSignal): Promise<User[]>;
   createUser(project: string, email: string, password: string, role: 'owner' | 'viewer'): Promise<User>;
 }

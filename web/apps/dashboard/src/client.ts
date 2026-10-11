@@ -6,16 +6,22 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   if (response.status === 204) return undefined as T;
   return response.json();
 }
+// Legacy reads stop at 30 days; analytics keeps the requested 90-day window.
+const legacyRange = (range: Range) => range === '90d' ? '30d' : range;
+const legacyBucket = (range: Range) => range === '24h' ? '1h' : '1d';
 const path = (project: string, route: string) => `/projects/${encodeURIComponent(project)}${route}`;
 const query = (values: Record<string, string | boolean | undefined>) => new URLSearchParams(Object.entries(values).filter(([,v]) => v !== undefined)  .map(([k,v]) => [k,String(v)]) as [string,string][]).toString();
 export const client: SignalsClient = {
+  analytics: (p, route, filters, signal) => request(path(p, `/analytics/${route}?${query({...filters})}`), {signal}),
+  timeline: (p, session, signal) => request(path(p, `/analytics/sessions/${encodeURIComponent(session)}/timeline`), {signal}),
+  saveAlerts: (p, rules) => request(path(p, '/alerts'), {method:'PUT',body:JSON.stringify({rules})}),
   ingestUrl: `${location.origin}/v1/events`,
-  toolTimeseries: (p, tool, range, signal) => request<Point[]>(path(p, `/tool-timeseries?${query({tool,range,bucket:range==='30d'?'1d':'1h'})}`), {signal}),
-  callerTimeseries: (p, caller, range, signal) => request<Point[]>(path(p, `/callers/${encodeURIComponent(caller)}/timeseries?range=${range}`), {signal}),
-  overview: (p, range, signal) => request<Overview>(path(p, `/overview?range=${range}`), { signal }),
-  timeseries: (p, range, signal) => request<Point[]>(path(p, `/timeseries?range=${range}&bucket=${range === '30d' ? '1d' : '1h'}`), { signal }),
-  tools: (p, range, signal) => request<Tool[]>(path(p, `/tools?range=${range}`), { signal }),
-  callers: (p, range, signal) => request<Caller[]>(path(p, `/callers?range=${range}`), { signal }),
+  toolTimeseries: (p, tool, range, signal) => request<Point[]>(path(p, `/tool-timeseries?${query({tool,range:legacyRange(range),bucket:legacyBucket(range)})}`), {signal}),
+  callerTimeseries: (p, caller, range, signal) => request<Point[]>(path(p, `/callers/${encodeURIComponent(caller)}/timeseries?range=${legacyRange(range)}`), {signal}),
+  overview: (p, range, signal) => request<Overview>(path(p, `/overview?range=${legacyRange(range)}`), { signal }),
+  timeseries: (p, range, signal) => request<Point[]>(path(p, `/timeseries?range=${legacyRange(range)}&bucket=${legacyBucket(range)}`), { signal }),
+  tools: (p, range, signal) => request<Tool[]>(path(p, `/tools?range=${legacyRange(range)}`), { signal }),
+  callers: (p, range, signal) => request<Caller[]>(path(p, `/callers?range=${legacyRange(range)}`), { signal }),
   sessions: (p, cursor, signal) => request<Page<Session>>(path(p, `/sessions?${query({cursor})}`), { signal }),
   sessionEvents: (p, id, signal, cursor) => request<Page<SignalEvent>>(path(p, `/sessions/${encodeURIComponent(id)}/events?${query({cursor})}`), { signal }),
   events: (p, filter: EventFilter, signal) => request<Page<SignalEvent>>(path(p, `/events?${query({...filter})}`), { signal }),

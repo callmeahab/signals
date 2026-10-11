@@ -23,13 +23,13 @@ export function ActivityChart({ points, latency = false }: { points: Point[]; la
   const chosen = active === null ? null : points[active];
   return <div className="chart-wrap">
     <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={latency ? '50th and 95th percentile latency over time in milliseconds' : 'Requests and errors over time'}>
-      <defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity=".22" /><stop offset="100%" stopColor="var(--primary)" stopOpacity="0" /></linearGradient></defs>
-      {[0, .25, .5, .75, 1].map(f => <g key={f}><line x1={left} x2={width - right} y1={y(max * f)} y2={y(max * f)} stroke="var(--border)" strokeDasharray="3 5" /><text x={left - 12} y={y(max * f) + 4} textAnchor="end" className="chart-label">{compact.format(max * f)}{latency ? 'ms' : ''}</text></g>)}
+      <defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="var(--viz-ink)" stopOpacity=".22" /><stop offset="100%" stopColor="var(--viz-ink)" stopOpacity="0" /></linearGradient></defs>
+      {[0, .25, .5, .75, 1].map(f => <g key={f}><line x1={left} x2={width - right} y1={y(max * f)} y2={y(max * f)} stroke="var(--viz-grid)" strokeDasharray="3 5" /><text x={left - 12} y={y(max * f) + 4} textAnchor="end" className="chart-label">{compact.format(max * f)}{latency ? 'ms' : ''}</text></g>)}
       <path d={area} fill={`url(#${id})`} />
-      <path d={line(key)} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d={line(key)} fill="none" stroke="var(--viz-ink)" strokeWidth="2.5" strokeLinejoin="round" />
       <path d={line(latency ? 'latency_p50' : 'errors')} fill="none" stroke={latency ? 'var(--chart-3)' : 'var(--destructive)'} strokeWidth="2" strokeLinejoin="round" />
       {[0, .25, .5, .75, 1].map(f => { const i = Math.round(f * (points.length - 1)); return points[i] && <text key={f} x={x(i)} y={height - 6} textAnchor={f === 0 ? 'start' : f === 1 ? 'end' : 'middle'} className="chart-label">{new Date(points[i].ts).toLocaleString('en', { timeZone: 'UTC', ...(points.length > 30 ? { month: 'short', day: 'numeric' } : { hour: '2-digit', minute: '2-digit', hour12: false }) })}</text>; })}
-      {chosen && active !== null && <><line x1={x(active)} x2={x(active)} y1={top} y2={height - bottom} stroke="var(--muted-foreground)" strokeDasharray="4 4" /><circle cx={x(active)} cy={y(chosen[key])} r="4" fill="var(--primary)" /></>}
+      {chosen && active !== null && <><line x1={x(active)} x2={x(active)} y1={top} y2={height - bottom} stroke="var(--muted-foreground)" strokeDasharray="4 4" /><circle cx={x(active)} cy={y(chosen[key])} r="4" fill="var(--viz-ink)" /></>}
       {points.map((p, i) => <rect key={p.ts} x={x(i) - 400 / Math.max(points.length, 1)} y={0} width={800 / Math.max(points.length, 1)} height={height - bottom} fill="transparent" onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)} />)}
     </svg>
     <div className="chart-readout" aria-live="polite">{chosen ? <><span>{time(chosen.ts)} UTC</span><strong>{compact.format(chosen[key])} {latency ? 'ms p95' : 'requests'}</strong><span>{latency ? `${Math.round(chosen.latency_p50)} ms p50` : `${chosen.errors} errors`}</span></> : <span>Hover to inspect a point · all times UTC</span>}</div>
