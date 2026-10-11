@@ -139,3 +139,20 @@ finding or comparison mismatch, and writes evidence under `target/analytics-revi
 Set `ANALYTICS_PG_CONTAINER` to use `docker exec psql` instead of host psql; defaults
 are collector port 25448 and mock MCP port 25449, configurable with
 `ANALYTICS_REVIEW_URL` and `ANALYTICS_REVIEW_PROBE_PORT`.
+
+On hosts where `/tmp` is a crowded tmpfs, run browser QA with a short, disk-backed
+`TMPDIR` to avoid Chromium renderer crashes. Keep the path short enough for Unix
+sockets. With the database/toolchain environment above configured and Chromium
+installed, the complete conformance command is:
+
+```sh
+PLAYWRIGHT_CHANNEL=chromium python3 - <<'PY'
+import os, subprocess, tempfile
+with tempfile.TemporaryDirectory(prefix="signals-qa-", dir="/var/tmp") as temporary:
+    subprocess.run(["python3", "scripts/ci-conformance.py"],
+                   env={**os.environ, "TMPDIR": temporary}, check=True)
+PY
+```
+
+The temporary directory is removed automatically. The CI script also runs the
+analytics probe; all findings or expected-value mismatches fail the command.
