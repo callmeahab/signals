@@ -1,6 +1,7 @@
 import { demoAnalytics, demoTimeline, setRules, setAnalyticsSettings } from './demo-analytics';
 import type { Caller, EventAttrs, EventType, Key, Overview, Point, Project, Range, Session, SignalEvent, SignalsClient, Tool, User } from '@mcpramen/signals-ui';
 export const demoProject: Project = { id:'demo',name:'Northwind MCP',slug:'northwind',retention_days:30,rate_events_per_min:600,rate_bytes_per_min:5242880 };
+export const truncatedDemoProject:Project={...demoProject,id:'demo-truncated',name:'Northwind MCP · truncated catalogue',slug:'northwind-truncated'};
 const tools = ['search_documents','get_customer','list_orders','get_inventory','create_ticket','fetch_document'];
 const clients = ['Claude','ChatGPT','Cursor','Other'];
 const now = new Date(); now.setUTCMinutes(0,0,0);
@@ -31,7 +32,7 @@ function event(i:number):SignalEvent {
 let keys:Key[] = [{id:'demo-key',key_id:'7f23ac10',label:'Production',scopes:['ingest'],created_at:ts(24*5),last_used_at:ts(.1),revoked_at:null}];
 let demoUsers:User[]=[{id:'demo-owner',email:'you@northwind.dev',role:'owner'}];
 export const demoClient:SignalsClient = {
-  async analytics(_p,route,query){return demoAnalytics(route,query);},
+  async analytics(project,route,query){return demoAnalytics(route,query,project!=='demo-truncated');},
   async timeline(_p,id){return demoTimeline(id);},
   async saveAlerts(_p,rules){setRules(rules);},
   ingestUrl: 'http://localhost:8300/v1/events',
@@ -48,7 +49,7 @@ export const demoClient:SignalsClient = {
   async keys(){return [...keys];},
   async createKey(_p,label,scopes) {const secret=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');const key:Key={id:crypto.randomUUID(),key_id:crypto.randomUUID().replaceAll('-',''),label,scopes,created_at:new Date().toISOString(),last_used_at:null,revoked_at:null};keys=[key,...keys];return {key,secret:`sgk_${key.key_id}_${secret}`};},
   async revokeKey(_p,id){keys=keys.map(k=>k.id===id?{...k,revoked_at:new Date().toISOString()}:k);},
-  async updateProject(_p,settings){setAnalyticsSettings(settings);if(settings.alerts)setRules(settings.alerts);Object.assign(demoProject,settings);return {...demoProject};},
+  async updateProject(id,settings){const project=id===truncatedDemoProject.id?truncatedDemoProject:demoProject;setAnalyticsSettings(settings);if(settings.alerts)setRules(settings.alerts);Object.assign(project,settings);return {...project};},
   async users(){return [...demoUsers];},
   async createUser(_p,email,_password,role){const user={id:crypto.randomUUID(),email,role};demoUsers=[...demoUsers,user];return user;},
 };

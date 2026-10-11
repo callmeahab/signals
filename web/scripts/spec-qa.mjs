@@ -44,10 +44,10 @@ console.log('Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/s
 // Validate JSON on the wire, independently of the TypeScript implementation.
 const { analyticsShapes, validateShape } = await import('./analytics-shapes.mjs');
 const json = value => JSON.parse(JSON.stringify(value));
-for (const range of ['24h','7d','30d','90d']) {
+for (const project of ['demo','demo-truncated']) for (const range of ['24h','7d','30d','90d']) {
  for (const [route,shape] of Object.entries(analyticsShapes)) {
   if (route === 'timeline') continue;
-  validateShape(json(await demoClient.analytics('demo',route,{range})),shape,route);
+  validateShape(json(await demoClient.analytics(project,route,{range})),shape,route);
  }
 }
 for(const session of (await demoClient.sessions('demo')).items)
@@ -59,4 +59,28 @@ assert.throws(()=>validateShape(missing,analyticsShapes.overview),/missing key/)
 const wrong=globalThis.structuredClone(sample);wrong.tiles.tool_calls.value='48212';
 assert.throws(()=>validateShape(wrong,analyticsShapes.overview),/expected integer/);
 assert.throws(()=>validateShape({...sample,undocumented:true},analyticsShapes.overview),/unexpected key/);
-console.log('Demo contract shapes passed: 8 analytics routes × 4 ranges, all session timelines, missing/extra keys and type-drift guards.');
+console.log('Demo contract shapes passed: 8 analytics routes × 4 ranges × 2 catalogue states, all session timelines, missing/extra keys and type-drift guards.');
+
+const completeTools=json(await demoClient.analytics('demo','tools',{}));
+const truncatedTools=json(await demoClient.analytics('demo-truncated','tools',{}));
+assert.equal(completeTools.catalog.complete,true);
+assert.equal(truncatedTools.catalog.complete,false);
+assert.equal(truncatedTools.catalog.dead,null);
+assert.deepEqual(truncatedTools.tools,completeTools.tools,'truncation must retain called tools');
+assert(!(await demoClient.analytics('demo-truncated','overview',{})).attention.some(t=>t.status==='dead'));
+const missingComplete=globalThis.structuredClone(completeTools);delete missingComplete.catalog.complete;
+assert.throws(()=>validateShape(missingComplete,analyticsShapes.tools),/missing key/);
+const wrongComplete=globalThis.structuredClone(completeTools);wrongComplete.catalog.complete='false';
+assert.throws(()=>validateShape(wrongComplete,analyticsShapes.tools),/expected boolean/);
+const {createElement}=await import('react');
+const {renderToStaticMarkup}=await import('react-dom/server');
+const {ToolsAnalyticsScreen,OverviewAnalyticsScreen}=await import('../packages/ui/src/analytics.tsx');
+const toolsHtml=renderToStaticMarkup(createElement(ToolsAnalyticsScreen,{data:truncatedTools}));
+assert.match(toolsHtml,/Catalogue truncated, coverage unknown/);
+assert(!toolsHtml.includes('Dead tools:'));
+assert(toolsHtml.includes('book_flight'));
+// Even stale dead rows must be suppressed when the current catalogue is truncated.
+const overviewHtml=renderToStaticMarkup(createElement(OverviewAnalyticsScreen,{data:sample,catalog:truncatedTools.catalog}));
+assert.match(overviewHtml,/Catalogue truncated, coverage unknown/);
+assert(!overviewHtml.includes('cancel_booking'));
+console.log('Truncated catalogue QA passed: nullable dead, required completeness, retained calls and safe Tools/Overview rendering.');

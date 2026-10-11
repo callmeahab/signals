@@ -127,6 +127,17 @@ try {
     check(await page.locator('.signal-dot').first().evaluate(el => getComputedStyle(el).animationName === 'none'), `${screen}: reduced motion`);
     check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${screen}: 320px overflow`);
   }
+  await page.getByLabel('Select project').selectOption('demo-truncated');
+  for(const screen of ['overview','tools','settings']) {
+    await page.goto(`${base}/#${screen}`);
+    await page.getByText(/Catalogue truncated, coverage unknown/).first().waitFor();
+    check(await page.locator('.dead-tool').count()===0, `${screen}: truncated catalogue hides dead tools`);
+    check(await page.getByText('cancel_booking',{exact:true}).count()===0, `${screen}: no dead attention row`);
+    if(screen==='tools')check(await page.getByRole('button',{name:'book_flight',exact:true}).isVisible(), 'truncated catalogue retains called tools');
+    if(screen==='settings')check(await page.locator('select[aria-label$=" SLO class"]').count()===0, 'truncated catalogue does not offer unverified SLO classes');
+  }
+  await page.getByLabel('Select project').selectOption('demo');
+  await page.getByLabel('book_flight SLO class').waitFor();
   await context.close();
 } finally { await browser.close(); }
 if(failures.length) { console.error(failures.join('\n')); process.exit(1); }
