@@ -384,3 +384,331 @@ All exited 0. Stop/remove each printed `signals-analytics-v2-pg`; the remaining
 commands produced no output. The temporary database/container and local `target/`
 were removed, and the conformance harness terminated its server. Changes are
 committed on the task branch without pushing.
+
+## Fix pass r1
+
+Review baseline: `05705be`; implementation commit: `91eea5e`. The original review
+artifacts remain unchanged. This pass addresses all three requested findings:
+
+- `crates/signals-store/src/analytics.rs`: the returned-day-seven funnel step now
+  includes `eligible` and returns null count when no selected new identity can be
+  observed seven days later. Adoption drop-off is null in that case. Eligibility
+  is strict at the half-open window end. D1/D7/D30 eligibility now begins at the
+  midnight immediately following the UTC anniversary date. Unit regressions cover
+  24-hour/seven-day windows, mixed eligible and young identities, and the review's
+  late-clock miss at all three retention offsets, just before and at midnight.
+- `crates/signals-server/src/{analytics,handlers}.rs`: settings validation on PATCH
+  and alert PUT returns 400 with stable `invalid_settings` and a message; query
+  errors retain `invalid_filter`, and authentication/server errors retain their
+  existing behavior.
+- `crates/signals-server/src/openapi.rs`: optional funnel eligibility and nullable
+  counts/drop-off are documented, as are both settings routes' error schemas.
+- `crates/signals-server/tests/analytics.rs`: database assertions cover both funnel
+  routes and invalid SLO, divisor, legacy settings, non-object settings and rules.
+- `docs/analytics.md`: documents the corrected definitions, error response and CI
+  regression commands.
+- `scripts/analytics-review-probe.py`: preserves the independent review dataset and
+  comparisons, with expected funnel/retention/settings values updated to the amended
+  contract. It fails on findings or mismatches, accepts a configurable isolated
+  database/ports, and manages only its own collector process.
+- `scripts/ci-conformance.py`: invokes that probe after the existing sweep, building
+  the release collector for the latency checks; supports container psql locally.
+
+The first test iteration exposed Utoipa's inability to deserialize the existing
+project response's empty `{}` schema when replacing its whole path. Updating only
+the 400 response fixed it. A subsequent test compile caught a missing qualification
+on the JSON macro in the new schema assertion; that was fixed before validation.
+
+Verification uses the same toolchain flags as above, with `DATABASE_URL` and
+`TEST_DATABASE_URL` set to `postgres://postgres:signals@127.0.0.1:25439/signals`.
+The isolated PostgreSQL container was created and prepared with:
+
+```sh
+docker run -d --name signals-analytics-fix-r1-pg --shm-size=1g \
+  -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals \
+  -p 127.0.0.1:25439:5432 postgres:18.6-bookworm
+cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i signals-analytics-fix-r1-pg psql -U postgres -d signals \
+  -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+```
+
+All migrations and `.sqlx/dev.sql` succeeded; final output:
+
+```text
+Applied 8/migrate analytics scope (1.505572ms)
+CREATE TABLE
+```
+
+Commands completed successfully:
+
+```sh
+cargo fmt --all --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+cargo build --locked --bin signals
+cargo test --locked --release --workspace --no-run
+SQLX_OFFLINE=false cargo sqlx prepare --workspace --check -- --all-targets
+cargo run --locked -p signals-xtask -- --check
+SIGNALS_BENCH_ROWS=100000 cargo test --locked --release --workspace -- --ignored --test-threads=1
+python3 -m py_compile scripts/analytics-review-probe.py scripts/ci-conformance.py
+```
+
+Formatting and Python compilation had no output. Selected final output:
+
+```text
+    Finished `dev` profile [unoptimized] target(s) in 14.84s
+    Finished `dev` profile [unoptimized] target(s) in 5.00s
+    Finished `release` profile [optimized] target(s) in 2m 52s
+    Finished `dev` profile [unoptimized] target(s) in 2.97s
+    Finished `dev` profile [unoptimized] target(s) in 1.55s
+Official schemas parsed; runtime validation replaces generated wire types
+test analytics::tests::day_seven_funnel_requires_observable_identities ... ok
+test analytics::tests::retention_uses_completed_utc_anniversary_day ... ok
+test three_day_analytics_contract_and_idempotence ... ok
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+test thirty_day_dashboard_measurements ... ok
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+```
+
+Workspace tests passed: 9 core, 5 server and 7 store unit tests. All seven ignored
+database tests passed in release mode; the existing read-performance limit was
+not changed. SQLx metadata still matches because the fix introduces no query or
+storage schema changes.
+
+The first `scripts/ci-conformance.py` attempt passed the fixture/transport sweeps
+but stopped at dashboard QA because its default Chrome binary was absent:
+
+```text
+error: launch: Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome
+error: script "qa:backend" exited with code 1
+```
+
+The retry uses `PLAYWRIGHT_CHANNEL=chromium`, as the existing CI workflow does.
+Before retrying, the disposable database was reset to avoid reusing fixture slugs:
+
+```sh
+docker exec signals-analytics-fix-r1-pg dropdb -U postgres signals
+docker exec signals-analytics-fix-r1-pg createdb -U postgres signals
+cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i signals-analytics-fix-r1-pg psql -U postgres -d signals \
+  -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+```
+
+Reset/migration commands exited 0; drop/create had no output and preparation ended
+with `CREATE TABLE`.
+
+The first Chromium run crashed at the settings page. A diagnostic retry reached
+the PATCH call and returned HTTP 400, exposing a compatibility issue beyond the
+three review findings: the existing dashboard round-trips read-only project fields
+(`id`, `tenant_id`, `slug`) that the former typed settings extractor ignored. The
+handler now ignores those same fields, and the database test sends conflicting
+values and verifies they cannot change project identity or slug. No web code was
+changed. CI fixture tenant slugs are now unique so the complete script can be rerun
+against its isolated database without resetting it. All checks below were rerun
+after this compatibility correction.
+
+Final Rust validation after commit `47d3a15` passed using the same commands above.
+Selected final tails:
+
+```text
+    Finished `dev` profile [unoptimized] target(s) in 3.13s
+    Finished `test` profile [unoptimized] target(s) in 6.93s
+test tests::histogram_merges_and_empty_percentile_is_zero ... ok
+test tests::measurement_uses_ecmascript_numbers_and_json_escaping ... ok
+test tests::utf8_precedes_ndjson_count_but_count_precedes_envelope ... ok
+test tests::source_uses_ecmascript_whitespace ... ok
+test tests::overflowing_numbers_become_null_and_finite_numbers_stay_exact ... ok
+test tests::object_caps_use_the_same_measurement ... ok
+test tests::rejects_arbitrary_depth_without_recursive_drop ... ok
+test tests::event_cap_uses_json_stringify_without_changing_stored_floats ... ok
+test tests::official_fixtures_match_reference ... ok
+test auth::upgrade_tests::preserves_hmac_sha256_identity ... ok
+test analytics::tests::ranges_reject_unknown ... ok
+test openapi::tests::document_covers_read_routes_and_models ... ok
+test prober::tests::streamable_http_preserves_session_and_paginates_sse ... ok
+test auth::upgrade_tests::verifies_existing_argon2_05_password_hashes ... ok
+test analytics::tests::identity_precedence ... ok
+test analytics_worker::tests::errors_require_continuous_evidence ... ok
+test analytics::tests::funnel_and_cohorts ... ok
+test analytics::tests::retry_and_path_boundaries ... ok
+test analytics::tests::day_seven_funnel_requires_observable_identities ... ok
+test analytics::tests::retention_uses_completed_utc_anniversary_day ... ok
+test analytics::tests::percentile_error_bound ... ok
+    Finished `dev` profile [unoptimized] target(s) in 2.69s
+    Finished `dev` profile [unoptimized] target(s) in 5.31s
+    Finished `release` profile [optimized] target(s) in 1m 49s
+test three_day_analytics_contract_and_idempotence ... ok
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+test thirty_day_dashboard_measurements ... ok
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+```
+
+Subsequent browser retries crashed at different steps (screenshot and logout)
+under Chromium and headless-shell. A disk-backed temporary directory inside the
+worktree initially exceeded Chromium's Unix socket path limit; a short directory
+under `/var/tmp` succeeded with the unchanged browser QA. The complete CI command
+is therefore run with that short disk-backed `TMPDIR`, rather than the host's
+heavily occupied `/tmp` tmpfs. No browser assertions or web sources were changed.
+A separately started analytics probe was interrupted during its late-event wait
+(exit 130, owned collector cleaned up) so the whole entrypoint could be run once
+with the working browser environment.
+
+```sh
+export PLAYWRIGHT_CHANNEL=chromium
+export ANALYTICS_PG_CONTAINER=signals-analytics-fix-r1-pg
+export SIGNALS_URL=http://127.0.0.1:25483 PYTHONUNBUFFERED=1
+python3 - <<'PY'
+import os, subprocess, tempfile
+with tempfile.TemporaryDirectory(prefix='ar1-',dir='/var/tmp') as temporary:
+    subprocess.run(['python3','scripts/ci-conformance.py'],
+                   env={**os.environ,'TMPDIR':temporary},check=True)
+PY
+```
+
+The first complete run reached the end with zero response mismatches and all nine
+latency measurements under 300 ms, but exited 1 on an EXPLAIN-text false positive.
+The probe flagged sequential-scan plan nodes for empty future partitions. Running
+its same query with `EXPLAIN (ANALYZE, FORMAT JSON)` showed all four flagged nodes
+were runtime-pruned:
+
+```text
+events_2026_10_12 loops= 0 rows= 0 removed= 0
+events_2026_10_13 loops= 0 rows= 0 removed= 0
+events_2026_10_14 loops= 0 rows= 0 removed= 0
+events_default loops= 0 rows= 0 removed= 0
+```
+
+That diagnostic executed the probe's query against project
+`6613e3e2-66b7-4dbe-b033-72b00bdc333a` through `docker exec ... psql`:
+
+```sql
+EXPLAIN (ANALYZE, FORMAT JSON)
+SELECT r.hour FROM analytics_hourly r
+WHERE project_id='6613e3e2-66b7-4dbe-b033-72b00bdc333a'
+  AND hour>=now()-interval '7 days' AND hour+interval '1 hour'<=now()
+  AND NOT EXISTS (SELECT 1 FROM events e WHERE e.project_id=r.project_id
+    AND e.ts>=r.hour AND e.ts<r.hour+interval '1 hour'
+    AND e.received_at>'1970-01-01');
+```
+
+Commit `6ec58b6` makes the probe inspect executed JSON plans and flag sequential
+scans that actually visit event rows, including rows removed by a filter. Empty or
+pruned nodes no longer produce findings. It also preserves timing evidence when
+exiting with a finding. No API query or performance threshold changed. A Python
+import harness exercised empty, pruned, returned-row and filtered-row plan nodes
+and the real captured plan:
+
+```sh
+python3 - <<'PY'
+import importlib.util,json
+from pathlib import Path
+spec=importlib.util.spec_from_file_location('probe','scripts/analytics-review-probe.py')
+p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
+empty={'Node Type':'Seq Scan','Relation Name':'events_empty','Actual Loops':1,'Actual Rows':0}
+pruned={**empty,'Actual Loops':0,'Actual Rows':100}
+live={**empty,'Relation Name':'events_live','Actual Rows':1}
+filtered={**empty,'Relation Name':'events_filtered','Rows Removed by Filter':100}
+assert p.executed_event_scans({'Plans':[empty,pruned,live,filtered]})==['events_live','events_filtered']
+assert not p.executed_event_scans(json.loads(Path('/tmp/analytics-r1-explain.json').read_text())[0]['Plan'])
+print('PASS executed-plan guard rejects populated scans and ignores empty/runtime-pruned partitions')
+PY
+```
+
+Result:
+
+```text
+PASS executed-plan guard rejects populated scans and ignores empty/runtime-pruned partitions
+```
+
+`python3 -m py_compile scripts/analytics-review-probe.py scripts/ci-conformance.py`
+and `git diff --check` then exited 0 with no output. The complete CI command above
+was rerun after this probe correction.
+
+Final complete CI run: **exit 0**. Selected output:
+
+```text
+identity: 39/39 valid fixtures matched
+identity: 49/49 invalid fixtures matched
+gzip: 39/39 valid fixtures matched
+gzip: 49/49 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: login, project, key mint/revoke, ingest/replay, read routes, SSE, settings, CSRF, logout.
+generated 525 events
+accepted 525 rejected batches 0
+identities {'strong': 13, 'key': 6, 'network': 4} distinct 23
+rollup idempotence ok
+restart aggregates stable
+late hour 2026-10-01 00:00:00+00:00 62 -> 63
+explicit overview method exact span 5:00:00
+24h funnel connected 4 returned_day_7 None
+d1 api 85.7 expected 85.7 anniversary-ended 85.7 eligible 7
+errors after sustained backdate firing
+probe row true 2
+perf facts 100000
+BENCH overview: 169.15 ms
+BENCH adoption: 227.08 ms
+BENCH tools: 141.77 ms
+BENCH reliability: 104.98 ms
+BENCH cost: 151.36 ms
+BENCH protocol: 50.14 ms
+BENCH digest: 212.57 ms
+BENCH alerts: 1.02 ms
+BENCH timeline 11.31 200
+subject_kind breakdown {'key': 1, 'network': 1, 'strong': 0} status 200
+FINDINGS 0 MISMATCHES 0
+```
+
+Final probe result (persisted here before removing `target/`):
+
+```json
+{
+  "findings": [],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 169.15,
+    "adoption": 227.08,
+    "tools": 141.77,
+    "reliability": 104.98,
+    "cost": 151.36,
+    "protocol": 50.14,
+    "digest": 212.57,
+    "alerts": 1.02,
+    "timeline": 11.31
+  }
+}
+```
+
+All three review findings are fixed, with the amended optional funnel denominator.
+The full sweep also verified the dashboard compatibility fix. No requested work
+remains unfinished and no API-contract divergence is left from this pass. The
+probe-only executed-plan correction and browser TMPDIR requirement are documented
+above; the earlier implementation report's cold-cache/concurrent-load limits still
+apply. Final source/probe commits are `91eea5e`, `47d3a15`, `2caf23e`, and `6ec58b6`.
+
+Final cleanup and ownership checks:
+
+```sh
+docker stop signals-analytics-fix-r1-pg
+docker rm -v signals-analytics-fix-r1-pg
+rm -r /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+test ! -e /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+docker ps -a --filter name=signals-analytics-fix-r1-pg --format '{{.Names}}'
+ss -ltnp '( sport = :25439 or sport = :25448 or sport = :25449 or sport = :25483 )'
+git diff --check
+git diff 05705be --name-only -- web spec deploy
+git status --porcelain
+```
+
+Stop/remove each printed `signals-analytics-fix-r1-pg`. The socket check printed
+only its header; target-existence, container-list, diff, protected-tree and final
+working-tree checks produced no output. The temporary database, all task listeners
+and `target/` are gone. All changes are committed on the original task branch;
+nothing was pushed.
