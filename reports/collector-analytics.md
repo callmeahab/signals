@@ -1880,3 +1880,168 @@ The coordinator confirmed the SIGTERM was their cleanup using a process-name
 match, explicitly authorized a fresh full harness run, and stated subsequent
 cleanup would target only their recorded PIDs. No code change was needed for this
 interruption; rerunning on the same isolated ports.
+
+Completed full CI harness and full analytics probe:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+export PLAYWRIGHT_CHANNEL=chromium ANALYTICS_PG_CONTAINER=signals-pruning-pg SIGNALS_URL=http://127.0.0.1:27483 PYTHONUNBUFFERED=1 SIGNALS_PROBE_LATENCY_BUDGET_MS=900 ANALYTICS_REVIEW_URL=http://127.0.0.1:27448 ANALYTICS_REVIEW_PROBE_PORT=27449
+python3 - <<'PYCODE'
+import os, subprocess, tempfile
+with tempfile.TemporaryDirectory(prefix='pruning-',dir='/var/tmp') as tmp:
+ subprocess.run(['python3','scripts/ci-conformance.py'],env={**os.environ,'TMPDIR':tmp},check=True)
+PYCODE
+```
+
+Exit 0. The complete harness ran spec/transport/browser QA and then the complete
+analytics review probe, including its fresh 31 populated daily partitions and
+100k-event fixture. No stage was skipped. The interrupted invocation used exactly
+this command; the earlier port-collision invocation used port 25483 for
+`SIGNALS_URL` and omitted the two `ANALYTICS_REVIEW_*` overrides. Selected completed
+output:
+
+```text
+identity: 39/39 valid fixtures matched
+identity: 49/49 invalid fixtures matched
+gzip: 39/39 valid fixtures matched
+gzip: 49/49 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v2 analytics, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+populated daily partition fixture 31
+Latency budget: 900 ms; warmup then median of three
+BENCH overview: median 112.02 ms; samples [117.04, 111.1, 112.02]
+BENCH adoption: median 216.37 ms; samples [228.38, 212.13, 216.37]
+BENCH tools: median 118.61 ms; samples [118.61, 125.85, 116.71]
+BENCH reliability: median 85.99 ms; samples [85.99, 90.49, 85.87]
+BENCH cost: median 131.41 ms; samples [131.41, 129.22, 138.72]
+BENCH protocol: median 39.07 ms; samples [38.11, 39.23, 39.07]
+BENCH digest: median 152.06 ms; samples [146.56, 152.12, 152.06]
+BENCH alerts: median 0.76 ms; samples [0.84, 0.76, 0.69]
+BENCH timeline: median 8.25 ms; samples [8.25, 9.2, 8.03]
+FINDINGS 0 MISMATCHES 0
+```
+
+Complete final findings artifact, preserved before target cleanup:
+
+```json
+{
+  "findings": [],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 112.02,
+    "adoption": 216.37,
+    "tools": 118.61,
+    "reliability": 85.99,
+    "cost": 131.41,
+    "protocol": 39.07,
+    "digest": 152.06,
+    "alerts": 0.76,
+    "timeline": 8.25
+  },
+  "timing_samples": {
+    "overview": [
+      117.04,
+      111.1,
+      112.02
+    ],
+    "adoption": [
+      228.38,
+      212.13,
+      216.37
+    ],
+    "tools": [
+      118.61,
+      125.85,
+      116.71
+    ],
+    "reliability": [
+      85.99,
+      90.49,
+      85.87
+    ],
+    "cost": [
+      131.41,
+      129.22,
+      138.72
+    ],
+    "protocol": [
+      38.11,
+      39.23,
+      39.07
+    ],
+    "digest": [
+      146.56,
+      152.12,
+      152.06
+    ],
+    "alerts": [
+      0.84,
+      0.76,
+      0.69
+    ],
+    "timeline": [
+      8.25,
+      9.2,
+      8.03
+    ]
+  },
+  "latency_budget_ms": 900.0,
+  "latency_statistic": "median_of_three_after_warmup"
+}
+```
+
+Checked the executed production plan separately:
+
+```sh
+python3 - <<'PYCODE'
+import json
+from pathlib import Path
+text=Path('/tmp/pruning-conformance-complete.log').read_text()
+plan=json.loads(text.split('EXPLAIN hourly\n',1)[1].split('\nsubject_kind',1)[0])[0]
+relations=set()
+def walk(n):
+ if 'Relation Name' in n:relations.add(n['Relation Name'])
+ for c in n.get('Plans',[]):walk(c)
+walk(plan['Plan'])
+print('Eligibility plan relations:',sorted(relations))
+print('Execution time:',plan['Execution Time'],'ms')
+assert not any(r.startswith('events') for r in relations)
+PYCODE
+```
+
+Exit 0:
+
+```text
+Eligibility plan relations: ['analytics_hourly', 'analytics_hourly_arrivals']
+Execution time: 0.342 ms
+```
+
+No contract divergence or unfinished implementation remains. The migration's
+one-time backfill holds event writes while it establishes consistent metadata;
+normal eligibility reads access only rollup metadata. Remote GitHub CI has not
+been rerun because this worker does not push; the complete local CI harness passed.
+
+Cleanup and final checks:
+
+```sh
+git restore --source=HEAD -- web/artifacts/v2-live/cost.png web/artifacts/v2-live/overview.png web/artifacts/v2-live/tools.png
+ss -ltnp '( sport = :27448 or sport = :27449 or sport = :27483 )'
+docker stop signals-pruning-pg
+docker rm -v signals-pruning-pg
+rm -r /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+test ! -e /home/vuk/orca/workspaces/signals-collector/analytics-v2/target
+docker ps -a --filter name=signals-pruning-pg --format '{{.Names}}'
+ss -ltnp '( sport = :25439 or sport = :27448 or sport = :27449 or sport = :27483 )'
+git diff 19d56c0 --name-only -- web spec deploy
+git diff --check
+git status --porcelain
+```
+
+All exited 0. Generated browser screenshots were restored; no web/spec/deploy
+changes remain. Collector/probe ports were already closed, stop/remove printed
+`signals-pruning-pg`, the final container listing was empty, socket output was
+header-only, and target was absent. The final whitespace check and post-commit
+status were empty. All task changes are committed locally; no push was performed.
