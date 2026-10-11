@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE sessions s SET identity_kind=x.kind,identity_key=x.identity_key,had_error=x.had_error,depth=x.depth,first_tool=x.first_tool,last_tool=x.last_tool FROM (SELECT session_id,(array_agg((analytics_identity(caller))[1] ORDER BY ts,id) FILTER(WHERE analytics_identity(caller) IS NOT NULL))[1] AS kind,(array_agg((analytics_identity(caller))[2] ORDER BY ts,id) FILTER(WHERE analytics_identity(caller) IS NOT NULL))[1] AS identity_key,bool_or(is_error) AS had_error,count(*) FILTER(WHERE type='tool.called') AS depth,(array_agg(tool ORDER BY ts,id) FILTER(WHERE type='tool.called'))[1] AS first_tool,(array_agg(tool ORDER BY ts DESC,id DESC) FILTER(WHERE type='tool.called'))[1] AS last_tool FROM events WHERE project_id=$1 AND session_id IS NOT NULL GROUP BY session_id) x WHERE s.project_id=$1 AND s.session_id=x.session_id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ccfb28546062179e0fa38b7c6f9b5a6d9a8dc48b6461c6c7fd042f435fea8c0f"
+}

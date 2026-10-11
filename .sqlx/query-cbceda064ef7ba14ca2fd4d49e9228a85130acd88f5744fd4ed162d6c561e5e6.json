@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pg_try_advisory_xact_lock(1397311236)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pg_try_advisory_xact_lock",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cbceda064ef7ba14ca2fd4d49e9228a85130acd88f5744fd4ed162d6c561e5e6"
+}

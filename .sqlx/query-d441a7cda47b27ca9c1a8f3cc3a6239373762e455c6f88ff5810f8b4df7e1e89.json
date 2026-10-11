@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ts,ok,latency_ms,advertised_tools FROM probes WHERE project_id=$1 AND ts>=$2 AND ts<$3 ORDER BY ts",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ts",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "probes",
+            "name": "ts"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "ok",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "probes",
+            "name": "ok"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "latency_ms",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "probes",
+            "name": "latency_ms"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "advertised_tools",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "probes",
+            "name": "advertised_tools"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "d441a7cda47b27ca9c1a8f3cc3a6239373762e455c6f88ff5810f8b4df7e1e89"
+}

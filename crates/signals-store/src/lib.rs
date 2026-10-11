@@ -1,3 +1,5 @@
+pub mod analytics;
+pub mod analytics_worker;
 pub mod checked;
 pub mod event_store;
 pub mod ingest;

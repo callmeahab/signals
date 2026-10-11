@@ -302,7 +302,7 @@ async fn main() -> Result<()> {
                 let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
                 let mut ticks = 0u32;
                 loop {
-                    tokio::select! {_=interval.tick()=>{if let Err(e)=worker_store.rollup().await{tracing::error!(error=%e,"rollup failed");}ticks+=1;if ticks.is_multiple_of(10){if let Err(e)=worker_store.maintain().await{tracing::error!(error=%e,"maintenance failed");}}},_=worker_shutdown.changed()=>break}
+                    tokio::select! {_=interval.tick()=>{if let Err(e)=worker_store.rollup().await{tracing::error!(error=%e,"rollup failed");}if let Err(e)=worker_store.evaluate_alerts().await{tracing::error!(error=%e,"alerts evaluation failed");}if let Err(e)=signals_server::prober::run(&worker_store).await{tracing::error!(error=%e,"prober failed");}ticks+=1;if ticks.is_multiple_of(10){if let Err(e)=worker_store.maintain().await{tracing::error!(error=%e,"maintenance failed");}}},_=worker_shutdown.changed()=>break}
                 }
             });
             let listener = tokio::net::TcpListener::bind(bind).await?;

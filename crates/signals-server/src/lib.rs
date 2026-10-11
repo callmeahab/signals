@@ -1,7 +1,9 @@
+pub mod analytics;
 pub mod auth;
 pub mod handlers;
 pub mod middleware;
 pub mod openapi;
+pub mod prober;
 pub mod telemetry;
 
 use axum::{
@@ -51,6 +53,7 @@ pub struct Counters {
     pub statuses: std::sync::Mutex<std::collections::BTreeMap<u16, u64>>,
 }
 pub type Result<T> = std::result::Result<T, Error>;
+#[derive(Debug)]
 pub struct Error {
     pub status: StatusCode,
     pub message: String,
@@ -183,6 +186,18 @@ pub fn router(app: App) -> Router {
             "/v1/projects/{project}",
             axum::routing::patch(update_project),
         )
+        .route(
+            "/v1/projects/{project}/analytics/{name}",
+            get(analytics::read),
+        )
+        .route(
+            "/v1/projects/{project}/analytics/sessions/{session}/timeline",
+            get(analytics::timeline),
+        )
+        .route(
+            "/v1/projects/{project}/alerts",
+            axum::routing::put(analytics::update_rules),
+        )
         .route("/v1/projects/{project}/overview", get(overview))
         .route("/v1/projects/{project}/timeseries", get(timeseries))
         .route("/v1/projects/{project}/tools", get(tools))
@@ -240,6 +255,7 @@ pub fn router(app: App) -> Router {
             axum::http::Method::GET,
             axum::http::Method::POST,
             axum::http::Method::PATCH,
+            axum::http::Method::PUT,
             axum::http::Method::DELETE,
         ])
         .allow_headers([

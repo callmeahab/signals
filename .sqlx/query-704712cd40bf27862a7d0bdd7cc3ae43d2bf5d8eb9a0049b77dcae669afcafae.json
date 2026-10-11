@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id,analytics_settings->>'probe_url' AS url,analytics_settings->>'probe_key' AS key FROM projects WHERE deleted_at IS NULL AND analytics_settings->>'probe_url' IS NOT NULL AND analytics_settings->>'probe_key' IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "projects",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "url",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "key",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "704712cd40bf27862a7d0bdd7cc3ae43d2bf5d8eb9a0049b77dcae669afcafae"
+}

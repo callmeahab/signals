@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analytics_hourly VALUES($1,$2,$3,$4) ON CONFLICT(project_id,hour,tool) DO UPDATE SET metrics=EXCLUDED.metrics",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aac17b0d49b803880c4b22cc45447a45f1122832a22e5c338d422a69cd70288b"
+}

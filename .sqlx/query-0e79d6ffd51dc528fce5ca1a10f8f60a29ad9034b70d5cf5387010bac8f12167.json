@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE projects SET analytics_settings=jsonb_set(analytics_settings,'{alerts}',$2) WHERE id=$1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0e79d6ffd51dc528fce5ca1a10f8f60a29ad9034b70d5cf5387010bac8f12167"
+}

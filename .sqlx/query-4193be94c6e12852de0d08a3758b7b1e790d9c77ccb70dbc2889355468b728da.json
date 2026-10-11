@@ -1,0 +1,161 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ts,id,type AS event_type,session_id,tool,duration_ms,is_error,client_name,client_version,attrs,client,caller FROM events WHERE project_id=$1 AND ts<$2 ORDER BY ts,id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ts",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "ts"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "event_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "session_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "tool",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "tool"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "duration_ms",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "duration_ms"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "is_error",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "is_error"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "client_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "client_name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "client_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "client_version"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "attrs",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "attrs"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "client",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "client"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "caller",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "caller"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "4193be94c6e12852de0d08a3758b7b1e790d9c77ccb70dbc2889355468b728da"
+}

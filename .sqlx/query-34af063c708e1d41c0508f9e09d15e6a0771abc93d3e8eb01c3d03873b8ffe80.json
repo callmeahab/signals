@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analytics_identity_daily VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(project_id,day,kind,identity_key) DO UPDATE SET calls=EXCLUDED.calls,errors=EXCLUDED.errors,tokens=EXCLUDED.tokens",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "34af063c708e1d41c0508f9e09d15e6a0771abc93d3e8eb01c3d03873b8ffe80"
+}

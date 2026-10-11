@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.tool,c.annotations FROM tool_catalog c JOIN catalog_snapshots s ON s.project_id=c.project_id AND c.tool=ANY(s.tools) WHERE c.project_id=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tool",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "tool_catalog",
+            "name": "tool"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "annotations",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "tool_catalog",
+            "name": "annotations"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "a2332a005df84483ad448d0a2e284b35fc6be5ceaa7531f352f626e33525ff65"
+}

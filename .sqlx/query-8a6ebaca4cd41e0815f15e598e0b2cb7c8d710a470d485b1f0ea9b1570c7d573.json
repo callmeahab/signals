@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analytics_daily VALUES($1,$2,$3) ON CONFLICT(project_id,day) DO UPDATE SET metrics=EXCLUDED.metrics",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8a6ebaca4cd41e0815f15e598e0b2cb7c8d710a470d485b1f0ea9b1570c7d573"
+}

@@ -66,7 +66,7 @@ impl Store {
                 checked_query!("INSERT INTO rollup_tool_hourly VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(project_id,hour,tool) DO UPDATE SET calls=EXCLUDED.calls,errors=EXCLUDED.errors,duration_sum=EXCLUDED.duration_sum,duration_max=EXCLUDED.duration_max,duration_hist=EXCLUDED.duration_hist,last_called=EXCLUDED.last_called" ,project,hour,tool,calls,errors,sum,max,&hist,last).execute(&mut *tx).await?;
             }
             if !sessions.is_empty() {
-                checked_query!("INSERT INTO sessions SELECT project_id,session_id,min(ts),max(ts) FILTER(WHERE type='session.ended'),max(ts),min(caller_id),coalesce(max(client_name),'Unknown'),max(client_version),count(*) FILTER(WHERE type NOT LIKE 'session.%'),count(*) FILTER(WHERE is_error),coalesce(max(attrs->>'transport'),'streamable-http') FROM events WHERE project_id=$1 AND session_id=ANY($2) GROUP BY project_id,session_id ON CONFLICT(project_id,session_id) DO UPDATE SET started_at=EXCLUDED.started_at,ended_at=EXCLUDED.ended_at,last_seen=EXCLUDED.last_seen,caller_id=EXCLUDED.caller_id,client_name=EXCLUDED.client_name,client_version=EXCLUDED.client_version,calls=EXCLUDED.calls,errors=EXCLUDED.errors,transport=EXCLUDED.transport" ,project,&sessions).execute(&mut *tx).await?;
+                checked_query!("INSERT INTO sessions(project_id,session_id,started_at,ended_at,last_seen,caller_id,client_name,client_version,calls,errors,transport) SELECT project_id,session_id,min(ts),max(ts) FILTER(WHERE type='session.ended'),max(ts),min(caller_id),coalesce(max(client_name),'Unknown'),max(client_version),count(*) FILTER(WHERE type NOT LIKE 'session.%'),count(*) FILTER(WHERE is_error),coalesce(max(attrs->>'transport'),'streamable-http') FROM events WHERE project_id=$1 AND session_id=ANY($2) GROUP BY project_id,session_id ON CONFLICT(project_id,session_id) DO UPDATE SET started_at=EXCLUDED.started_at,ended_at=EXCLUDED.ended_at,last_seen=EXCLUDED.last_seen,caller_id=EXCLUDED.caller_id,client_name=EXCLUDED.client_name,client_version=EXCLUDED.client_version,calls=EXCLUDED.calls,errors=EXCLUDED.errors,transport=EXCLUDED.transport" ,project,&sessions).execute(&mut *tx).await?;
             }
         }
         for (project, day) in days {
@@ -80,6 +80,7 @@ impl Store {
         .execute(&mut *tx)
         .await?;
         tx.commit().await?;
+        self.rollup_analytics().await?;
         Ok(())
     }
     pub async fn maintain(&self) -> Result<()> {

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE rollup_cursor SET received_at_watermark=$1 WHERE name='analytics'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "556c5580db71e356c820a3090f956dd26a314ad8ea8e562c0a5383da7e66535f"
+}

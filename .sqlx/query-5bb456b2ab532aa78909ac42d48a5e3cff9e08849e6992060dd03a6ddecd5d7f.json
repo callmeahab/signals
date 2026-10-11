@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM analytics_paths WHERE project_id=$1 AND day=$2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5bb456b2ab532aa78909ac42d48a5e3cff9e08849e6992060dd03a6ddecd5d7f"
+}

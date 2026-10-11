@@ -558,29 +558,57 @@ pub async fn revoke_key(
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub struct Settings {
-    pub name: String,
-    pub retention_days: i32,
-    pub rate_events_per_min: i32,
-    pub rate_bytes_per_min: i64,
+    pub name: Option<String>,
+    pub retention_days: Option<i32>,
+    pub rate_events_per_min: Option<i32>,
+    pub rate_bytes_per_min: Option<i64>,
+    pub slo_classes: Option<Value>,
+    pub slo_targets: Option<Value>,
+    pub token_divisor: Option<f64>,
+    pub digest: Option<Value>,
+    pub alerts: Option<Value>,
+    pub probe_url: Option<String>,
+    pub probe_key: Option<String>,
 }
-#[utoipa::path(patch,path="/v1/projects/{project}",params(("project"=uuid::Uuid,Path,description="Project UUID")),request_body=Settings,responses((status=200,description="Success",body=crate::openapi::ProjectDocument), (status=400,description="Invalid request",body=crate::openapi::ErrorDocument),(status=401,description="Invalid credentials"),(status=403,description="Scope or tenant denied")),security(("session"=[])))]
+#[utoipa::path(patch,path="/v1/projects/{project}",params(("project"=uuid::Uuid,Path)),request_body=Settings,responses((status=200,description="Project with analytics settings",body=Value),(status=400,description="Invalid settings"),(status=401,description="Invalid credentials"),(status=403,description="Owner required")),security(("session"=[])))]
 pub async fn update_project(
     State(app): State<App>,
     Path(p): Path<Uuid>,
     headers: HeaderMap,
-    Json(input): Json<Settings>,
-) -> Result<Json<Project>> {
+    Json(mut input): Json<Value>,
+) -> Result<Json<Value>> {
     auth::read(&app, &headers, p, true).await?;
-    if input.name.trim().is_empty()
-        || input.name.len() > 100
-        || !(1..=365).contains(&input.retention_days)
-        || !(1..=10_000_000).contains(&input.rate_events_per_min)
-        || input.rate_bytes_per_min < 1
+    let object = input
+        .as_object_mut()
+        .ok_or_else(|| Error::bad("Expected settings object"))?;
+    let name = object.remove("name");
+    let retention = object.remove("retention_days");
+    let rate = object.remove("rate_events_per_min");
+    let bytes = object.remove("rate_bytes_per_min");
+    if name.as_ref().is_some_and(|v| {
+        !v.as_str()
+            .is_some_and(|n| !n.trim().is_empty() && n.len() <= 100)
+    }) || retention
+        .as_ref()
+        .is_some_and(|v| !v.as_i64().is_some_and(|n| (1..=365).contains(&n)))
+        || rate
+            .as_ref()
+            .is_some_and(|v| !v.as_i64().is_some_and(|n| (1..=10_000_000).contains(&n)))
+        || bytes
+            .as_ref()
+            .is_some_and(|v| !v.as_i64().is_some_and(|n| n > 0))
     {
         return Err(Error::bad("Invalid project settings"));
     }
-    let p=checked_query_as!("UPDATE projects SET name=$2,retention_days=$3,rate_events_per_min=$4,rate_bytes_per_min=$5 WHERE id=$1 RETURNING id,tenant_id,slug,name,retention_days,rate_events_per_min,rate_bytes_per_min" ,p,input.name,input.retention_days,input.rate_events_per_min,input.rate_bytes_per_min).fetch_one(&app.store.pool).await?;
-    Ok(Json(p))
+    crate::analytics::validate_settings(&input)?;
+    let result:Project=checked_query_as!("UPDATE projects SET name=coalesce($2,name),retention_days=coalesce($3,retention_days),rate_events_per_min=coalesce($4,rate_events_per_min),rate_bytes_per_min=coalesce($5,rate_bytes_per_min) WHERE id=$1 RETURNING id,tenant_id,slug,name,retention_days,rate_events_per_min,rate_bytes_per_min",p,name.as_ref().and_then(Value::as_str),retention.as_ref().and_then(Value::as_i64).map(|n|n as i32),rate.as_ref().and_then(Value::as_i64).map(|n|n as i32),bytes.as_ref().and_then(Value::as_i64)).fetch_one(&app.store.pool).await?;
+    let settings = crate::analytics::save_settings(&app, p, input).await?;
+    let mut result = serde_json::to_value(result).map_err(Error::internal)?;
+    result
+        .as_object_mut()
+        .unwrap()
+        .extend(settings.as_object().unwrap().clone());
+    Ok(Json(result))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub struct TenantInput {
