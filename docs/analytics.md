@@ -59,6 +59,14 @@ are null; a measured count of zero is zero.
   Failed listings do not replace a successful snapshot. Truncation is retained on
   both tool records and snapshots; incomplete snapshots cannot classify absent
   tool names as hallucinations. The catalogue reflects the latest project snapshot.
+  For a complete known catalogue (`catalog.complete: true`), Tools, Overview attention,
+  and the Settings SLO class list contain only catalogue members; `used` counts members
+  called in the window and `dead` lists uncalled members. Calls outside that set are
+  counted in Reliability `hallucinated_tools` instead. Explicit `unknown_tool` errors
+  count there even when the name matches a catalogue member. A truncated snapshot has
+  `complete: false` and `dead: null`, retains called names in Tools and attention, and
+  counts only explicit unknown-tool errors as hallucinations. Without a catalogue,
+  `known` and `complete` are false and called tools remain visible.
 
 ## Storage and freshness
 
@@ -205,6 +213,9 @@ use events with a reported action. Task `created` counts distinct session/task I
 observed in the window (creation itself is not a distinct spec event); status counts
 count observed transitions, including completed/failed/cancelled. Progress calls are
 long at 1,000 ms or more; the percentage uses long calls reporting `progress_events`.
+Both progress counters remain null until a tool call in the selected window carries
+`progress_events`; an explicit zero opts in and is distinct from a missing value.
+Sampling, elicitation and task counters likewise wait for their respective event types.
 `protocol.discovery` adds request count, p95 and total measured discovery duration.
 Explicit tools.listed and legacy tools/list requests both contribute observed events.
 Unknown fields or no observed optional protocol events produce null measurements.

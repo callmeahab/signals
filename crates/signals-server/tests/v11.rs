@@ -30,6 +30,99 @@ async fn v11_storage_protocol_and_delivery() {
         .await
         .unwrap();
     let project = store.project(tenant, "v11", "<v11>").await.unwrap();
+    // E2E regressions: catalogue membership controls Tools/Settings and attention,
+    // while explicit unknown_tool errors remain a reliability signal even on a member.
+    let regression = store
+        .project(tenant, "e2e-regression", "E2E regression")
+        .await
+        .unwrap();
+    let at = Utc::now();
+    let window = Window {
+        from: at - Duration::hours(1),
+        to: at + Duration::seconds(1),
+    };
+    let values = [
+        json!({"type":"tool.called","attrs":{"tool":"known","duration_ms":2000,"is_error":true,"error_kind":"unknown_tool"}}),
+        json!({"type":"tool.called","attrs":{"tool":"outside","duration_ms":3000,"is_error":true}}),
+    ];
+    let values = values
+        .into_iter()
+        .map(|mut e| {
+            e["id"] = json!(Uuid::now_v7());
+            e["ts"] = json!(at);
+            e
+        })
+        .collect();
+    let (events, rejected) = signals_core::validate_batch(values, at, 30);
+    assert!(rejected.is_empty());
+    store
+        .ingest(
+            regression.id,
+            events
+                .into_iter()
+                .map(|e| (e, "key".into(), "fixture".into(), "fixture".into()))
+                .collect(),
+        )
+        .await
+        .unwrap();
+    let data = store.analytics_data(regression.id, at).await.unwrap();
+    let selected = data.selected(window, &Filters::default());
+    assert_eq!(data.tools(window, &selected)["catalog"]["known"], false);
+    assert_eq!(
+        data.tools(window, &selected)["tools"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(
+        data.protocol(&selected)["progress"],
+        json!({"long_calls":null,"with_progress_pct":null})
+    );
+    for key in ["sampling", "elicitation"] {
+        assert!(data.protocol(&selected)[key]["requests"].is_null());
+    }
+    assert!(data.protocol(&selected)["tasks"]["created"].is_null());
+    let (events, rejected) = signals_core::validate_batch(
+        vec![
+            json!({"id":Uuid::now_v7(),"ts":at,"type":"tools.listed","attrs":{"tools":[{"name":"known"},{"name":"dead"}],"count":2}}),
+        ],
+        at,
+        30,
+    );
+    assert!(rejected.is_empty());
+    store
+        .ingest(
+            regression.id,
+            events
+                .into_iter()
+                .map(|e| (e, "key".into(), "fixture".into(), "fixture".into()))
+                .collect(),
+        )
+        .await
+        .unwrap();
+    let data = store.analytics_data(regression.id, at).await.unwrap();
+    let tools = data.tools(window, &data.selected(window, &Filters::default()));
+    assert_eq!(tools["catalog"]["used"], 1);
+    assert_eq!(tools["catalog"]["dead"], json!(["dead"]));
+    assert_eq!(
+        tools["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["tool"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        vec!["dead", "known"]
+    );
+    assert!(data.overview(window, &Filters::default())["attention"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|t| t["tool"] != "outside"));
+    assert_eq!(
+        data.reliability(window, &Filters::default())["hallucinated_tools"],
+        json!({"count":2,"names":["known","outside"]})
+    );
     let fixture: Value = serde_json::from_str(include_str!(
         "../../../spec/fixtures/valid/mixed-v11-attrs.json"
     ))
@@ -133,6 +226,10 @@ async fn v11_storage_protocol_and_delivery() {
         current.reliability(w, &Filters::default())["hallucinated_tools"]["count"],
         1
     );
+    let tools = current.tools(w, &current.selected(w, &Filters::default()));
+    assert_eq!(tools["catalog"]["complete"], false);
+    assert!(tools["catalog"]["dead"].is_null());
+    assert!(tools["tools"].as_array().unwrap().len() > current.catalog.len());
     sqlx::query("DELETE FROM events WHERE project_id=$1")
         .bind(project.id)
         .execute(&store.pool)

@@ -517,7 +517,12 @@ impl Data {
         }
         for e in events.iter().filter(|e| e.call()) {
             if let Some(t) = &e.tool {
-                grouped.entry(t.clone()).or_default().push(e);
+                if self.catalog_info["known"] != true
+                    || self.catalog_info["truncated"] == true
+                    || self.catalog.contains_key(t)
+                {
+                    grouped.entry(t.clone()).or_default().push(e);
+                }
             }
         }
         let used = grouped.values().filter(|es| !es.is_empty()).count();
@@ -540,8 +545,13 @@ impl Data {
         } else {
             Value::Null
         };
+        catalog["complete"] = json!(catalog["known"] == true && catalog["truncated"] != true);
         catalog["used"] = json!(used);
-        catalog["dead"] = json!(dead);
+        catalog["dead"] = if catalog["truncated"] == true {
+            Value::Null
+        } else {
+            json!(dead)
+        };
         json!({"catalog":catalog,"tools":tools,"paths":paths.into_iter().take(20).map(|(sequence,count)|json!({"sequence":sequence,"count":count,"pct":rate(count,total)})).collect::<Vec<_>>()})
     }
     pub fn cost(&self, events: &[&Fact]) -> Value {
@@ -575,7 +585,12 @@ impl Data {
         }
         for e in &m.calls {
             if let Some(t) = e.tool.as_deref() {
-                grouped.entry(t).or_default().push(e);
+                if self.catalog_info["known"] != true
+                    || self.catalog_info["truncated"] == true
+                    || self.catalog.contains_key(t)
+                {
+                    grouped.entry(t).or_default().push(e);
+                }
             }
         }
         let ids: BTreeSet<_> = events.iter().filter_map(|e| e.identity()).collect();
@@ -872,7 +887,7 @@ impl Data {
           "sampling":{"requests":(!sampling.is_empty()).then_some(sampling.len()),"p95":p95(&sampling),"rejected_pct":rate(sampling.iter().filter(|e|e.attrs["rejected"]==true).count(),sampling.iter().filter(|e|e.attrs["rejected"].is_boolean()).count()),"by_model":models.into_iter().map(|(model,requests)|json!({"model":model,"requests":requests})).collect::<Vec<_>>()},
           "elicitation":{"requests":(!elicitation.is_empty()).then_some(elicitation.len()),"accept_pct":action("accept"),"decline_pct":action("decline"),"cancel_pct":action("cancel")},
           "tasks":{"created":(!created.is_empty()).then_some(created.len()),"completed":task_count("completed"),"failed":task_count("failed"),"cancelled":task_count("cancelled")},
-          "progress":{"long_calls":events.iter().any(|e|e.call() && e.duration_ms.is_some()).then_some(long.len()),"with_progress_pct":rate(progress.iter().filter(|e|e.number("progress_events").is_some_and(|n|n>0)).count(),progress.len())},
+          "progress":{"long_calls":events.iter().any(|e|e.call() && e.number("progress_events").is_some()).then_some(long.len()),"with_progress_pct":rate(progress.iter().filter(|e|e.number("progress_events").is_some_and(|n|n>0)).count(),progress.len())},
           "discovery":{"requests":(!discovery.is_empty()).then_some(discovery.len()),"p95":p95(&discovery),"duration_ms":discovery.iter().any(|e|e.duration_ms.is_some()).then(||discovery.iter().filter_map(|e|e.duration_ms.map(i64::from)).sum::<i64>())}})
     }
     pub fn digest(&self, w: Window, f: &Filters) -> Value {
@@ -973,6 +988,116 @@ mod tests {
             client: None,
             caller: Some(json!({"subject":"a"})),
         }
+    }
+    #[test]
+    fn catalogue_limits_tool_rows_and_attention_but_preserves_hallucinations() {
+        let now = Utc::now();
+        let w = Window {
+            from: now - Duration::hours(1),
+            to: now + Duration::seconds(1),
+        };
+        let mut known = fact(now, "tool.called", "known", true);
+        known.attrs = json!({"error_kind":"unknown_tool"});
+        let mut data = Data {
+            events: vec![known, fact(now, "tool.called", "outside", true)],
+            first: BTreeMap::new(),
+            settings: json!({}),
+            catalog: BTreeMap::from([("known".into(), json!([])), ("dead".into(), json!([]))]),
+            catalog_info: json!({"known":true}),
+        };
+        let tools = data.tools(w, &data.selected(w, &Filters::default()));
+        assert_eq!(tools["catalog"]["used"], 1);
+        assert_eq!(tools["catalog"]["dead"], json!(["dead"]));
+        assert_eq!(
+            tools["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|t| t["tool"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            vec!["dead", "known"]
+        );
+        let overview = data.overview(w, &Filters::default());
+        assert!(overview["attention"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|t| t["tool"] != "outside"));
+        assert_eq!(overview["tiles"]["tool_calls"]["value"], 2);
+        assert_eq!(
+            data.reliability(w, &Filters::default())["hallucinated_tools"],
+            json!({"count":2,"names":["known","outside"]})
+        );
+        data.catalog_info["truncated"] = json!(true);
+        let tools = data.tools(w, &data.selected(w, &Filters::default()));
+        assert_eq!(tools["catalog"]["complete"], false);
+        assert!(tools["catalog"]["dead"].is_null());
+        assert_eq!(tools["tools"].as_array().unwrap().len(), 3);
+        assert_eq!(
+            data.overview(w, &Filters::default())["attention"]
+                .as_array()
+                .unwrap()
+                .len(),
+            3
+        );
+        assert_eq!(
+            data.reliability(w, &Filters::default())["hallucinated_tools"],
+            json!({"count":1,"names":["known"]})
+        );
+        data.catalog.clear();
+        data.catalog_info = json!({"known":true});
+        assert_eq!(
+            data.tools(w, &data.selected(w, &Filters::default()))["tools"],
+            json!([])
+        );
+        data.catalog_info = json!({"known":false});
+        let tools = data.tools(w, &data.selected(w, &Filters::default()));
+        assert_eq!(tools["catalog"]["known"], false);
+        assert_eq!(tools["catalog"]["used"], 2);
+        assert_eq!(tools["tools"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            data.overview(w, &Filters::default())["attention"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+    }
+    #[test]
+    fn optional_protocol_metrics_wait_for_their_measurements() {
+        let now = Utc::now();
+        let mut call = fact(now, "tool.called", "known", false);
+        call.duration_ms = Some(2000);
+        let mut data = Data {
+            events: vec![call],
+            first: BTreeMap::new(),
+            settings: json!({}),
+            catalog: BTreeMap::new(),
+            catalog_info: json!({"known":false}),
+        };
+        let protocol = data.protocol(&data.events.iter().collect::<Vec<_>>());
+        assert_eq!(
+            protocol["progress"],
+            json!({"long_calls":null,"with_progress_pct":null})
+        );
+        assert!(protocol["sampling"]["requests"].is_null());
+        assert!(protocol["elicitation"]["requests"].is_null());
+        assert!(protocol["tasks"]["created"].is_null());
+        data.events[0].attrs = json!({"progress_events":0});
+        assert_eq!(
+            data.protocol(&data.events.iter().collect::<Vec<_>>())["progress"],
+            json!({"long_calls":1,"with_progress_pct":0.0})
+        );
+        data.events[0].attrs = json!({"progress_events":3});
+        assert_eq!(
+            data.protocol(&data.events.iter().collect::<Vec<_>>())["progress"]["with_progress_pct"],
+            100.0
+        );
+        data.events[0].duration_ms = Some(10);
+        assert_eq!(
+            data.protocol(&data.events.iter().collect::<Vec<_>>())["progress"],
+            json!({"long_calls":0,"with_progress_pct":null})
+        );
     }
     #[test]
     fn identity_precedence() {

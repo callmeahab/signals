@@ -793,7 +793,7 @@ def expect_tools(all_events, window, filters, settings):
     catalog = catalog_of(all_events)
     grouped = {name: [] for name in catalog["tools"]}
     for event in calls:
-        if event["tool"]:
+        if event["tool"] and (not catalog["known"] or event["tool"] in catalog["tools"]):
             grouped.setdefault(event["tool"], []).append(event)
     exact = window[1] - window[0] < timedelta(hours=6)
     tools = []
@@ -838,6 +838,7 @@ def expect_tools(all_events, window, filters, settings):
             "used": sum(1 for rows in grouped.values() if rows),
             "dead": dead,
             "known": catalog["known"],
+            "complete": catalog["known"],
             "catalog_hash": catalog["hash"],
             "updated_at": fmt(catalog["at"]) if catalog["at"] else None,
         },
@@ -860,7 +861,7 @@ def expect_overview(all_events, window, filters, settings):
     catalog = catalog_of(all_events)
     grouped = {name: [] for name in catalog["tools"]}
     for event in calls:
-        if event["tool"]:
+        if event["tool"] and (not catalog["known"] or event["tool"] in catalog["tools"]):
             grouped.setdefault(event["tool"], []).append(event)
     exact = window[1] - window[0] < timedelta(hours=6)
     attention = []
@@ -1194,7 +1195,7 @@ def expect_protocol(all_events, window, filters):
         "sampling": {"requests": None, "p95": None, "rejected_pct": None, "by_model": []},
         "elicitation": {"requests": None, "accept_pct": None, "decline_pct": None, "cancel_pct": None},
         "tasks": {"created": None, "completed": None, "failed": None, "cancelled": None},
-        "progress": {"long_calls": sum(e["type"] == "tool.called" and e["attrs"].get("duration_ms", 0) >= 1000 for e in events) if calls_of(events) else None, "with_progress_pct": None},
+        "progress": {"long_calls": None, "with_progress_pct": None},
     }
 
 
@@ -1274,6 +1275,58 @@ def percentile_bound(events, body):
         finding("blocker", "percentile-bound", f"p95 {reported} differs from exact {exact} by >= 26%")
 
 
+def e2e_catalogue_progress_probe(client, tenant_id):
+    project = client.admin("projects", {"tenant_id": tenant_id, "slug": "e2e-regression", "name": "E2E regression"})["id"]
+    key = client.admin("keys", {"project_id": project, "label": "e2e", "scopes": ["ingest", "read"]})["secret"]
+    stamp = datetime.now(timezone.utc) - timedelta(minutes=2)
+
+    def send(kind, attrs):
+        nonlocal stamp
+        stamp += timedelta(seconds=1)
+        status, body, _ = client.request("POST", "/v1/events", {
+            "schema_version": 1, "sent_at": fmt(datetime.now(timezone.utc)),
+            "source": {"sdk": "node", "sdk_version": "1", "server_name": "review", "server_version": "1", "instance_id": "e2e"},
+            "events": [{"id": uuid7(), "ts": fmt(stamp), "type": kind, "attrs": attrs}],
+        }, key=key)
+        if status != 202 or body.get("accepted") != 1:
+            finding("blocker", "e2e-ingest", f"{status} {body}")
+
+    def get(route):
+        status, body, _ = client.request("GET", f"/v1/projects/{project}/analytics/{route}?range=24h", key=key)
+        if status != 200:
+            finding("blocker", "e2e-route", f"{route}: {status} {body}")
+        return body
+
+    def expect(label, actual, expected):
+        if actual != expected:
+            finding("blocker", "e2e-" + label, f"expected {expected}, got {actual}")
+
+    send("tool.called", {"tool": "known", "duration_ms": 2000, "is_error": True, "error_kind": "unknown_tool"})
+    send("tool.called", {"tool": "outside", "duration_ms": 3000, "is_error": True})
+    tools = get("tools")
+    expect("uncatalogued", tools["catalog"]["known"], False)
+    expect("uncatalogued-rows", sorted(t["tool"] for t in tools["tools"]), ["known", "outside"])
+    expect("progress-waiting", get("protocol")["progress"], {"long_calls": None, "with_progress_pct": None})
+    send("tools.listed", {"tools": [{"name": "known"}, {"name": "dead"}], "count": 2})
+    tools = get("tools")
+    expect("complete", tools["catalog"].get("complete"), True)
+    expect("catalogue-rows", sorted(t["tool"] for t in tools["tools"]), ["dead", "known"])
+    expect("used", tools["catalog"]["used"], 1)
+    expect("dead", tools["catalog"]["dead"], ["dead"])
+    expect("attention", sorted(t["tool"] for t in get("overview")["attention"]), ["dead", "known"])
+    expect("hallucinations", get("reliability")["hallucinated_tools"], {"count": 2, "names": ["known", "outside"]})
+    send("tools.listed", {"tools": [{"name": "known"}], "count": 10, "truncated": True})
+    tools = get("tools")
+    expect("truncated-complete", tools["catalog"].get("complete"), False)
+    expect("truncated-dead", tools["catalog"]["dead"], None)
+    expect("truncated-rows", sorted(t["tool"] for t in tools["tools"]), ["known", "outside"])
+    expect("truncated-attention", sorted(t["tool"] for t in get("overview")["attention"]), ["known", "outside"])
+    expect("truncated-hallucinations", get("reliability")["hallucinated_tools"], {"count": 1, "names": ["known"]})
+    send("tool.called", {"tool": "known", "duration_ms": 2000, "progress_events": 0})
+    expect("progress-opt-in", get("protocol")["progress"], {"long_calls": 3, "with_progress_pct": 0.0})
+    print("E2E catalogue/progress assertions complete")
+
+
 def main():
     wait_ready()
     client = Client()
@@ -1290,6 +1343,8 @@ def main():
     client.admin("users", {"tenant_id": tenant_id, "email": user_email, "password": "review-owner-password", "role": "owner"})
     viewer_email = f"viewer-{uuid.uuid4().hex[:8]}@review.test"
     client.admin("users", {"tenant_id": tenant_id, "email": viewer_email, "password": "review-viewer-password", "role": "viewer"})
+
+    e2e_catalogue_progress_probe(client, tenant_id)
 
     # Wire acceptance on its own project so an empty tools.listed cannot replace the dataset catalogue.
     wire = client.admin("projects", {"tenant_id": tenant_id, "slug": "wire", "name": "Wire"})
