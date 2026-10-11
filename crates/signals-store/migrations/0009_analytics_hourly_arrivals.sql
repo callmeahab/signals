@@ -1,5 +1,7 @@
 -- Eligibility metadata is independent of raw-event partitions and retention.
 -- Statement-level capture records the newest committed arrival for each hour.
+-- Hold writers through backfill and trigger installation to avoid missed arrivals.
+LOCK TABLE events IN SHARE ROW EXCLUSIVE MODE;
 CREATE TABLE analytics_hourly_arrivals (
  project_id uuid NOT NULL REFERENCES projects(id),
  hour timestamptz NOT NULL,
