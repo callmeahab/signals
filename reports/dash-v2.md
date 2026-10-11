@@ -330,3 +330,47 @@ REPEAT_EXIT:0
 `git status --porcelain` produced no output after that run. `git diff --check` also produced no output. Earlier in this pass, lint flagged undeclared runtime globals in the new checks and imported review probe; explicit globalThis references resolved them before the final successful checks.
 
 No round-two findings remain open. The original backend integration notes remain applicable; legacy 90-day requests intentionally fall back to the collector's supported 30-day maximum, while analytics continues to support 90 days.
+
+
+## Integration
+
+Merged `main` first: fast-forward from `9cc578d` to `f00e64b`, without conflicts.
+Built the real Rust collector and dashboard, migrated an isolated PostgreSQL 16
+container (`dash-v2-integration-pg`, host port 25460, 1 GiB shared memory), and ran
+the browser against localhost port 25461 with Chromium using `/var/tmp/dash-int`.
+
+### Integration findings and changes
+
+- Replaced the stale backend browser QA with an isolated-project scenario: real
+  sign-in/project switching, UI key mint/revoke, 29 spec-valid events and replay,
+  exact 25 tool calls / one identity / one session / 96% success / 250 estimated
+  tokens, all eleven screens, the analytics timeline, legacy caller/session
+  rollups, SSE, settings persistence, rejected PATCH feedback, CSRF and logout.
+  The legacy caller count includes MCP requests and initialize events (27), while
+  analytics tool calls count only the 25 tool events. QA waits for the legacy
+  minute-based rollup rather than assuming immediate session materialization.
+- Timeline client/identity are structured objects, lifecycle output kinds can be
+  null, and day-seven funnel counts can be null with an optional eligible count.
+  Updated types, rendering, demo timeline shapes, and the existing header
+  assertion to inspect client name and identity key without reducing test scope.
+- Settings use the real nested `digest` document. Alert labels come from stable
+  rule IDs when names are absent; threshold/window controls appear only when
+  those fields exist. Existing demo alert editor coverage remains in place.
+  The request helper displays the server's explanatory message for 4xx responses.
+  PATCH serializes writable fields so read-only project metadata is not sent back.
+- Charts collect client names across all response buckets, render one-bucket
+  data visibly, and show an empty state for an empty series.
+
+### Backend contract escalation
+
+The initial backend returned only legacy project fields from `auth::account`
+(`GET /auth/me`) and offered PATCH but no GET at `/v1/projects/{id}`. Therefore a
+reload lost SLO settings, digest preferences and token divisor, despite successful
+PATCH persistence. Escalated this exact read-path gap through Orca ask, without
+changing Rust or manufacturing frontend defaults to conceal persisted settings.
+The coordinator amended `analytics-api.md` with **Settings read**: GET project
+and `/auth/me` carry safe analytics settings, PATCH returns the same document,
+and the secret is redacted to `probe_key_set`. The backend author owns that fix;
+the frontend now reads GET project when loading Settings.
+
+Final verification and backend-fix integration results follow below.

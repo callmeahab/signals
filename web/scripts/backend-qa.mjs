@@ -5,8 +5,9 @@ import { checkLoginStyles } from './login-styles.mjs';
 
 const uuid7=()=>{const hex=Date.now().toString(16).padStart(12,'0');return `${hex.slice(0,8)}-${hex.slice(8)}-7${crypto.randomUUID().slice(15)}`;};
 const envelope=events=>({schema_version:1,source:{sdk:'browser-qa',sdk_version:'1',server_name:'qa',server_version:'1',instance_id:'qa-1'},sent_at:new Date().toISOString(),dropped:0,events});
-const base=process.env.SIGNALS_URL??'http://127.0.0.1:8350';
-const replica=process.env.SIGNALS_REPLICA_URL??base;
+const docker=process.argv.includes('--docker');
+const base=process.env.SIGNALS_URL??(docker?'http://127.0.0.1:8350':'http://127.0.0.1:8300');
+const replica=process.env.SIGNALS_REPLICA_URL??(docker?'http://127.0.0.1:8351':base);
 const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL??'chromium'});
 mkdirSync('artifacts/v2-live',{recursive:true});
 try {
@@ -47,7 +48,7 @@ try {
  for(const screen of ['overview','adoption','tools','reliability','cost','protocol']){
   await visit(screen,`analytics/${screen}`);
   await expect(page.getByRole('button',{name:'Try again'})).toHaveCount(0);
-  if(screen==='overview'){await expect(page.locator('.tile').filter({hasText:'Tool calls'}).locator('strong')).toHaveText('25');await expect(page.locator('.tile').filter({hasText:'Tool success'}).locator('strong')).toHaveText('96%');await expect(page.getByText('Browser QA client',{exact:true})).toBeVisible();}
+  if(screen==='overview'){await expect(page.locator('.tile').filter({hasText:'Tool calls'}).locator('strong')).toHaveText('25');await expect(page.locator('.tile').filter({hasText:'Tool success'}).locator('strong')).toHaveText('96%');await expect(page.getByText('Browser QA client',{exact:true})).toBeVisible();await expect(page.getByRole('img',{name:'Stacked calls by client'}).locator('rect')).toHaveCount(1);}
   if(screen==='adoption')await expect(page.getByRole('row').filter({hasText:'Browser QA client'})).toContainText('25');
   if(screen==='tools'){await expect(page.getByRole('row').filter({has:page.getByRole('button',{name:'search_documents',exact:true})})).toContainText('13');await expect(page.getByRole('row').filter({has:page.getByRole('button',{name:'get_customer',exact:true})})).toContainText('12');}
   if(screen==='reliability')await expect(page.getByText('96%',{exact:true})).toBeVisible();
@@ -69,7 +70,7 @@ try {
  await page.getByLabel('Error rate (%) threshold').fill('9');await page.getByLabel('Weekly email digest').check();await page.getByLabel('Digest recipient').fill('digest@signals.test');await page.getByLabel('Token divisor',{exact:true}).fill('8');
  const patch=page.waitForResponse(r=>r.url()===`${base}/v1/projects/${project.id}`&&r.request().method()==='PATCH');
  await page.getByRole('button',{name:'Save analytics settings',exact:true}).click();const saved=await json(await patch);await page.getByText('Analytics settings saved.',{exact:true}).waitFor();
- assert.equal(saved.slo_classes.search_documents,'mutate');assert.equal(saved.slo_targets.read,99);assert.equal(saved.token_divisor,8);assert.equal(saved.digest.enabled,true);assert.equal(saved.digest.recipient,'digest@signals.test');
+ assert.equal(saved.alerts.find(r=>r.id==='errors').threshold,9);assert.equal(saved.slo_classes.search_documents,'mutate');assert.equal(saved.slo_targets.read,99);assert.equal(saved.token_divisor,8);assert.equal(saved.digest.enabled,true);assert.equal(saved.digest.recipient,'digest@signals.test');
  assert.equal((await analytics('alerts')).rules.find(r=>r.id==='errors').threshold,9);
  assert.equal((await analytics('cost')).total_tokens_est,130); // 26 calls * 40 bytes / divisor 8
  const digest=await analytics('digest');assert.equal(digest.tools.reduce((n,t)=>n+t.calls,0),26);
@@ -78,6 +79,8 @@ try {
  // A real rejected PATCH must retain the form and expose the actionable server message.
  await page.getByLabel('read SLO target (%)').fill('100');await page.getByRole('button',{name:'Save analytics settings',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'SLO targets must be between 0 and 100'})).toBeVisible();
  const csrf=await page.request.patch(`${base}/v1/projects/${project.id}`,{headers:{Origin:'https://untrusted.invalid'},data:{name:'CSRF'}});assert.equal(csrf.status(),403);
+ const viewerEmail=`viewer-${Date.now()}@signals.test`;
+ await json(await page.request.post(route('users'),{data:{email:viewerEmail,password:'viewer-test-password',role:'viewer'}}));assert((await json(await page.request.get(route('users')))).some(u=>u.email===viewerEmail));
  await page.getByRole('button',{name:'Revoke Browser QA',exact:true}).click();await page.getByRole('button',{name:'Revoke key',exact:true}).click();await page.getByText('Key revoked.',{exact:true}).waitFor();
  assert.equal((await page.request.get(route('analytics/overview'),{headers:{Authorization:`Bearer ${secret}`}})).status(),401);assert(key.id);
  await page.getByLabel('Select project').selectOption(initial.id);await expect(page.getByLabel('Project name')).toHaveValue(initial.name);

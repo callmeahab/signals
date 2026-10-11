@@ -29,7 +29,7 @@ export const client: SignalsClient = {
   keys: (p, signal) => request<Key[]>(path(p, '/keys'), { signal }),
   createKey: (p, label, scopes) => request(path(p, '/keys'), { method: 'POST', body: JSON.stringify({label, scopes}) }),
   revokeKey: (p, key) => request(path(p, `/keys/${key}`), { method: 'DELETE' }),
-  updateProject: (p, settings) => request<Project>(path(p, ''), { method: 'PATCH', body: JSON.stringify(Object.fromEntries(Object.entries(settings).filter(([key])=>['name','retention_days','rate_events_per_min','rate_bytes_per_min','slo_classes','slo_targets','digest','token_divisor'].includes(key)))) }),
+  updateProject: (p, settings) => request<Project>(path(p, ''), { method: 'PATCH', body: JSON.stringify(Object.fromEntries(Object.entries(settings).filter(([key])=>['name','retention_days','rate_events_per_min','rate_bytes_per_min','slo_classes','slo_targets','digest','token_divisor','alerts'].includes(key)))) }),
   users: (p, signal) => request<User[]>(path(p, '/users'), { signal }),
   createUser: (p, email, password, role) => request<User>(path(p, '/users'), {method:'POST',body:JSON.stringify({email,password,role})}),
   subscribe(p, onEvent, onStatus) {
