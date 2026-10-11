@@ -158,3 +158,14 @@ Changed []
 All **64/64 screenshots were byte-identical** on the final rerun; [determinism.json](../web/artifacts/v3/determinism.json) records the result. Both themes, both widths, every screen and both drawers are committed. The static screenshot server was then stopped and the on-disk temporary directory removed.
 
 Implementation commits: `988d5d7` and `38a595d` after the main merge and inherited-artifact preservation. Remaining acceptance work is the sub-100 ms performance target and the exact design differences listed above; this dispatch reports **failed**, despite the passing functional and integrated suites.
+
+Final cleanup verification:
+
+```sh
+git status --porcelain
+# no output
+test ! -e target
+# exit 0
+ss -ltn | grep -E ':23331|:23333|:25471|:25472'
+# no matching listeners
+```
