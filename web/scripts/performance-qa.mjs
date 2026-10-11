@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 const screen=process.env.PERFORMANCE_SCREEN??'adoption';
-const suffix=screen==='adoption'?'':`-${screen}`;
+const theme=process.env.PERFORMANCE_THEME??'light';
+const suffix=(screen==='adoption'?'':`-${screen}`)+(theme==='dark'?'-dark':'');
 const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL??'chromium'});
 mkdirSync('artifacts/v3',{recursive:true});
 try {
- const page=await browser.newPage({viewport:{width:1440,height:1000}});
+ const page=await browser.newPage({viewport:{width:1440,height:1000},colorScheme:theme});
  await page.addInitScript(()=>{globalThis.__SIGNALS_VISUAL_QA__=true;});
  await page.goto(process.env.BASE_URL??'http://127.0.0.1:23331');
  await page.locator('.chart-stacked-area svg').waitFor();

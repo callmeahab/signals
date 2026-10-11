@@ -1,5 +1,5 @@
 {
-  "product": "http://127.0.0.1:26110",
+  "product": "http://127.0.0.1:26331",
   "mock": "file:///home/vuk/orca/workspaces/syncup/boxfish/briefs/v3/dashboard-v3.html",
   "screens": {
     "overview": {
@@ -308,17 +308,10 @@
           },
           {
             "tag": "H2",
-            "text": "Active users",
+            "text": "Active identities",
             "size": "16px",
             "weight": "400",
             "family": "\"Krona One\""
-          },
-          {
-            "tag": "H2",
-            "text": "Stickiness",
-            "size": "15px",
-            "weight": "600",
-            "family": "\"Urbanist Variable\""
           },
           {
             "tag": "H2",
@@ -329,7 +322,7 @@
           },
           {
             "tag": "H2",
-            "text": "Client mix",
+            "text": "Clients",
             "size": "15px",
             "weight": "600",
             "family": "\"Urbanist Variable\""
@@ -343,14 +336,7 @@
           },
           {
             "tag": "H2",
-            "text": "Activation and drop-off",
-            "size": "15px",
-            "weight": "600",
-            "family": "\"Urbanist Variable\""
-          },
-          {
-            "tag": "H2",
-            "text": "Weekly retention",
+            "text": "Conversion",
             "size": "15px",
             "weight": "600",
             "family": "\"Urbanist Variable\""
@@ -360,9 +346,9 @@
           "DAU",
           "WAU",
           "MAU",
-          "D1 RETENTION",
-          "D7 RETENTION",
-          "D30 RETENTION"
+          "STICKINESS",
+          "NEW USERS",
+          "D7 RETENTION"
         ],
         "charts": [
           {
@@ -378,28 +364,32 @@
             "label": "MAU trend. Use arrow keys to inspect values."
           },
           {
+            "kind": "sparkline",
+            "label": "Stickiness trend. Use arrow keys to inspect values."
+          },
+          {
+            "kind": "sparkline",
+            "label": "New users trend. Use arrow keys to inspect values."
+          },
+          {
             "kind": "stacked-area",
             "label": "New and returning active users. Use arrow keys to inspect values."
           },
           {
             "kind": "donut",
-            "label": "DAU / WAU / MAU. Use arrow keys to inspect values."
-          },
-          {
-            "kind": "histogram",
             "label": "Identity quality. Use arrow keys to inspect values."
           },
           {
-            "kind": "histogram",
-            "label": "Transport and protocol. Use arrow keys to inspect values."
+            "kind": "bars",
+            "label": "Transport. Use arrow keys to inspect values."
           },
           {
-            "kind": "funnel",
-            "label": "Activation funnel. Use arrow keys to inspect values."
+            "kind": "bars",
+            "label": "Protocol version. Use arrow keys to inspect values."
           },
           {
-            "kind": "heatmap",
-            "label": "Weekly retention. Use arrow keys to inspect values."
+            "kind": "line",
+            "label": "Conversion. Use arrow keys to inspect values."
           }
         ],
         "empties": [],
@@ -2006,14 +1996,14 @@
           },
           {
             "tag": "H2",
-            "text": "Context by tool",
+            "text": "Where the context goes",
             "size": "16px",
             "weight": "400",
             "family": "\"Krona One\""
           },
           {
             "tag": "H2",
-            "text": "Tenant share",
+            "text": "By tenant",
             "size": "15px",
             "weight": "600",
             "family": "\"Urbanist Variable\""
@@ -2021,13 +2011,6 @@
           {
             "tag": "H2",
             "text": "Payload sizes",
-            "size": "15px",
-            "weight": "600",
-            "family": "\"Urbanist Variable\""
-          },
-          {
-            "tag": "H2",
-            "text": "Token estimates",
             "size": "15px",
             "weight": "600",
             "family": "\"Urbanist Variable\""
@@ -2043,9 +2026,16 @@
         "tiles": [
           "CONTEXT TOKENS",
           "PER CALL",
-          "TOOLS"
+          "HEAVIEST TOOL",
+          "TENANTS",
+          "LARGEST PAYLOAD",
+          "BILLING PERIOD"
         ],
         "charts": [
+          {
+            "kind": "sparkline",
+            "label": "Context tokens trend. Use arrow keys to inspect values."
+          },
           {
             "kind": "treemap",
             "label": "Context tokens by tool. Use arrow keys to inspect values."
@@ -2055,12 +2045,14 @@
             "label": "Tenant share. Use arrow keys to inspect values."
           },
           {
-            "kind": "histogram",
+            "kind": "bars",
             "label": "Payload size histogram: input and output calls. Use arrow keys to inspect values."
           }
         ],
         "empties": [],
-        "legends": [],
+        "legends": [
+          "Input Output"
+        ],
         "overflow": [
           1440,
           1440
@@ -2532,17 +2524,10 @@
           },
           {
             "tag": "H2",
-            "text": "Client capabilities",
+            "text": "Capability matrix",
             "size": "16px",
             "weight": "400",
             "family": "\"Krona One\""
-          },
-          {
-            "tag": "H2",
-            "text": "Server capabilities",
-            "size": "15px",
-            "weight": "600",
-            "family": "\"Urbanist Variable\""
           },
           {
             "tag": "H2",
@@ -2573,7 +2558,14 @@
             "family": "\"Urbanist Variable\""
           }
         ],
-        "tiles": [],
+        "tiles": [
+          "SESSIONS",
+          "CLIENT CAPABILITIES",
+          "SERVER CAPABILITIES",
+          "SAMPLING",
+          "ELICITATION",
+          "TASKS"
+        ],
         "charts": [
           {
             "kind": "dot-grid",
@@ -2590,7 +2582,9 @@
           "No data yet Waiting for tasks SDK events",
           "No data yet Waiting for progress SDK events"
         ],
-        "legends": [],
+        "legends": [
+          "client server"
+        ],
         "overflow": [
           1440,
           1440
@@ -3107,14 +3101,21 @@
           },
           {
             "tag": "H2",
-            "text": "Event rate",
-            "size": "16px",
-            "weight": "400",
-            "family": "\"Krona One\""
+            "text": "Events per second",
+            "size": "15px",
+            "weight": "600",
+            "family": "\"Urbanist Variable\""
           },
           {
             "tag": "H2",
             "text": "Event mix",
+            "size": "15px",
+            "weight": "600",
+            "family": "\"Urbanist Variable\""
+          },
+          {
+            "tag": "H2",
+            "text": "Errors in window",
             "size": "15px",
             "weight": "600",
             "family": "\"Urbanist Variable\""
@@ -3127,23 +3128,23 @@
             "family": "\"Krona One\""
           }
         ],
-        "tiles": [
-          "RECENT ERRORS"
-        ],
+        "tiles": [],
         "charts": [
           {
-            "kind": "area",
+            "kind": "sparkline",
             "label": "Live event rate. Use arrow keys to inspect values."
           },
           {
-            "kind": "donut",
+            "kind": "bars",
             "label": "Live event mix. Use arrow keys to inspect values."
+          },
+          {
+            "kind": "sparkline",
+            "label": "Live errors. Use arrow keys to inspect values."
           }
         ],
         "empties": [],
-        "legends": [
-          "Events"
-        ],
+        "legends": [],
         "overflow": [
           1440,
           1440
@@ -5089,8 +5090,7 @@
           "10/05",
           "10/06",
           "10/07"
-        ],
-        "legend": "Cursor Claude ChatGPT"
+        ]
       }
     },
     "funnelTooltipVisible": 1,
@@ -5108,13 +5108,6 @@
           "delta": 0.4
         },
         {
-          "label": "prev_p95 610",
-          "value": 610,
-          "x": 222.7,
-          "expected": 222.1,
-          "delta": 0.6
-        },
-        {
           "label": "p95 640",
           "value": 640,
           "x": 224.1,
@@ -5127,20 +5120,6 @@
           "x": 257.9,
           "expected": 257.2,
           "delta": 0.7
-        },
-        {
-          "label": "method NaN",
-          "value": null,
-          "x": null,
-          "expected": null,
-          "delta": null
-        },
-        {
-          "label": "sparkline NaN",
-          "value": null,
-          "x": null,
-          "expected": null,
-          "delta": null
         }
       ],
       "rows": 60,
@@ -5318,18 +5297,18 @@
           }
         ]
       },
-      "sparks": 0,
+      "sparks": 1,
       "payloadFills": [
+        "var(--chart-3)",
         "var(--chart-1)",
-        "var(--chart-2)",
+        "var(--chart-3)",
         "var(--chart-1)",
-        "var(--chart-2)",
+        "var(--chart-3)",
         "var(--chart-1)",
-        "var(--chart-2)",
+        "var(--chart-3)",
         "var(--chart-1)",
-        "var(--chart-2)",
-        "var(--chart-1)",
-        "var(--chart-2)"
+        "var(--chart-3)",
+        "var(--chart-1)"
       ]
     },
     "treemapTooltip": 1,
@@ -5397,10 +5376,10 @@
   },
   "motion": {
     "overview": {
-      "count": 2,
+      "count": 4,
       "long": [],
       "names": [
-        "lamp"
+        "ring"
       ]
     },
     "countUp": {
@@ -5408,11 +5387,11 @@
       "mid": "48.2K"
     },
     "lamp": {
-      "name": "lamp",
-      "duration": "2.4s",
-      "iteration": "infinite",
-      "beforeName": "none",
-      "beforeDuration": "0s"
+      "name": "none",
+      "duration": "0s",
+      "iteration": "1",
+      "beforeName": "ring",
+      "beforeDuration": "2.4s"
     },
     "clsAfterLoadAndSwitch": 0,
     "reduced": {
@@ -5429,1595 +5408,13 @@
     }
   },
   "performance": {
-    "firstPaintTaskMs": 74.072,
-    "tabSwitchTaskMs": 170.284,
-    "tabSwitchTraceBytes": 1971112
+    "firstPaintTaskMs": 29.329,
+    "tabSwitchTaskMs": 111.764,
+    "tabSwitchTraceBytes": 1018605
   },
-  "contrast": [
-    {
-      "tag": "overview-1440-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-1440-light",
-      "sample": "▲ 12.0% vs prior",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-1440-light",
-      "sample": "▲ 8.1% vs prior",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-1440-light",
-      "sample": "▲ 6.2% vs prior",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-1440-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-1440-light",
-      "sample": "▲ 4.9% vs prior",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-1440-light",
-      "sample": "▲ 10.0% vs prior",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "adoption-1440-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "adoption-1440-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "adoption-1440-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "tools-1440-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "tools-1440-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "tools-1440-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-1440-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-1440-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-1440-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-1440-light",
-      "sample": "39.4% of budget left",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-1440-light",
-      "sample": "0% of budget left",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-1440-light",
-      "sample": "Waiting for SDK error_code events",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-1440-light",
-      "sample": "Waiting for auth reason events — invalid, expired, missing, ",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-1440-light",
-      "sample": "Waiting for a synthetic prober · set probe_url in Settings",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "sessions-1440-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "sessions-1440-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "sessions-1440-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "sessions-1440-light",
-      "sample": "Error",
-      "ratio": 3.1,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.62 0.2 34)"
-    },
-    {
-      "tag": "cost-1440-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "cost-1440-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "cost-1440-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "protocol-1440-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "protocol-1440-light",
-      "sample": "Waiting for sampling SDK events",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "protocol-1440-light",
-      "sample": "Waiting for elicitation SDK events",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "protocol-1440-light",
-      "sample": "Waiting for tasks SDK events",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "protocol-1440-light",
-      "sample": "Waiting for progress SDK events",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "live-1440-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "live-1440-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "setup-1440-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "settings-1440-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "settings-1440-light",
-      "sample": "firing",
-      "ratio": 3.1,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.62 0.2 34)"
-    },
-    {
-      "tag": "overview-390-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-390-light",
-      "sample": "▲ 12.0% vs prior",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-390-light",
-      "sample": "▲ 8.1% vs prior",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-390-light",
-      "sample": "▲ 6.2% vs prior",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-390-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-390-light",
-      "sample": "▲ 4.9% vs prior",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "overview-390-light",
-      "sample": "▲ 10.0% vs prior",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "adoption-390-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "adoption-390-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "adoption-390-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "tools-390-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "tools-390-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "tools-390-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-390-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-390-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-390-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-390-light",
-      "sample": "39.4% of budget left",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-390-light",
-      "sample": "0% of budget left",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-390-light",
-      "sample": "Waiting for SDK error_code events",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-390-light",
-      "sample": "Waiting for auth reason events — invalid, expired, missing, ",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "reliability-390-light",
-      "sample": "Waiting for a synthetic prober · set probe_url in Settings",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "sessions-390-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "sessions-390-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "sessions-390-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "sessions-390-light",
-      "sample": "Error",
-      "ratio": 3.1,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.62 0.2 34)"
-    },
-    {
-      "tag": "cost-390-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "cost-390-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "cost-390-light",
-      "sample": "Current window",
-      "ratio": 2.77,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "protocol-390-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "protocol-390-light",
-      "sample": "Waiting for sampling SDK events",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "protocol-390-light",
-      "sample": "Waiting for elicitation SDK events",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "protocol-390-light",
-      "sample": "Waiting for tasks SDK events",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "protocol-390-light",
-      "sample": "Waiting for progress SDK events",
-      "ratio": 2.77,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "live-390-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "live-390-light",
-      "sample": "Current window",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "setup-390-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "settings-390-light",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.55,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.66 0.02 72)"
-    },
-    {
-      "tag": "settings-390-light",
-      "sample": "firing",
-      "ratio": 3.1,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.62 0.2 34)"
-    },
-    {
-      "tag": "overview-1440-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "overview-1440-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-1440-dark",
-      "sample": "▲ 12.0% vs prior",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-1440-dark",
-      "sample": "▲ 8.1% vs prior",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-1440-dark",
-      "sample": "▲ 6.2% vs prior",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-1440-dark",
-      "sample": "▲ 4.9% vs prior",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-1440-dark",
-      "sample": "▲ 10.0% vs prior",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "adoption-1440-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "adoption-1440-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "adoption-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "adoption-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "tools-1440-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "tools-1440-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "tools-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "tools-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "sample": "39.4% of budget left",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "sample": "0% of budget left",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "sample": "Waiting for SDK error_code events",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "sample": "Waiting for auth reason events — invalid, expired, missing, ",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "sample": "Waiting for a synthetic prober · set probe_url in Settings",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "sessions-1440-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "sessions-1440-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "sessions-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "sessions-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "sessions-1440-dark",
-      "sample": "1",
-      "ratio": 4.49,
-      "size": "13.5px",
-      "weight": "500",
-      "color": "oklch(0.657 0.19 23.96)"
-    },
-    {
-      "tag": "cost-1440-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "cost-1440-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "cost-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "cost-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "protocol-1440-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "protocol-1440-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "protocol-1440-dark",
-      "sample": "Waiting for sampling SDK events",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "protocol-1440-dark",
-      "sample": "Waiting for elicitation SDK events",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "protocol-1440-dark",
-      "sample": "Waiting for tasks SDK events",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "protocol-1440-dark",
-      "sample": "Waiting for progress SDK events",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "live-1440-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "live-1440-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "live-1440-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "setup-1440-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "setup-1440-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "settings-1440-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "settings-1440-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-390-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "overview-390-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-390-dark",
-      "sample": "▲ 12.0% vs prior",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-390-dark",
-      "sample": "▲ 8.1% vs prior",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-390-dark",
-      "sample": "▲ 6.2% vs prior",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-390-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-390-dark",
-      "sample": "▲ 4.9% vs prior",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "overview-390-dark",
-      "sample": "▲ 10.0% vs prior",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "adoption-390-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "adoption-390-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "adoption-390-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "adoption-390-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "tools-390-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "tools-390-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "tools-390-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "tools-390-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-390-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "reliability-390-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-390-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-390-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-390-dark",
-      "sample": "39.4% of budget left",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-390-dark",
-      "sample": "0% of budget left",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-390-dark",
-      "sample": "Waiting for SDK error_code events",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-390-dark",
-      "sample": "Waiting for auth reason events — invalid, expired, missing, ",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "reliability-390-dark",
-      "sample": "Waiting for a synthetic prober · set probe_url in Settings",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "sessions-390-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "sessions-390-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "sessions-390-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "sessions-390-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "cost-390-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "cost-390-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "cost-390-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "cost-390-dark",
-      "sample": "Current window",
-      "ratio": 2.29,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "protocol-390-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "protocol-390-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "protocol-390-dark",
-      "sample": "Waiting for sampling SDK events",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "protocol-390-dark",
-      "sample": "Waiting for elicitation SDK events",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "protocol-390-dark",
-      "sample": "Waiting for tasks SDK events",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "protocol-390-dark",
-      "sample": "Waiting for progress SDK events",
-      "ratio": 2.29,
-      "size": "12px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "live-390-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "live-390-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "live-390-dark",
-      "sample": "Current window",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "setup-390-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "setup-390-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    },
-    {
-      "tag": "settings-390-dark",
-      "sample": "Skip to content",
-      "ratio": 1.39,
-      "size": "14px",
-      "weight": "500",
-      "color": "oklch(0.9458 0.0153 77.07)"
-    },
-    {
-      "tag": "settings-390-dark",
-      "sample": "SIGNALS / northwind",
-      "ratio": 2.51,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.45 0.02 70)"
-    }
-  ],
+  "contrast": [],
   "overflow": [],
-  "clipped": [
-    {
-      "tag": "overview-1440-light",
-      "text": "Tool success trend BUCKET VALUE 1 99.17650714729646 2 99.1540864133264 3 99.1490",
-      "sw": 217,
-      "cw": 185
-    },
-    {
-      "tag": "tools-1440-light",
-      "text": "cancel_booking · refund · archive_order",
-      "sw": 201,
-      "cw": 157
-    },
-    {
-      "tag": "reliability-1440-light",
-      "text": "6,480 attempts · waiting for init outcomes",
-      "sw": 210,
-      "cw": 157
-    },
-    {
-      "tag": "reliability-1440-light",
-      "text": "waiting for unknown-tool events",
-      "sw": 163,
-      "cw": 157
-    },
-    {
-      "tag": "overview-390-light",
-      "text": "Tool success trend BUCKET VALUE 1 99.17650714729646 2 99.1540864133264 3 99.1490",
-      "sw": 217,
-      "cw": 172
-    },
-    {
-      "tag": "overview-390-light",
-      "text": "0 2,500 5,000 7,500 10K 10/05 10/07 10/09 10/11 Stacked calls by client DATE CUR",
-      "sw": 411,
-      "cw": 328
-    },
-    {
-      "tag": "overview-390-light",
-      "text": "W0 W1 W2 W3 W4 120 2026-09-07 100% 41% 33% 29% 27% 138 2026-09-14 100% 44% 35% 3",
-      "sw": 532,
-      "cw": 328
-    },
-    {
-      "tag": "adoption-390-light",
-      "text": "0 200 400 600 10/05 10/07 10/09 10/11 New and returning active users DATE RETURN",
-      "sw": 336,
-      "cw": 328
-    },
-    {
-      "tag": "adoption-390-light",
-      "text": "W0 W1 W2 W3 W4 120 2026-09-07 100% 41% 33% 29% 27% 138 2026-09-14 100% 44% 35% 3",
-      "sw": 532,
-      "cw": 328
-    },
-    {
-      "tag": "tools-390-light",
-      "text": "cancel_booking · refund · archive_order",
-      "sw": 201,
-      "cw": 144
-    },
-    {
-      "tag": "tools-390-light",
-      "text": "same tool, same session, < 30 s",
-      "sw": 157,
-      "cw": 144
-    },
-    {
-      "tag": "tools-390-light",
-      "text": "0 2,000 4,000 6,000 10 30 100 300 1s 3s 10s p50 180 prev_p95 610 p95 640 p99 2,1",
-      "sw": 383,
-      "cw": 328
-    },
-    {
-      "tag": "tools-390-light",
-      "text": "search_products get_product add_to_cart get_customer list_orders book_flight Com",
-      "sw": 480,
-      "cw": 328
-    },
-    {
-      "tag": "reliability-390-light",
-      "text": "6,480 attempts · waiting for init outcomes",
-      "sw": 210,
-      "cw": 144
-    },
-    {
-      "tag": "reliability-390-light",
-      "text": "waiting for unknown-tool events",
-      "sw": 163,
-      "cw": 144
-    },
-    {
-      "tag": "reliability-390-light",
-      "text": "100 300 1 s 3 s 10/05 10/07 10/09 10/11 p99 p95 p50 ms Latency p50–p95–p99 DATE ",
-      "sw": 348,
-      "cw": 328
-    },
-    {
-      "tag": "sessions-390-light",
-      "text": "0s 0.5s 1s 1.5s session initialize 115 ms tools/list 150 ms search_pr… 185 ms ge",
-      "sw": 501,
-      "cw": 328
-    },
-    {
-      "tag": "sessions-390-light",
-      "text": "The story of a connection Newest sessions first · select one to see its timeline",
-      "sw": 789,
-      "cw": 356
-    },
-    {
-      "tag": "settings-390-light",
-      "text": "Project keys Revoked keys stop working immediately LABEL KEY ID PERMISSIONS LAST",
-      "sw": 513,
-      "cw": 356
-    },
-    {
-      "tag": "overview-1440-dark",
-      "text": "Tool success trend BUCKET VALUE 1 99.17650714729646 2 99.1540864133264 3 99.1490",
-      "sw": 217,
-      "cw": 185
-    },
-    {
-      "tag": "tools-1440-dark",
-      "text": "cancel_booking · refund · archive_order",
-      "sw": 201,
-      "cw": 157
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "text": "6,480 attempts · waiting for init outcomes",
-      "sw": 210,
-      "cw": 157
-    },
-    {
-      "tag": "reliability-1440-dark",
-      "text": "waiting for unknown-tool events",
-      "sw": 163,
-      "cw": 157
-    },
-    {
-      "tag": "overview-390-dark",
-      "text": "Tool success trend BUCKET VALUE 1 99.17650714729646 2 99.1540864133264 3 99.1490",
-      "sw": 217,
-      "cw": 172
-    },
-    {
-      "tag": "overview-390-dark",
-      "text": "0 2,500 5,000 7,500 10K 10/05 10/07 10/09 10/11 Stacked calls by client DATE CUR",
-      "sw": 411,
-      "cw": 328
-    },
-    {
-      "tag": "overview-390-dark",
-      "text": "W0 W1 W2 W3 W4 120 2026-09-07 100% 41% 33% 29% 27% 138 2026-09-14 100% 44% 35% 3",
-      "sw": 532,
-      "cw": 328
-    },
-    {
-      "tag": "adoption-390-dark",
-      "text": "0 200 400 600 10/05 10/07 10/09 10/11 New and returning active users DATE RETURN",
-      "sw": 336,
-      "cw": 328
-    },
-    {
-      "tag": "adoption-390-dark",
-      "text": "W0 W1 W2 W3 W4 120 2026-09-07 100% 41% 33% 29% 27% 138 2026-09-14 100% 44% 35% 3",
-      "sw": 532,
-      "cw": 328
-    },
-    {
-      "tag": "tools-390-dark",
-      "text": "cancel_booking · refund · archive_order",
-      "sw": 201,
-      "cw": 144
-    },
-    {
-      "tag": "tools-390-dark",
-      "text": "same tool, same session, < 30 s",
-      "sw": 157,
-      "cw": 144
-    },
-    {
-      "tag": "tools-390-dark",
-      "text": "0 2,000 4,000 6,000 10 30 100 300 1s 3s 10s p50 180 prev_p95 610 p95 640 p99 2,1",
-      "sw": 383,
-      "cw": 328
-    },
-    {
-      "tag": "tools-390-dark",
-      "text": "search_products get_product add_to_cart get_customer list_orders book_flight Com",
-      "sw": 480,
-      "cw": 328
-    },
-    {
-      "tag": "reliability-390-dark",
-      "text": "6,480 attempts · waiting for init outcomes",
-      "sw": 210,
-      "cw": 144
-    },
-    {
-      "tag": "reliability-390-dark",
-      "text": "waiting for unknown-tool events",
-      "sw": 163,
-      "cw": 144
-    },
-    {
-      "tag": "reliability-390-dark",
-      "text": "100 300 1 s 3 s 10/05 10/07 10/09 10/11 p99 p95 p50 ms Latency p50–p95–p99 DATE ",
-      "sw": 348,
-      "cw": 328
-    },
-    {
-      "tag": "sessions-390-dark",
-      "text": "0s 0.5s 1s 1.5s session initialize 115 ms tools/list 150 ms search_pr… 185 ms ge",
-      "sw": 501,
-      "cw": 328
-    },
-    {
-      "tag": "sessions-390-dark",
-      "text": "The story of a connection Newest sessions first · select one to see its timeline",
-      "sw": 789,
-      "cw": 356
-    },
-    {
-      "tag": "settings-390-dark",
-      "text": "Project keys Revoked keys stop working immediately LABEL KEY ID PERMISSIONS LAST",
-      "sw": 513,
-      "cw": 356
-    }
-  ],
+  "clipped": [],
   "drawers": {
     "tool": {
       "h1": "Tools",

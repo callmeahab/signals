@@ -1,6 +1,8 @@
 # Dashboard v3 implementation report
 
-Status: **acceptance incomplete**. Functional web, Next.js, and integrated collector checks pass; the performance budget and exact mock fidelity remain unresolved. Work is on `vuk88/dash-v2`; nothing was pushed. The coordinator requested this report here and will move reports out of the public repository at merge time.
+Current status: **Round 1 acceptance passed**. The original-dispatch sections below are retained as history; the Round 1 section records the current changes and verification.
+
+Original dispatch status: **acceptance incomplete**. Functional web, Next.js, and integrated collector checks pass; the performance budget and exact mock fidelity remain unresolved. Work is on `vuk88/dash-v2`; nothing was pushed. The coordinator requested this report here and will move reports out of the public repository at merge time.
 
 ## Changes
 
@@ -168,4 +170,199 @@ test ! -e target
 # exit 0
 ss -ltn | grep -E ':23331|:23333|:25471|:25472'
 # no matching listeners
+```
+
+
+## Round 1 fixes
+
+Merged current main first (`f591a5d`), including the collector latency detail amendment. The coordinator corrected two brief ambiguities: `latency_over_time` is the contract object, not an array; overview sparkline length must equal the number of time buckets in the requested window and the reliability series length, not the sparse client-call series length. Those rules are asserted against ingested backend data.
+
+Changes by file: `analytics-v3.tsx` replaces Adoption/Cost/Protocol layouts and clamps count-up progress; `dashboard.tsx` replaces Live area/donut with two sparklines and bars; `charts/index.tsx` provides conversion, series colours, marker filtering, accessible scroll regions and viewport-triggered SVG creation; `charts/renderers.js` preserves null gaps and avoids geometry reads for path normalization; `styles.css`/`shell.css` fix dashboard-specific contrast, wrapping, scrolling, compositor-friendly motion and lamp rings; `demo-analytics.ts` caches derived route data with settings/rules invalidation; `backend-qa.mjs` checks actual latency shapes/counts/window buckets and rendered charts; `visual-qa.mjs` checks the approved chart inventory and shares the reviewer's contrast/clip measurement in `contrast-clip.mjs`; the regression and reviewer probes now inspect the visible data tables and scroll lazy charts into view.
+
+Profiling before changes used the Chromium timeline and CDP CPU profiler (the performance script now accepts `--cpu-profile`). The first profiled run reported 125.75 ms; style recalculation accounted for 37.75 ms, layout 10.49 ms, and paint 13.42 ms. No threshold was raised and motion remains enabled in the performance test. Below-fold SVG work now waits for IntersectionObserver visibility, demo route results are cached, synchronous path-length reads are replaced by normalized SVG path lengths, and area/donut/sparkline entrance motion uses composited HTML layers instead of repeatedly painting SVG geometry. Count-ups start at zero and clamp the rAF timestamp before easing.
+
+Cost has no time-series field in the contract. Its estimated sparkline uses each tool's per-bucket call counts multiplied by that tool's measured estimated tokens per call, as the Overview estimate already did; this is an estimate, not exact per-bucket token accounting. Missing WAU/MAU trend values remain waiting states; unsupported retention trend values are not fabricated. The coordinator's previous Setup exception remains in force.
+
+Final verification results and one observed result per blocker follow below.
+
+| Blocker | Verification command | Observed result |
+|---|---|---|
+| 1 Performance | `cd web && BASE_URL=http://127.0.0.1:26331 bun scripts/performance-qa.mjs`; repeat with `PERFORMANCE_SCREEN=tools` | Adoption **95.88 ms**, Tools **90.39 ms**, both under the unchanged 100 ms assertion. |
+| 2 Histogram markers | `PRODUCT_URL=http://127.0.0.1:26331 bun reports/review-r1/fidelity.mjs` and visual QA | Exactly **3** labels: p50 180, p95 640, p99 2,100; no NaN or extra metadata markers. Maximum marker x-position rounding difference **0.7 px**. |
+| 3 Adoption | Same fidelity command; `BASE_URL=http://127.0.0.1:26331 bun scripts/visual-qa.mjs` | **6** approved tiles; stacked area, identity donut, client table, **2** bar charts and conversion line; no funnel or heatmap. |
+| 4 Cost | Same fidelity and visual commands | **6** approved tiles, **1** token sparkline, treemap and **2** bar charts; title “Where the context goes”; Input chart-3 / Output chart-1. |
+| 5 Protocol | Same fidelity/visual commands and `PRODUCT_URL=http://127.0.0.1:26331 bun reports/review-r1/countup.mjs` | **6** tiles, **2** dot grids, client chart-1 / server chart-3; null feature states retained. |
+| 6 Live | Same fidelity/visual commands | **2** sparklines and **1** bar chart; 40-second rate window, 72px sparklines, and **2** expanding lamp rings (2.4s cycle); reduced-motion animations empty. |
+| 7 Contrast | Same fidelity command with shared `contrastAndClip` measurement | **0** failing contrast pairs over both themes and both widths, excluding hidden table twins and the unfocused off-screen skip link. |
+| 8 Clipping | Same fidelity command; visual QA invokes the same measurement | **0** visible clips and **0** page overflow cases; wide tables, Sankey and Gantt scroll inside their cards. |
+
+The count-up probe sampled `0, 0, 21.7K, …, 48.2K` and asserted non-negative, monotone values. The source no longer permits a negative rAF delta or an initial final-value flash. The fidelity run's separate Tools trace was 111.764 ms while other browser tests were running; the dedicated, serial performance commands above passed without changing their budget or motion settings. First-paint work in that fidelity run was 29.329 ms (previous review: 74.072 ms).
+
+The updated browser QA also directly checks per-tool histogram counts against call counts, 61 edges ending in null, 60 bins, populated latency band points, and overview sparkline length against both the requested window and reliability series. It opens the real tool drawer and asserts its histogram, and checks the real Overview sparkline and Reliability band. Earlier failures during development were a sparse-client-series length comparison (corrected per coordinator ruling) and an ambiguous Cost bar-table selector (narrowed to Tenant share).
+
+
+Screenshot determinism initially exposed stale widths from card-level `content-visibility`. That shortcut was removed; SVG creation and card entry animations are instead triggered by IntersectionObserver. SVGs now have view boxes, and the mobile ribbon wrapper occupies the full chart grid row. Visual captures scroll lazy charts into view, wait for fonts and animation frames, and reset drawer/table/window scroll positions before capture. The baseline CPU profile is [tab-switch-before.cpuprofile](../web/artifacts/v3/tab-switch-before.cpuprofile); final budget traces are the committed default and Tools trace files.
+
+The Live browser assertion was also made unambiguous: it waits for the newly ingested event ID in its event row, rather than a tool name already present in the batch. Both the standalone real-backend suite and a fresh full harness run use this stronger assertion.
+
+### Round 1 final commands and observed output
+
+The integrated harness exited 0, including the stricter Live event-ID assertion and all new latency assertions. It ran before the final chart-width-only refinement; the final embedded UI was then rebuilt and the same real-backend browser suite rerun successfully against a separate database. Web checks, browser/Next tests, fidelity and the two static capture runs below cover the final rendering changes.
+
+```sh
+cd web && bun run check
+```
+```text
+$ bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+```
+
+```sh
+cd web && bun run build
+```
+```text
+dist/assets/index-tYU5kOSR.css                                     68.76 kB │ gzip:  13.68 kB
+dist/assets/index-CXdaKMQg.js                                     343.44 kB │ gzip: 104.75 kB
+
+✓ built in 211ms
+```
+
+```sh
+cd web && SIGNALS_TEST_UI_PORT=26351 R2_PORT=26352 PLAYWRIGHT_CHANNEL=chromium bun run test
+```
+```text
+review-r2 probe passed
+
+  VITE v8.3.2  ready in 92 ms
+
+  ➜  Local:   http://127.0.0.1:26351/
+Visual QA passed: v3 chart SVG/table twins and both drawer captures; 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+```
+
+```sh
+cd web && SIGNALS_NEXT_PORT=26353 PLAYWRIGHT_CHANNEL=chromium bun run test:next
+```
+```text
+- Network:       http://127.0.0.1:26353
+✓ Ready in 56ms
+✓ Running next.config.mjs took 11ms
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.
+```
+
+```sh
+cargo build --locked --bin signals
+```
+```text
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s
+```
+
+```sh
+cd web && SIGNALS_URL=http://127.0.0.1:26345 PLAYWRIGHT_CHANNEL=chromium TMPDIR=/home/vuk/orca/workspaces/signals-collector/dash-v2/t-r1 bun run qa:backend
+```
+```text
+$ bun scripts/backend-qa.mjs
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v3 analytics, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+```
+
+```sh
+cd web && BASE_URL=http://127.0.0.1:26331 bun scripts/performance-qa.mjs
+```
+```text
+Chromium tab switch main-thread work: 95.88 ms (budget < 100 ms)
+```
+
+```sh
+cd web && PERFORMANCE_SCREEN=tools BASE_URL=http://127.0.0.1:26331 bun scripts/performance-qa.mjs
+```
+```text
+Chromium tab switch main-thread work: 90.39 ms (budget < 100 ms)
+```
+
+```sh
+cd web && PERFORMANCE_THEME=dark BASE_URL=http://127.0.0.1:26331 bun scripts/performance-qa.mjs
+```
+```text
+Chromium tab switch main-thread work: 95.56 ms (budget < 100 ms)
+```
+
+```sh
+cd web && PERFORMANCE_THEME=dark PERFORMANCE_SCREEN=tools BASE_URL=http://127.0.0.1:26331 bun scripts/performance-qa.mjs
+```
+```text
+Chromium tab switch main-thread work: 86.47 ms (budget < 100 ms)
+```
+
+```sh
+# Ports checked with ss -ltn before starting services.
+# Dedicated postgres:18.6-bookworm container dash-v3-fix-r1-pg:
+# --shm-size=1g -p 127.0.0.1:26341:5432
+# target/r1-bin/psql strips DATABASE_URL and delegates to:
+# docker exec -i dash-v3-fix-r1-pg psql -U postgres -d signals
+PATH="$PWD/target/r1-bin:$HOME/.cargo/bin:$HOME/.bun/bin:$PATH" \
+TMPDIR="$PWD/t-r1" DATABASE_URL=postgres://postgres:signals@127.0.0.1:26341/signals \
+ANALYTICS_PG_CONTAINER=dash-v3-fix-r1-pg SIGNALS_URL=http://127.0.0.1:26342 \
+ANALYTICS_REVIEW_URL=http://127.0.0.1:26343 ANALYTICS_REVIEW_PROBE_PORT=26344 \
+SIGNALS_PROBE_LATENCY_BUDGET_MS=900 PLAYWRIGHT_CHANNEL=chromium \
+python3 scripts/ci-conformance.py
+```
+```text
+  }
+]
+subject_kind breakdown {'key': 1, 'network': 1, 'strong': 0} status 200
+FINDINGS 0 MISMATCHES 0
+```
+
+```sh
+PRODUCT_URL=http://127.0.0.1:26331 PLAYWRIGHT_CHANNEL=chromium bun reports/review-r1/fidelity.mjs
+PRODUCT_URL=http://127.0.0.1:26331 bun reports/review-r1/countup.mjs
+```
+```text
+Contrast failures: 0; visible clips: 0; page overflows: 0
+Monotone/non-negative count-up assertion passed; reduced-motion running animations: []
+[
+  {
+    pseudo: "::before",
+    name: "ring",
+    duration: "2.4s",
+    delay: "0s",
+  }, {
+    pseudo: "::after",
+    name: "ring",
+    duration: "2.4s",
+    delay: "1.2s",
+  }
+]
+```
+
+```sh
+cd web
+BASE_URL=http://127.0.0.1:26331 PLAYWRIGHT_CHANNEL=chromium bun scripts/visual-qa.mjs
+# Repeated serially; SHA-256 comparison of all artifacts/v3/*.png.
+```
+```text
+Visual QA passed: v3 chart SVG/table twins and both drawer captures; 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+Visual QA passed: v3 chart SVG/table twins and both drawer captures; 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+Deterministic screenshots: 64 changed: []
+```
+
+All 64 captures, including both callers-390 files, were committed at `a8099a6` before the rerun finished. The rerun left those PNGs unchanged. The four standalone performance checks passed: light Adoption 95.88 ms / Tools 90.39 ms, dark Adoption 95.56 ms / Tools 86.47 ms. No Round 1 blocker or should-fix remains open. Final cleanup and clean-status verification are recorded below.
+
+Final cleanup completed: the dedicated Postgres container and its anonymous volume were removed; all task listeners on 26331, 26341–26345 and 26351–26353 are gone; `target/`, `t-r1/`, the temporary static build and capture baseline directories were deleted. Only durable reports, traces and screenshots are committed; nothing was pushed.
+
+```sh
+git diff --exit-code -- web/artifacts/v3/*.png
+# exit 0 after the second static run
+test ! -e target && test ! -e t-r1
+# exit 0
+ss -ltn | grep -E ':26331|:2634[1-5]|:2635[1-3]'
+# no matching listeners
+docker stop dash-v3-fix-r1-pg
+docker rm -v dash-v3-fix-r1-pg
+# both returned the container name successfully
+```
+
+```sh
+git status --porcelain
+# no output after the evidence commit
 ```
