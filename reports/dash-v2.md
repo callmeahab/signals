@@ -459,3 +459,58 @@ Committed real-data captures: `web/artifacts/v2-live/overview.png`,
 the real collector, before the additional Live event and settings changes; they
 show 25 calls and 250 estimated tokens. All three were visually inspected.
 The full demo visual run also regenerated its tracked screenshots without drift.
+
+### Complete conformance result and cleanup
+
+`python3 scripts/ci-conformance.py` exited **0**. This ran the spec sweep,
+transport probes, login-style QA, the rewritten real-backend browser QA, the
+release build, and the independent analytics review probe. Selected literal
+output and the final tail from `web/artifacts/integration-ci.log`:
+
+```text
+identity: 39/39 valid fixtures matched
+identity: 49/49 invalid fixtures matched
+gzip: 39/39 valid fixtures matched
+gzip: 49/49 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v2 analytics, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+perf facts 100000
+
+]
+subject_kind breakdown {'key': 1, 'network': 1, 'strong': 0} status 200
+FINDINGS 0 MISMATCHES 0
+```
+
+The probe result was preserved before deleting `target/`:
+
+```json
+{
+  "findings": [],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 188.86,
+    "adoption": 256.27,
+    "tools": 139.05,
+    "reliability": 120.81,
+    "cost": 150.77,
+    "protocol": 45.87,
+    "digest": 167.12,
+    "alerts": 1.86,
+    "timeline": 9.79
+  }
+}
+```
+
+All required acceptance commands passed. No backend deviation remains unresolved:
+the settings-read gap was fixed by its author and verified through real GET,
+PATCH, `/auth/me`, and browser reload behavior. Rust source was imported through
+the backend author's merge rather than edited in this dashboard task.
+
+Stopped and removed only the owned `dash-v2-integration-pg` container. Both
+collector processes were stopped by their test runners; the initial manual
+collector was stopped before conformance. Removed the owned `target/` directory
+and `/var/tmp/dash-int`; preserved useful logs under ignored `web/artifacts/`.
+The demo/Next test runners also stopped their Vite/Next servers and cleaned their
+temporary host package. No deployment or push was performed.
