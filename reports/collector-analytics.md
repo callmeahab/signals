@@ -1024,3 +1024,162 @@ cold overview latency, fixing observed work, and configuring the latency probe a
 warmup plus median of three with `SIGNALS_PROBE_LATENCY_BUDGET_MS` (local default
 300, CI 900). Correctness mismatches remain a hard failure. Explicit-clock alert
 work was explicitly dropped; the remaining acceptance checks still apply.
+
+Changes by file:
+
+- `crates/signals-store/src/analytics.rs`: reuse overview's already-built identity
+  set and token total; use timestamp bounds for histogram fallback so the previous
+  window does not scan all current-window facts.
+- `crates/signals-store/examples/analytics_profile.rs`: repeatable isolated 100k
+  fixture and stage-level cold/warm profiling, with no collector worker running.
+- `scripts/analytics-review-probe.py`: warmup and median of three for every timed
+  route, including timeline; validate positive finite budget; retain every sample
+  and budget in the artifact. Non-200 responses and semantic mismatches still fail.
+- `.github/workflows/signals.yml`: CI-only 900 ms budget, per corrected scope.
+- `docs/analytics.md`: latency policy and profiling commands.
+- `reports/collector-analytics.md`: evidence and scope correction.
+
+Setup and profiling commands (all exited 0):
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+(cd web && BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun install --frozen-lockfile && bun run build)
+docker run -d --name signals-ci-latency-pg --shm-size=1g -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:25439:5432 postgres:18.6-bookworm
+SQLX_OFFLINE=true cargo build --locked --release --bin signals
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals
+target/release/signals migrate
+docker exec -i signals-ci-latency-pg psql -U postgres -d signals -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+SQLX_OFFLINE=true cargo run --locked --release -p signals-store --example analytics_profile -- --seed
+export PROJECT_ID=54baf46f-8e1e-47fc-8b6b-c09353020e94
+docker restart signals-ci-latency-pg
+target/release/examples/analytics_profile
+# Add component breakdowns, rerun the baseline:
+SQLX_OFFLINE=true cargo run --locked --release -p signals-store --example analytics_profile
+# After optimization:
+SQLX_OFFLINE=true cargo build --locked --release -p signals-store --example analytics_profile
+docker restart signals-ci-latency-pg
+target/release/examples/analytics_profile
+```
+
+Web build ended `built in 452ms`; seed printed the project ID above. PostgreSQL
+restart clears shared buffers, not the host operating-system file cache. This is
+an application-cache and PostgreSQL-buffer cold measurement, not a cold physical
+disk measurement. The profile executes the real store functions used by overview;
+HTTP auth and JSON response serialization are covered by the full probe below.
+
+Baseline before optimization:
+
+```text
+{"calls":100000,"current_hist_ms":12.503186,"current_scopes":2,"facts":100000,"iteration":0,"load_ms":248.38514,"overview_ms":171.07182300000002,"previous_hist_ms":2.954811,"previous_scopes":0,"total_ms":434.91496}
+{"calls":100000,"current_hist_ms":11.947259,"current_scopes":2,"facts":100000,"iteration":1,"load_ms":0.16025699999999998,"overview_ms":170.846602,"previous_hist_ms":2.980254,"previous_scopes":0,"total_ms":185.934372}
+{"calls":100000,"current_hist_ms":10.666133,"current_scopes":2,"facts":100000,"iteration":2,"load_ms":0.397967,"overview_ms":163.238133,"previous_hist_ms":3.8725029999999996,"previous_scopes":0,"total_ms":178.174736}
+{"calls":100000,"current_hist_ms":10.306117,"current_scopes":2,"facts":100000,"iteration":3,"load_ms":0.16536299999999998,"overview_ms":178.11729300000002,"previous_hist_ms":2.990782,"previous_scopes":0,"total_ms":191.579555}
+```
+
+Additional baseline component breakdown:
+
+```text
+   Compiling signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-store)
+    Finished `release` profile [optimized] target(s) in 13.41s
+     Running `target/release/examples/analytics_profile`
+components {"by_kind_ms":39.861015,"cohorts_ms":36.813477999999996,"funnel_ms":19.134163}
+{"calls":100000,"current_hist_ms":15.042821,"current_scopes":2,"facts":100000,"iteration":0,"load_ms":284.22037300000005,"overview_ms":225.12801800000003,"previous_hist_ms":4.623918000000001,"previous_scopes":0,"total_ms":529.01513}
+components {"by_kind_ms":28.968069,"cohorts_ms":32.302305000000004,"funnel_ms":16.310413}
+{"calls":100000,"current_hist_ms":14.515118000000001,"current_scopes":2,"facts":100000,"iteration":1,"load_ms":0.897717,"overview_ms":236.954146,"previous_hist_ms":4.186935999999999,"previous_scopes":0,"total_ms":256.553917}
+components {"by_kind_ms":29.362239,"cohorts_ms":39.155568,"funnel_ms":15.058286}
+{"calls":100000,"current_hist_ms":11.408946,"current_scopes":2,"facts":100000,"iteration":2,"load_ms":0.817411,"overview_ms":207.454264,"previous_hist_ms":4.581206,"previous_scopes":0,"total_ms":224.261827}
+components {"by_kind_ms":40.853905000000005,"cohorts_ms":44.14275,"funnel_ms":16.220878000000003}
+{"calls":100000,"current_hist_ms":12.158403,"current_scopes":2,"facts":100000,"iteration":3,"load_ms":0.5842809999999999,"overview_ms":215.891897,"previous_hist_ms":3.7703480000000003,"previous_scopes":0,"total_ms":232.404929}
+```
+
+After optimization:
+
+```text
+components {"by_kind_ms":20.187502,"cohorts_ms":24.669772,"funnel_ms":14.292733}
+{"calls":100000,"current_hist_ms":18.739869,"current_scopes":2,"facts":100000,"iteration":0,"load_ms":261.037739,"overview_ms":122.04448699999999,"previous_hist_ms":0.640821,"previous_scopes":0,"total_ms":402.462916}
+components {"by_kind_ms":20.328474,"cohorts_ms":22.644153,"funnel_ms":13.430971}
+{"calls":100000,"current_hist_ms":12.989638,"current_scopes":2,"facts":100000,"iteration":1,"load_ms":0.259339,"overview_ms":113.665206,"previous_hist_ms":0.8037679999999999,"previous_scopes":0,"total_ms":127.717951}
+components {"by_kind_ms":21.828767,"cohorts_ms":24.963378000000002,"funnel_ms":14.898228}
+{"calls":100000,"current_hist_ms":12.034144,"current_scopes":2,"facts":100000,"iteration":2,"load_ms":0.557573,"overview_ms":113.32070800000001,"previous_hist_ms":0.83846,"previous_scopes":0,"total_ms":126.75088500000001}
+components {"by_kind_ms":24.280788,"cohorts_ms":22.650793999999998,"funnel_ms":13.680196}
+{"calls":100000,"current_hist_ms":16.350357,"current_scopes":2,"facts":100000,"iteration":3,"load_ms":0.47878299999999996,"overview_ms":114.599569,"previous_hist_ms":0.717781,"previous_scopes":0,"total_ms":132.14649}
+```
+
+The cold fact load is material, but the two histogram queries are not the dominant
+cost. The profile exposed redundant overview identity and token passes; these
+were removed without changing cache lifetime or correctness rules. Observed warm
+wall times fell from 178–192 ms in the initial baseline to 127–132 ms after the
+change. These are local measurements, not a claim that the exact runner slowdown
+was reproduced; the cited CI run itself remains the evidence for 967 ms there.
+
+Latency configuration validation:
+
+```sh
+python3 - <<'PYCODE'
+import os, subprocess, sys
+for budget in (None,'900','0','-1','nan','inf','nope'):
+ env=os.environ.copy()
+ env.pop('SIGNALS_PROBE_LATENCY_BUDGET_MS',None)
+ if budget is not None:env['SIGNALS_PROBE_LATENCY_BUDGET_MS']=budget
+ result=subprocess.run([sys.executable,'-c',"import runpy; p=runpy.run_path('scripts/analytics-review-probe.py'); print(p['LATENCY_BUDGET_MS'])"],env=env,capture_output=True,text=True)
+ if budget in (None,'900'):
+  assert result.returncode==0,result.stderr
+  assert float(result.stdout)==(300 if budget is None else 900)
+ else:assert result.returncode!=0
+ print(f'budget {budget}: PASS')
+PYCODE
+```
+
+Exit 0: all seven cases printed PASS (default 300, configured 900, and rejection
+of zero, negative, NaN, infinity and nonnumeric values).
+
+Required Rust/database verification:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+cargo fmt --all --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+cargo sqlx prepare --check --workspace -- --all-targets
+cargo run --locked -p signals-xtask -- --check
+SIGNALS_BENCH_ROWS=100000 cargo test --locked --release --workspace -- --ignored --test-threads=1
+cargo build --locked --bin signals
+cargo build --locked --release --bin signals
+```
+
+All commands exited 0. Formatting emitted no output. Workspace unit tests passed
+(9 core, 5 server, 7 store); all seven ignored DB tests passed with explicit
+`TEST_DATABASE_URL` and `.sqlx/dev.sql` applied earlier. Selected final output:
+
+```text
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 36.63s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 3.06s
+     Running `target/debug/signals-xtask --check`
+Official schemas parsed; runtime validation replaces generated wire types
+test three_day_analytics_contract_and_idempotence ... ok
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+test thirty_day_dashboard_measurements ... ok
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 11.01s
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `release` profile [optimized] target(s) in 41.95s
+```
