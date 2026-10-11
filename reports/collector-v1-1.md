@@ -600,3 +600,272 @@ target absent; task containers absent
 
 Browser-generated screenshots were restored to their committed versions. No
 requested work remains unfinished; nothing was pushed.
+
+## E2E v2 fixes
+
+Implemented the review fixes in `645b99b` after reading the Blockers and Should-fix
+sections and reproductions in the redeploy worktree's `reports/e2e-v2.md`.
+
+- `crates/signals-store/src/analytics.rs`: complete catalogues constrain Tools and
+  Overview attention to catalogue members; used/dead counts derive from that set.
+  Settings consumes the same Tools response. Explicit `unknown_tool` errors remain
+  hallucination signals even for catalogue members. Progress remains null until a
+  call in the window reports `progress_events`, including an explicit zero. Added
+  unit regressions for complete/empty/absent/truncated catalogues, attention,
+  hallucinations, opt-in progress, and waiting optional protocol counters.
+- `crates/signals-server/tests/v11.rs`: database regressions verify unknown-name
+  exclusion, catalogue counts, explicit matching-name errors, no-catalogue fallback,
+  protocol waiting, and truncated metadata after real ingestion.
+- `scripts/analytics-review-probe.py`: expected Tools/Overview outputs apply the
+  catalogue rule, the legacy dataset expects null Progress, and a separate HTTP
+  scenario asserts complete/truncated/absent catalogues plus opt-in progress.
+- `docs/analytics.md`: documents completeness, list membership and waiting semantics.
+
+Coordinator clarification retained the incomplete-catalogue exception: a truncated
+snapshot keeps called names visible, reports `catalog.complete: false` and
+`catalog.dead: null`, and counts only explicit unknown-tool errors as hallucinations.
+A complete known snapshot reports `complete: true`; no catalogue reports both
+`known: false` and `complete: false`. The coordinator routed the required nullable-list UI compatibility change to the
+dashboard owner in `dash-v2` and explicitly instructed this worker not to edit web/.
+
+The three pre-existing generated browser screenshots were restored with explicit
+coordinator authorization. Verification uses fresh isolated Postgres databases, not
+the deployed collector or eggs.
+
+Verification uses `PATH="$HOME/.cargo/bin:$HOME/.bun/bin:$PATH"`. `ss -ltn`
+confirmed ports 25472–25476 were free before the task started listeners.
+
+The first CI attempt was deliberately interrupted (exit 1) when the new regression
+fixtures were rejected: they omitted mandatory `input_bytes`, `output_bytes`,
+`output_kinds`, and `cancelled` fields. Commit `311c57b` corrected the test/probe
+fixtures without weakening production validation. The corrected focused database
+test and full workspace tests passed; final full-harness results follow below.
+
+Commands and output tails, all exit 0:
+
+```sh
+bun install --cwd web --frozen-lockfile && bun run --cwd web build
+```
+```text
+dist/assets/index-Bxil6BQb.css                                     34.64 kB │ gzip:  7.53 kB
+dist/assets/index-CZafG21I.js                                     302.09 kB │ gzip: 92.62 kB
+
+✓ built in 785ms
+```
+
+```sh
+cargo fmt --all -- --check
+```
+```text
+(no output; exit 0)
+```
+
+```sh
+cargo clippy --locked --workspace --all-targets -- -D warnings
+```
+```text
+    Checking signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-store)
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.08s
+```
+
+```sh
+cargo test --locked --workspace
+```
+```text
+   Doc-tests signals_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+```
+
+```sh
+SQLX_OFFLINE=false DATABASE_URL=postgres://postgres:signals@127.0.0.1:25472/signals cargo sqlx prepare --check --workspace -- --all-targets
+```
+```text
+    Checking signals-core v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-core)
+    Checking signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-store)
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 16.80s
+```
+
+```sh
+cargo build --locked --bin signals
+```
+```text
+   Compiling signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-store)
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 15s
+```
+
+```sh
+TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25473/signals cargo test --locked -p signals-server --test v11 -- --ignored
+```
+```text
+
+running 1 test
+test v11_storage_protocol_and_delivery ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.96s
+
+```
+
+The initial full release DB suite was compiled before the fixture correction. Its
+million-event benchmark passed, but its old v1.1 test binary exited 101 on the same
+`rejected.is_empty()` fixture assertion. It was rerun after rebuilding with
+`SIGNALS_BENCH_REUSE=true` to retain the already-seeded million-event dataset.
+
+```sh
+TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25472/signals cargo test --locked --release --workspace -- --ignored --test-threads=1
+```
+```text
+
+
+failures:
+    v11_storage_protocol_and_delivery
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+error: test failed, to rerun pass `-p signals-server --test v11`
+```
+
+Database provisioning and migrations (exit 0 for each):
+
+```sh
+docker run -d --name collector-e2e-fix-pg --shm-size=1g -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:25472:5432 postgres:18.6-bookworm
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:25472/signals cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i collector-e2e-fix-pg psql -U postgres -d signals -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+```
+```text
+Applied 8/migrate analytics scope (8.262293ms)
+Applied 9/migrate analytics hourly arrivals (6.101749ms)
+Applied 10/migrate spec v11 (12.961148ms)
+CREATE TABLE
+```
+
+```sh
+docker run -d --name collector-e2e-fix-ci-pg --shm-size=1g -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:25473:5432 postgres:18.6-bookworm
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:25473/signals cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i collector-e2e-fix-ci-pg psql -U postgres -d signals -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+```
+```text
+Applied 8/migrate analytics scope (6.303921ms)
+Applied 9/migrate analytics hourly arrivals (6.087906ms)
+Applied 10/migrate spec v11 (10.54858ms)
+CREATE TABLE
+```
+
+Corrected full release DB suite, exit 0 (nine tests passed):
+
+```sh
+TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25472/signals SIGNALS_BENCH_REUSE=true cargo test --locked --release --workspace -- --ignored --test-threads=1
+```
+```text
+test three_day_analytics_contract_and_idempotence ... ok
+test histogram_eligibility_avoids_raw_partitions_and_tracks_late_arrivals ... ok
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+test thirty_day_dashboard_measurements ... ok
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+test v11_storage_protocol_and_delivery ... ok
+   Doc-tests signals_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+```
+
+Read benchmark reused 1000000 events seeded during this task. p95 timings in ms:
+
+```json
+{
+  "caller_history": 1.776,
+  "callers": 20.334,
+  "events": 4.968,
+  "overview": 29.02,
+  "session_events": 10.934,
+  "sessions": 1.784,
+  "timeseries": 39.577,
+  "tool_timeseries": 5.09,
+  "tools": 30.306
+}
+```
+
+Corrected full CI run, exit 0. The invocation used these environment values and
+a disk-backed temporary directory, removed automatically after completion:
+
+```sh
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:25473/signals \
+ANALYTICS_PG_CONTAINER=collector-e2e-fix-ci-pg \
+SIGNALS_URL=http://127.0.0.1:25474 \
+ANALYTICS_REVIEW_URL=http://127.0.0.1:25475 \
+ANALYTICS_REVIEW_PROBE_PORT=25476 PLAYWRIGHT_CHANNEL=chromium \
+PYTHONUNBUFFERED=1 SIGNALS_PROBE_LATENCY_BUDGET_MS=900 \
+python3 - <<'PYTHON'
+import os, subprocess, tempfile
+with tempfile.TemporaryDirectory(prefix='collector-e2e-fix-', dir='/var/tmp') as temporary:
+    subprocess.run(['python3', 'scripts/ci-conformance.py'],
+                   env={**os.environ, 'TMPDIR': temporary}, check=True)
+PYTHON
+```
+
+Selected output and final tail:
+
+```text
+identity: 52/52 valid fixtures matched
+identity: 54/54 invalid fixtures matched
+gzip: 52/52 valid fixtures matched
+gzip: 54/54 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v2 analytics, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+E2E catalogue/progress assertions complete
+accepted 525 rejected batches 0
+populated daily partition fixture 31
+Latency budget: 900 ms; warmup then median of three
+BENCH overview: median 129.94 ms; samples [138.17, 129.94, 121.01]
+BENCH adoption: median 217.08 ms; samples [217.08, 237.54, 215.71]
+BENCH tools: median 138.47 ms; samples [135.46, 143.2, 138.47]
+BENCH reliability: median 89.12 ms; samples [127.31, 89.12, 86.81]
+BENCH cost: median 134.65 ms; samples [132.32, 134.65, 141.85]
+BENCH protocol: median 72.3 ms; samples [70.88, 74.11, 72.3]
+BENCH digest: median 148.77 ms; samples [145.1, 148.77, 155.57]
+BENCH alerts: median 0.87 ms; samples [0.95, 0.87, 0.81]
+BENCH timeline: median 20.19 ms; samples [17.36, 22.33, 20.19]
+]
+subject_kind breakdown {'key': 1, 'network': 1, 'strong': 0} status 200
+FINDINGS 0 MISMATCHES 0
+CI EXIT 0
+```
+
+No collector work remains unfinished. The nullable catalogue-list UI update is
+owned by the separately dispatched dashboard worker, as directed by the coordinator.
+No additional contract divergence was found during this fix pass.
+
+Cleanup, exit 0:
+
+```sh
+docker stop collector-e2e-fix-pg collector-e2e-fix-ci-pg
+docker rm collector-e2e-fix-pg collector-e2e-fix-ci-pg
+```
+```text
+collector-e2e-fix-pg
+collector-e2e-fix-ci-pg
+collector-e2e-fix-pg
+collector-e2e-fix-ci-pg
+```
+
+Python asserted the exact worktree path and non-symlink target, called
+`shutil.rmtree(root / "target")`, then asserted target and task containers absent:
+
+```text
+target absent; task containers absent
+```
+
+Generated screenshots were restored as authorized. All changes are committed;
+nothing was pushed.
