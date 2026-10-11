@@ -24,7 +24,7 @@ try {
   docker(['run','--detach','--rm','--name',container,'--publish',`127.0.0.1:${pgPort}:5432`,'--tmpfs','/var/lib/postgresql/data','--env','POSTGRES_USER=signals','--env','POSTGRES_PASSWORD=signals','--env','POSTGRES_DB=signals','postgres:16']);
   started = true;
   for(let i=0;i<100;i++) {
-    if(spawnSync('docker',['exec',container,'pg_isready','-U','signals'],{stdio:'ignore'}).status===0)break;
+    if(spawnSync('docker',['exec',container,'pg_isready','-h','127.0.0.1','-U','signals'],{stdio:'ignore'}).status===0)break;
     if(i===99)throw new Error('Postgres not ready');
     await delay(200);
   }
@@ -71,12 +71,19 @@ try {
     event({type:'tool.called',attrs:{tool:'e2e_add',duration_ms:12,is_error:false,input_bytes:13,output_bytes:14,output_kinds:['text'],cancelled:false}}),
   ]}});
   assert.equal(response.status(),202);assert.equal((await response.json()).accepted,2);
-  const sessions=await (await page.request.get(`${base}/v1/projects/${project}/sessions`)).json();
-  assert.equal(sessions.items[0].client_name,client.name);
+  // Sessions are materialized by the collector's once-per-minute rollup.
+  let sessions;
+  for(let i=0;i<90;i++) {
+    sessions=await (await page.request.get(`${base}/v1/projects/${project}/sessions`)).json();
+    if(sessions.items.length)break;
+    if(i===0)console.log('Waiting for the session rollup');
+    await delay(1000);
+  }
+  assert.equal(sessions.items[0]?.client_name,client.name);
   await page.goto(`${base}/#sessions`);
-  await page.getByRole('button',{name:client.name,exact:true}).waitFor();
+  await page.locator('tbody .row-button').filter({hasText:client.name}).waitFor();
   await page.screenshot({path:'artifacts/e2e-http-sessions.png',fullPage:true});
-  await page.getByRole('button',{name:client.name,exact:true}).click();
+  await page.locator('tbody .row-button').filter({hasText:client.name}).click();
   await page.getByRole('heading',{name:`${client.name} session`,exact:true}).waitFor();
   await page.keyboard.press('Escape');
   await page.goto(`${base}/#overview`);

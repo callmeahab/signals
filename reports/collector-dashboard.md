@@ -339,3 +339,131 @@ probe removes only `caller_id` and `source` before ingesting fixtures; it would
 need to remove the stored-only hash too if reused. That review artifact was not
 modified or rerun in this fix pass; the requested field audit and web suite above
 verify the stored form instead.
+
+## E2E fix pass
+
+Merged local `main` first with `git merge main`: fast-forward from `eb53107` to
+`1b9012e`, no conflicts and no manual conflict resolution. The brief's referenced
+`reports/e2e-rtxbox.md` and capture script were absent at that revision
+(`git ls-files 'reports/e2e*'` returned no output); the supplied brief and merged
+read API source provided the reproduction requirements.
+
+Changes:
+
+- `web/packages/ui/src/snippet-id.ts`: non-throwing display UUIDv7 helper using
+  `crypto.getRandomValues`, the current millisecond timestamp, version 7 and RFC
+  variant bits; returns a valid static example ID if crypto is absent or throws.
+- `web/packages/ui/src/dashboard.tsx`: Setup uses that helper; Sessions, Overview
+  recent sessions, and the session drawer all prefer `client_name`, with the
+  existing nested `client?.name` retained as a fallback.
+- `web/packages/ui/src/types.ts`: Session now declares the actual read API's
+  required `client_name` string. This supersedes the earlier report's request for
+  a nested session client API and its blanket ban on this name in read models.
+- `web/apps/dashboard/src/demo.ts` and `examples/next-host/app/fixture.ts`: session
+  fixtures use the real API's flat `client_name`; event clients remain nested.
+- `web/scripts/snippet-id-qa.mjs`: runs the helper with `randomUUID` deleted,
+  verifies timestamp/version/variant and randomness, and tests missing crypto,
+  missing `getRandomValues`, and a throwing randomness provider.
+- `web/scripts/test.mjs` and `web/scripts/spec-qa.mjs`: include helper QA and
+  require the real session fixture shape.
+- `web/scripts/e2e-insecure-qa.mjs`: reproducible real-collector Playwright test
+  using disposable Postgres, CI bootstrap credentials, non-localhost HTTP,
+  Setup tab captures, spec ingest, session rollup wait, and read-screen checks;
+  shuts down its collector and removes its disposable database container.
+
+Read API audit: inspected `crates/signals-server/src/openapi.rs` and
+`crates/signals-store/src/read.rs` (the brief's server `read.rs` path does not
+exist). Session `client_name` affected three UI locations and all were corrected.
+Tool fields (`tool`, calls/errors, percentile values, last_called, trend) and
+caller summary fields (id/kind/label, counts, clients, first_seen/last_seen) match
+those screens' reads. Events/session events include nested attrs, source, client
+and caller as consumed by Live/event rows, plus unused legacy flat aliases.
+No additional field-name mismatch was found in those screens.
+
+Verification commands and outputs:
+
+```text
+$ PATH="$HOME/.bun/bin:$PATH" bun run --cwd web check
+$ bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+(exit 0, including final repeat after adding the E2E runner)
+
+$ PATH="$HOME/.bun/bin:$PATH" bun run --cwd web build
+dist/assets/index-DoKKUJNP.css  36.65 kB | gzip: 11.40 kB
+dist/assets/index-zi5q0FG8.js   274.39 kB | gzip: 84.45 kB
+✓ built in 528ms
+(exit 0)
+
+$ PATH="$HOME/.bun/bin:$PATH" PLAYWRIGHT_CHANNEL=chromium bun run --cwd web test
+Snippet UUID QA passed: randomUUID deleted, UUIDv7 timestamp/version/variant, missing and throwing crypto fallbacks.
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+Visual QA passed: 7 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+(exit 0)
+
+$ PATH="$HOME/.cargo/bin:$PATH" CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=4 cargo build --locked --bin signals > web/artifacts/e2e-cargo-build.log 2>&1
+$ tail -3 web/artifacts/e2e-cargo-build.log
+Compiling signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-dashboard/crates/signals-store)
+Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-dashboard/crates/signals-server)
+Finished `dev` profile [unoptimized] target(s) in 49.19s
+(exit 0)
+```
+
+The first E2E attempt exited 1 because Postgres's initialization socket answered
+`pg_isready` before its final TCP listener started; the collector log reported
+`Connection reset by peer (os error 104)`. The runner now waits for TCP readiness.
+The second attempt verified all three insecure-origin Setup snippets, then exited
+1 because it read Sessions before the asynchronous rollup had created a row.
+The runner now polls Sessions for up to 90 seconds, covering the existing
+60-second worker interval. Both failed attempts cleaned up their processes and
+containers.
+
+The third E2E attempt reached the populated Sessions API, then timed out on an
+exact button-name selector: the client avatar contributes its initial to the
+accessible name. The runner now locates the session row button by its displayed
+client text. The final attempt passed:
+
+```text
+$ PATH="$HOME/.bun/bin:$PATH" PLAYWRIGHT_CHANNEL=chromium bun run --cwd web scripts/e2e-insecure-qa.mjs
+PASS insecure origin http://10.8.0.11:23441: secureContext=false, randomUUID absent, all three Setup snippets render
+Waiting for the session rollup
+PASS live collector: spec batch accepted; Sessions, session drawer, Overview, Tools, Callers and Live show read API values
+Stopped collector and disposable Postgres container
+(exit 0)
+
+$ PATH="$HOME/.bun/bin:$PATH" bun --cwd web --bun eslint scripts/e2e-insecure-qa.mjs
+(no output; exit 0)
+
+$ docker ps --filter name=signals-dashboard-e2e --format '{{.Names}}'
+(no output)
+$ git diff --check
+(no output; exit 0)
+```
+
+Additional teardown verification:
+
+```sh
+python3 - <<'PY'
+import socket
+for host,port in [('10.8.0.11',23441),('127.0.0.1',23442),('127.0.0.1',23330)]:
+ with socket.socket() as s:
+  assert s.connect_ex((host,port))!=0,(host,port)
+print('PASS collector, disposable Postgres and demo test ports are closed')
+PY
+```
+
+```text
+PASS collector, disposable Postgres and demo test ports are closed
+```
+
+Committed captures from the successful real HTTP collector run:
+
+- `web/artifacts/e2e-http-setup-python.png`
+- `web/artifacts/e2e-http-setup-node.png`
+- `web/artifacts/e2e-http-setup-curl.png`
+- `web/artifacts/e2e-http-sessions.png`
+
+The Python Setup and Sessions images were also opened for visual inspection.
+The session row reads “Insecure HTTP MCP Client”, with one call and no errors.
+No requested fix or verification remains. No backend source, dependency manifest,
+or lockfile was edited by this fix; backend changes came only from the instructed
+main merge. Nothing was pushed or published.
