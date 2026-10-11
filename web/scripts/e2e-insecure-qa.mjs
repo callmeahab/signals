@@ -7,7 +7,7 @@ import { chromium } from '@playwright/test';
 import { snippetId } from '../packages/ui/src/snippet-id.ts';
 
 // Run from web/ after building the UI and `cargo build --locked --bin signals`.
-const host = process.env.SIGNALS_E2E_HOST ?? '10.8.0.11';
+const host = process.env.SIGNALS_E2E_HOST ?? '127.0.0.1';
 const port = Number(process.env.SIGNALS_E2E_PORT ?? 23441);
 const pgPort = Number(process.env.SIGNALS_E2E_PG_PORT ?? 23442);
 const base = `http://${host}:${port}`;
