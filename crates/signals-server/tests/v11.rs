@@ -15,9 +15,15 @@ use uuid::Uuid;
 #[tokio::test]
 #[ignore = "Requires isolated TEST_DATABASE_URL; starts local SMTP and webhook sinks"]
 async fn v11_storage_protocol_and_delivery() {
-    let store = Store::connect(&std::env::var("TEST_DATABASE_URL").unwrap())
+    let mut url = url::Url::parse(&std::env::var("TEST_DATABASE_URL").unwrap()).unwrap();
+    let admin = sqlx::PgPool::connect(url.as_str()).await.unwrap();
+    let database = format!("v11_{}", Uuid::new_v4().simple());
+    sqlx::query(sqlx::AssertSqlSafe(format!("CREATE DATABASE {database}")))
+        .execute(&admin)
         .await
         .unwrap();
+    url.set_path(&database);
+    let store = Store::connect(url.as_str()).await.unwrap();
     store.migrate().await.unwrap();
     let tenant = store
         .tenant(&Uuid::new_v4().to_string(), "v11", None)
@@ -87,6 +93,56 @@ async fn v11_storage_protocol_and_delivery() {
     assert_eq!(row["output_items"], 2);
     assert_eq!(row["input_schema_valid"], true);
     assert_eq!(row["progress_events"], 3);
+
+    // Failed listings must not erase a known catalogue, and a truncated listing
+    // cannot prove that absent tool names are hallucinations.
+    for (offset, attrs) in [
+        (
+            1,
+            json!({"tools":[{"name":"search_orders"}],"count":10,"truncated":true,"is_error":false}),
+        ),
+        (2, json!({"is_error":true})),
+    ] {
+        let (events, rejected) = signals_core::validate_batch(
+            vec![
+                json!({"id":Uuid::now_v7(),"ts":now+Duration::seconds(offset),"type":"tools.listed","attrs":attrs}),
+            ],
+            now,
+            30,
+        );
+        assert!(rejected.is_empty());
+        store
+            .ingest(
+                project.id,
+                events
+                    .into_iter()
+                    .map(|e| (e, "key".into(), "fixture".into(), "fixture".into()))
+                    .collect(),
+            )
+            .await
+            .unwrap();
+    }
+    let current = store.analytics_data(project.id, now).await.unwrap();
+    assert_eq!(current.catalog.len(), 1);
+    assert_eq!(current.catalog_info["truncated"], true);
+    assert_eq!(
+        current.tools(w, &current.selected(w, &Filters::default()))["catalog"]["advertised"],
+        10
+    );
+    assert_eq!(
+        current.reliability(w, &Filters::default())["hallucinated_tools"]["count"],
+        1
+    );
+    sqlx::query("DELETE FROM events WHERE project_id=$1")
+        .bind(project.id)
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    let retained = store.analytics_data(project.id, now).await.unwrap();
+    assert_eq!(
+        retained.protocol(&retained.selected(w, &Filters::default())),
+        protocol
+    );
 
     let smtp = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let smtp_port = smtp.local_addr().unwrap().port();
@@ -217,10 +273,18 @@ async fn v11_storage_protocol_and_delivery() {
     assert!(mail_rx.try_recv().is_err());
     smtp_task.abort();
     hook_task.abort();
-    // Leave no channels for later workers in the same isolated test database.
+    // Release the isolated delivery database and all local listeners.
     sqlx::query("UPDATE projects SET deleted_at=now() WHERE id=$1")
         .bind(project.id)
         .execute(&store.pool)
         .await
         .unwrap();
+    store.pool.close().await;
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+        "DROP DATABASE {database} WITH (FORCE)"
+    )))
+    .execute(&admin)
+    .await
+    .unwrap();
+    admin.close().await;
 }

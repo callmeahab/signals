@@ -137,15 +137,18 @@ pub fn render(payload: &Value) -> (String, String, String) {
 }
 async fn deliver(channel: &str, destination: &str, payload: &Value) -> Result<()> {
     if channel == "webhook" {
-        reqwest::Client::builder()
+        let response = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(20))
             .redirect(reqwest::redirect::Policy::none())
             .build()?
             .post(destination)
             .json(payload)
             .send()
-            .await?
-            .error_for_status()?;
+            .await?;
+        anyhow::ensure!(
+            response.status().is_success(),
+            "webhook did not acknowledge delivery"
+        );
     } else {
         let (subject, text, html) = render(payload);
         let message = Message::builder()

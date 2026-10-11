@@ -212,4 +212,5 @@ Unknown fields or no observed optional protocol events produce null measurements
 `cargo test -p signals-server --test v11 -- --ignored` checks the v1.1 fixture through
 storage, retained facts, protocol/reliability metrics, and real local SMTP/webhook
 receivers, including digest deduplication and alert transition delivery. Set an isolated
-`TEST_DATABASE_URL` first. Scheduler unit tests cover both US DST transitions.
+`TEST_DATABASE_URL` first, using a role allowed to create/drop its temporary test
+database. Scheduler unit tests cover both US DST transitions.
