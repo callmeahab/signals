@@ -373,4 +373,89 @@ and `/auth/me` carry safe analytics settings, PATCH returns the same document,
 and the secret is redacted to `probe_key_set`. The backend author owns that fix;
 the frontend now reads GET project when loading Settings.
 
-Final verification and backend-fix integration results follow below.
+Merged backend commit `71cc3d4` via merge `8cc1007` (see Git history for merge
+identity), then rebuilt the collector. Settings now saves SLO classes, alert rules,
+digest and token divisor in one PATCH. Live QA confirmed those fields in the
+PATCH response and after browser reload; token cost changed from 260 to 130 after
+the divisor changed from 4 to 8 (including the additional Live event).
+
+### Verification
+
+Environment and commands used (all services isolated to localhost):
+
+```sh
+export PATH=/var/tmp/dash-int/bin:$HOME/.cargo/bin:$HOME/.bun/bin:$PATH
+export CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 TMPDIR=/var/tmp/dash-int
+export DATABASE_URL=postgres://postgres:postgres@127.0.0.1:25460/signals
+export SIGNALS_URL=http://127.0.0.1:25461 PLAYWRIGHT_CHANNEL=chromium
+export ANALYTICS_REVIEW_URL=http://127.0.0.1:25462 ANALYTICS_REVIEW_PROBE_PORT=25463
+# /var/tmp/dash-int/bin/psql delegates to docker exec -i
+# dash-v2-integration-pg psql, rewriting host port 25460 to 5432.
+cd web
+BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun install --frozen-lockfile
+bun run check
+bun run build
+BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run test
+BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run test:next
+cd ..
+cargo build --locked --bin signals
+target/debug/signals migrate
+docker exec -i dash-v2-integration-pg psql -U postgres -d signals < .sqlx/dev.sql
+python3 scripts/ci-conformance.py
+```
+
+Install reported `Checked 171 installs across 193 packages (no changes)`.
+The final check, build, demo and Next-host commands all exited 0; tails:
+
+
+`web/artifacts/integration-check.log`:
+
+```text
+$ bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+```
+
+`web/artifacts/integration-build.log`:
+
+```text
+dist/assets/urbanist-latin-ext-wght-normal-Bdxck5Au.woff2          16.60 kB
+dist/assets/urbanist-latin-wght-normal-D69JTELx.woff2              27.75 kB
+dist/assets/index-Bxil6BQb.css                                     34.64 kB │ gzip:  7.53 kB
+dist/assets/index-CZafG21I.js                                     302.09 kB │ gzip: 92.62 kB
+
+✓ built in 292ms
+```
+
+`web/artifacts/integration-demo.log`:
+
+```text
+$ bun scripts/test.mjs
+Snippet UUID QA passed: randomUUID deleted, UUIDv7 timestamp/version/variant, missing and throwing crypto fallbacks.
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+Demo contract shapes passed: 8 analytics routes × 4 ranges, all session timelines, missing/extra keys and type-drift guards.
+Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.
+review-r1 probe passed
+review-r2 probe passed
+
+  VITE v8.3.2  ready in 104 ms
+
+  ➜  Local:   http://127.0.0.1:23330/
+Visual QA passed: 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+```
+
+`web/artifacts/integration-next.log`:
+
+```text
+▲ Next.js 16.3.8
+- Local:         http://127.0.0.1:23331
+- Network:       http://127.0.0.1:23331
+✓ Ready in 75ms
+✓ Running next.config.mjs took 7ms
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.
+```
+
+Committed real-data captures: `web/artifacts/v2-live/overview.png`,
+`tools.png`, and `cost.png`. These came from the successful browser QA against
+the real collector, before the additional Live event and settings changes; they
+show 25 calls and 250 estimated tokens. All three were visually inspected.
+The full demo visual run also regenerated its tracked screenshots without drift.
