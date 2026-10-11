@@ -13,6 +13,7 @@ import os
 import re
 import subprocess
 import statistics
+import socket
 import threading
 import time
 import urllib.error
@@ -138,9 +139,13 @@ class Client:
 
 def wait_ready():
     for _ in range(80):
+        if SERVER is not None and SERVER.poll() is not None:
+            raise RuntimeError("Probe collector exited; inspect target/analytics-review/server.log")
         try:
             with urllib.request.urlopen(BASE + "/readyz", timeout=1) as response:
                 if response.status == 200:
+                    if SERVER is not None and SERVER.poll() is not None:
+                        raise RuntimeError("Probe collector exited during readiness check")
                     return
         except OSError:
             pass
@@ -160,9 +165,17 @@ def stop_server():
         SERVER = None
 
 
+def require_unused_port(port):
+    # Fail before issuing fixture requests to an unrelated collector on this port.
+    with socket.socket() as check:
+        check.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        check.bind(("127.0.0.1", port))
+
+
 def restart_server():
     global SERVER
     stop_server()
+    require_unused_port(ADDRESS.port)
     env = os.environ.copy()
     env.pop("SIGNALS_CONFORMANCE_CLOCK", None)
     env.update({
@@ -1905,6 +1918,7 @@ class Probe(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     try:
+        require_unused_port(PROBE_PORT)
         restart_server()
         main()
         if FINDINGS or MISMATCHES:
