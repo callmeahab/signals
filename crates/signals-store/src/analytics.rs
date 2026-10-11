@@ -820,13 +820,21 @@ impl Store {
         )
         .fetch_one(&self.pool)
         .await?;
-        let rows=checked_query!("SELECT r.hour,r.tool,r.is_project,r.metrics->'latency_hist' AS hist FROM analytics_hourly r WHERE project_id=$1 AND hour>=$2 AND hour+interval '1 hour'<=$3 AND NOT EXISTS(SELECT 1 FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour AND e.ts<r.hour+interval '1 hour' AND e.received_at>$4)",project,w.from,w.to,watermark).fetch_all(&self.pool).await?;
+        let rows = sqlx::query_file!(
+            "queries/analytics_histograms.sql",
+            project,
+            w.from,
+            w.to,
+            watermark
+        )
+        .fetch_all(&self.pool)
+        .await?;
         let mut hist = BTreeMap::<Option<String>, Vec<i64>>::new();
         let mut covered = BTreeSet::new();
         for row in rows {
-            let tool = (!row.get::<bool, _>("is_project")).then(|| row.get::<String, _>("tool"));
-            let hour: DateTime<Utc> = row.get("hour");
-            let bins: Value = row.get("hist");
+            let tool = (!row.is_project).then_some(row.tool);
+            let hour = row.hour;
+            let bins = row.hist;
             let h = hist.entry(tool.clone()).or_insert_with(|| vec![0; 60]);
             for (a, b) in h.iter_mut().zip(bins.as_array().into_iter().flatten()) {
                 *a += b.as_i64().unwrap_or(0);

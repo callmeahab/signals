@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT r.hour,r.tool,r.is_project,r.metrics->'latency_hist' AS hist FROM analytics_hourly r WHERE project_id=$1 AND hour>=$2 AND hour+interval '1 hour'<=$3 AND NOT EXISTS(SELECT 1 FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour AND e.ts<r.hour+interval '1 hour' AND e.received_at>$4)",
+  "query": "SELECT r.hour,r.tool,r.is_project,r.metrics->'latency_hist' AS \"hist!\"\nFROM analytics_hourly r\nWHERE r.project_id=$1 AND r.hour>=$2 AND r.hour+interval '1 hour'<=$3\nAND NOT EXISTS (\n SELECT 1 FROM analytics_hourly_arrivals a\n WHERE a.project_id=r.project_id AND a.hour=r.hour AND a.received_at>$4\n)\n",
   "describe": {
     "columns": [
       {
@@ -38,7 +38,7 @@
       },
       {
         "ordinal": 3,
-        "name": "hist",
+        "name": "hist!",
         "type_info": "Jsonb",
         "origin": "Expression"
       }
@@ -58,5 +58,5 @@
       null
     ]
   },
-  "hash": "68201ac6001b8b03e9fe43d4bb4a9e248a1aedff27781fc1d31ad824756e732f"
+  "hash": "97f97a91e75bd3c3150499ff3b4e30e665e4f590310535345dd594f7fcbe22eb"
 }

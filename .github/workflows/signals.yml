@@ -41,7 +41,7 @@ jobs:
       - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f .sqlx/dev.sql
       - run: cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features rustls,postgres
       - run: cargo sqlx prepare --check --workspace -- --all-targets
-      - run: cargo test --locked -p signals-server --test integration --test rollup_properties -- --ignored --test-threads=1
+      - run: cargo test --locked -p signals-server --test integration --test rollup_properties --test histogram_eligibility -- --ignored --test-threads=1
       - name: Official spec fixtures (identity and gzip)
         env:
           # Shared runners gate correctness with a wider latency budget; local release probes default to 300 ms.

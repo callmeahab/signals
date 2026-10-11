@@ -162,6 +162,9 @@ impl Store {
         )
         .execute(&self.pool)
         .await?;
+        checked_query!("DELETE FROM analytics_hourly_arrivals WHERE hour<clock_timestamp()-interval '400 days'")
+            .execute(&self.pool)
+            .await?;
         checked_query!("DELETE FROM analytics_daily WHERE day<current_date-400")
             .execute(&self.pool)
             .await?;

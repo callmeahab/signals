@@ -193,3 +193,19 @@ The first iteration loads an uncached snapshot; subsequent iterations reuse it.
 Restart the disposable PostgreSQL instance before profiling to clear its shared
 buffers (the operating system file cache remains). The profile reports snapshot
 loading, overview calculation, and current/previous histogram read times separately.
+
+### Histogram eligibility and raw partitions
+
+`analytics_hourly_arrivals` records the latest received timestamp for each project
+and UTC event hour. A statement-level ingest trigger updates it transactionally,
+using the maximum timestamp so out-of-order writes cannot move it backwards. The
+histogram query uses these indexed markers to exclude hours with arrivals newer
+than the analytics rollup watermark; excluded and partial hours use retained facts.
+Eligibility never reads raw `events` partitions, including after raw retention.
+Markers expire with hourly aggregates after 400 days.
+
+Migration 9 backfills markers from existing raw events once. Production, the
+31-partition database regression test, and the review probe use the same SQL file
+at `crates/signals-store/queries/analytics_histograms.sql`. The probe creates its
+own 31 populated daily partitions, and CI explicitly runs the database regression
+for late arrivals, transaction rollback, retention, and the executed query plan.

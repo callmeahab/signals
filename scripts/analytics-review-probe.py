@@ -1752,6 +1752,28 @@ def main():
         if schema not in schemas:
             finding("blocker", "openapi-schema", schema + " missing")
 
+    # Reproduce the CI planner shape even on a fresh database: populated daily
+    # partitions outside the performance window, created by the real ingest path.
+    partition_project = client.admin("projects", {"tenant_id": tenant_id, "slug": "partition-plan", "name": "Partition plan"})["id"]
+    partition_key = client.admin("keys", {"project_id": partition_project, "label": "partition-plan", "scopes": ["ingest"]})["secret"]
+    psql(f"UPDATE projects SET retention_days=90 WHERE id='{partition_project}'")
+    partition_events = [{
+        "id": uuid7(), "ts": fmt(datetime.now(timezone.utc) - timedelta(days=day)),
+        "type": "tool.called", "attrs": {"tool": "partition_probe", "duration_ms": 10,
+        "is_error": False, "input_bytes": 1, "output_bytes": 1, "output_kinds": ["text"], "cancelled": False},
+    } for day in range(1, 32)]
+    status, body, _ = client.request("POST", "/v1/events", {
+        "schema_version": 1, "sent_at": fmt(datetime.now(timezone.utc)),
+        "source": {"sdk": "node", "sdk_version": "1", "server_name": "review", "server_version": "1", "instance_id": "partition-plan"},
+        "events": partition_events,
+    }, key=partition_key)
+    if status != 202 or body.get("accepted") != 31 or body.get("rejected"):
+        finding("blocker", "partition-fixture", f"{status} {body}")
+    partition_count = int(psql(f"SELECT count(DISTINCT tableoid) FROM events WHERE project_id='{partition_project}'"))
+    print("populated daily partition fixture", partition_count)
+    if partition_count < 31:
+        finding("blocker", "partition-fixture", f"expected 31 populated daily partitions, got {partition_count}")
+
     # 100k route timing on its own project.
     perf = client.admin("projects", {"tenant_id": tenant_id, "slug": "perf", "name": "Perf"})["id"]
     perf_key = client.admin("keys", {"project_id": perf, "label": "perf", "scopes": ["read"]})["secret"]
@@ -1796,12 +1818,14 @@ def main():
         "EXPLAIN SELECT ts,id,type FROM analytics_facts WHERE project_id="
         f"'{perf}' AND ts < now()"
     )
-    nested = psql(
-        "EXPLAIN (ANALYZE, FORMAT JSON) SELECT r.hour FROM analytics_hourly r WHERE project_id="
-        f"'{perf}' AND hour>=now()-interval '7 days' AND hour+interval '1 hour'<=now() "
-        "AND NOT EXISTS (SELECT 1 FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour "
-        "AND e.ts<r.hour+interval '1 hour' AND e.received_at>'1970-01-01')"
-    )
+    # Use the production SQL, not a handwritten approximation of eligibility.
+    with open(os.path.join(ROOT, "crates/signals-store/queries/analytics_histograms.sql")) as handle:
+        eligibility = handle.read()
+    for placeholder, value in (("$1", f"'{uuid.UUID(perf)}'::uuid"),
+                               ("$2", "now()-interval '7 days'"), ("$3", "now()"),
+                               ("$4", "'1970-01-01'::timestamptz")):
+        eligibility = eligibility.replace(placeholder, value)
+    nested = psql("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + eligibility)
     print("EXPLAIN facts\n", plan)
     print("EXPLAIN hourly\n", nested)
     scans = executed_event_scans(json.loads(nested)[0]["Plan"])
