@@ -1,0 +1,172 @@
+{
+  "events": [
+    {
+      "args_hash": null,
+      "duration_ms": null,
+      "error_kind": null,
+      "id": "01a12c59-255e-70f3-8db8-2735df0555c4",
+      "input_bytes": null,
+      "is_error": false,
+      "offset_ms": 0,
+      "output_bytes": null,
+      "output_kinds": null,
+      "ts": "2026-10-11T19:03:22.206Z",
+      "type": "session.started"
+    },
+    {
+      "args_hash": null,
+      "duration_ms": 0,
+      "error_kind": null,
+      "id": "01a12c59-255e-7786-be49-9e890eb5254d",
+      "input_bytes": null,
+      "is_error": false,
+      "offset_ms": 0,
+      "output_bytes": null,
+      "output_kinds": null,
+      "ts": "2026-10-11T19:03:22.206Z",
+      "type": "mcp.initialize"
+    },
+    {
+      "args_hash": null,
+      "duration_ms": 6,
+      "error_kind": null,
+      "id": "01a12c59-25ef-732b-9dcd-6cc356fadfbd",
+      "input_bytes": 25,
+      "is_error": false,
+      "offset_ms": 127,
+      "output_bytes": 409,
+      "output_kinds": [
+        "text"
+      ],
+      "tool": "search_products",
+      "ts": "2026-10-11T19:03:22.333Z",
+      "type": "tool.called"
+    },
+    {
+      "args_hash": null,
+      "duration_ms": 17,
+      "error_kind": null,
+      "id": "01a12c59-2611-70ad-84c3-e939ed1bad52",
+      "input_bytes": null,
+      "is_error": false,
+      "method": "tools/list",
+      "offset_ms": 161,
+      "output_bytes": null,
+      "output_kinds": null,
+      "ts": "2026-10-11T19:03:22.367Z",
+      "type": "mcp.request"
+    },
+    {
+      "args_hash": null,
+      "duration_ms": 17,
+      "error_kind": null,
+      "id": "01a12c59-2613-71aa-8bb6-6ff210aaf8c5",
+      "input_bytes": null,
+      "is_error": false,
+      "offset_ms": 161,
+      "output_bytes": null,
+      "output_kinds": null,
+      "ts": "2026-10-11T19:03:22.367Z",
+      "type": "tools.listed"
+    },
+    {
+      "args_hash": null,
+      "duration_ms": 10,
+      "error_kind": null,
+      "id": "01a12c5d-b9b3-7c28-82be-77f89ef9b22f",
+      "input_bytes": 25,
+      "is_error": false,
+      "offset_ms": 300104,
+      "output_bytes": 409,
+      "output_kinds": [
+        "text"
+      ],
+      "tool": "search_products",
+      "ts": "2026-10-11T19:08:22.310Z",
+      "type": "tool.called"
+    },
+    {
+      "args_hash": null,
+      "duration_ms": 11,
+      "error_kind": null,
+      "id": "01a12c62-4d97-7883-9326-c019791886ad",
+      "input_bytes": 25,
+      "is_error": false,
+      "offset_ms": 600108,
+      "output_bytes": 409,
+      "output_kinds": [
+        "text"
+      ],
+      "tool": "search_products",
+      "ts": "2026-10-11T19:13:22.314Z",
+      "type": "tool.called"
+    },
+    {
+      "args_hash": null,
+      "duration_ms": 4,
+      "error_kind": null,
+      "id": "01a12c66-e160-745f-9b23-8bea9b4c9fda",
+      "input_bytes": 25,
+      "is_error": false,
+      "offset_ms": 900093,
+      "output_bytes": 409,
+      "output_kinds": [
+        "text"
+      ],
+      "tool": "search_products",
+      "ts": "2026-10-11T19:18:22.299Z",
+      "type": "tool.called"
+    },
+    {
+      "args_hash": null,
+      "duration_ms": 9,
+      "error_kind": null,
+      "id": "01a12c6b-7550-732d-bec8-2ddc93576868",
+      "input_bytes": 25,
+      "is_error": false,
+      "offset_ms": 1200103,
+      "output_bytes": 409,
+      "output_kinds": [
+        "text"
+      ],
+      "tool": "search_products",
+      "ts": "2026-10-11T19:23:22.309Z",
+      "type": "tool.called"
+    },
+    {
+      "args_hash": null,
+      "duration_ms": 1200134,
+      "error_kind": null,
+      "id": "01a12c6b-7565-7725-89aa-4d19eb2c240d",
+      "input_bytes": null,
+      "is_error": false,
+      "offset_ms": 1200134,
+      "output_bytes": null,
+      "output_kinds": null,
+      "ts": "2026-10-11T19:23:22.340Z",
+      "type": "session.ended"
+    }
+  ],
+  "generated_at": "2026-10-11T19:24:48.017287068Z",
+  "range": {
+    "from": "2026-10-04T19:24:48.017287068Z",
+    "prev_from": "2026-09-27T19:24:48.017287068Z",
+    "prev_to": "2026-10-04T19:24:48.017287068Z",
+    "to": "2026-10-11T19:24:48.017287068Z"
+  },
+  "session": {
+    "client": {
+      "name": "e2e-v2-long",
+      "protocol_version": "2025-11-25",
+      "version": "long-20261011190322"
+    },
+    "duration_ms": 1200134,
+    "identity": {
+      "key": "da693363a44bce7aca01962a222d14e5b683b361bf3bbd751476c60eff04763a",
+      "kind": "network"
+    },
+    "reason": "client",
+    "session_id": "474ef8ac9e2a48bbb91ed26b02bd00b0",
+    "transport": "streamable-http"
+  }
+}

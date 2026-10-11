@@ -1,0 +1,26 @@
+2026-10-11T19:03:22Z open 8000 client e2e-v2-long long-20261011190322
+2026-10-11T19:03:22Z open 8001 client e2e-v2-long long-20261011190322
+2026-10-11T19:03:22Z 8001 initialize mcpramen-<redacted> 1.0.0 session None
+2026-10-11T19:03:22Z 8001 call 0 elapsed_s 0.1 is_error False
+2026-10-11T19:03:22Z 8001 sleep 299.9
+2026-10-11T19:03:22Z 8000 initialize MCP Ramen Egg 4.0.10 session None
+2026-10-11T19:03:22Z 8000 call 0 elapsed_s 0.1 is_error False
+2026-10-11T19:03:22Z 8000 sleep 299.2026-10-11T19:08:22Z 8001 call 1 elapsed_s 300.0 is_error False
+2026-10-11T19:08:22Z 8001 sleep 300.0
+2026-10-11T19:08:22Z 8000 call 1 elapsed_s 300.1 is_error False
+2026-10-11T19:08:22Z 8000 sleep 299.9
+2026-10-11T19:13:22Z 8001 call 2 elapsed_s 600.0 is_error False
+2026-10-11T19:13:22Z 8001 sleep 300.0
+2026-10-11T19:13:22Z 8000 call 2 elapsed_s 600.1 is_error False
+2026-10-11T19:13:22Z 8000 sleep 299.9
+2026-10-11T19:18:22Z 8001 call 3 elapsed_s 900.0 is_error False
+2026-10-11T19:18:22Z 8001 sleep 300.0
+2026-10-11T19:18:22Z 8000 call 3 elapsed_s 900.0 is_error False
+2026-10-11T19:18:22Z 8000 sleep 300.0
+2026-10-11T19:23:22Z 8001 call 4 elapsed_s 1200.0 is_error False
+2026-10-11T19:23:22Z 8001 closing held_s 1200.0 session None
+2026-10-11T19:23:22Z 8001 closed
+2026-10-11T19:23:22Z 8000 call 4 elapsed_s 1200.0 is_error False
+2026-10-11T19:23:22Z 8000 closing held_s 1200.0 session None
+2026-10-11T19:23:22Z 8000 closed
+2026-10-11T19:23:22Z PASS long sessions closed
