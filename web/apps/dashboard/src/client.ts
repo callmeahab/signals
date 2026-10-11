@@ -2,7 +2,7 @@ import type { Caller, EventFilter, Key, Overview, Page, Point, Project, Range, S
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`/v1${path}`, { credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
-  if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error ?? `Request failed (${response.status})`); }
+  if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.message ?? body.error ?? `Request failed (${response.status})`); }
   if (response.status === 204) return undefined as T;
   return response.json();
 }
@@ -12,6 +12,7 @@ const legacyBucket = (range: Range) => range === '24h' ? '1h' : '1d';
 const path = (project: string, route: string) => `/projects/${encodeURIComponent(project)}${route}`;
 const query = (values: Record<string, string | boolean | undefined>) => new URLSearchParams(Object.entries(values).filter(([,v]) => v !== undefined)  .map(([k,v]) => [k,String(v)]) as [string,string][]).toString();
 export const client: SignalsClient = {
+  project: (p, signal) => request<Project>(path(p, ''), {signal}),
   analytics: (p, route, filters, signal) => request(path(p, `/analytics/${route}?${query({...filters})}`), {signal}),
   timeline: (p, session, signal) => request(path(p, `/analytics/sessions/${encodeURIComponent(session)}/timeline`), {signal}),
   saveAlerts: (p, rules) => request(path(p, '/alerts'), {method:'PUT',body:JSON.stringify({rules})}),
@@ -28,7 +29,7 @@ export const client: SignalsClient = {
   keys: (p, signal) => request<Key[]>(path(p, '/keys'), { signal }),
   createKey: (p, label, scopes) => request(path(p, '/keys'), { method: 'POST', body: JSON.stringify({label, scopes}) }),
   revokeKey: (p, key) => request(path(p, `/keys/${key}`), { method: 'DELETE' }),
-  updateProject: (p, settings) => request<Project>(path(p, ''), { method: 'PATCH', body: JSON.stringify(settings) }),
+  updateProject: (p, settings) => request<Project>(path(p, ''), { method: 'PATCH', body: JSON.stringify(Object.fromEntries(Object.entries(settings).filter(([key])=>['name','retention_days','rate_events_per_min','rate_bytes_per_min','slo_classes','slo_targets','digest','token_divisor'].includes(key)))) }),
   users: (p, signal) => request<User[]>(path(p, '/users'), { signal }),
   createUser: (p, email, password, role) => request<User>(path(p, '/users'), {method:'POST',body:JSON.stringify({email,password,role})}),
   subscribe(p, onEvent, onStatus) {

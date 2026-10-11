@@ -27,6 +27,7 @@ export type Page<T> = { items: T[]; next_cursor: string | null };
 export type EventFilter = { type?: EventType; tool?: string; q?: string; cursor?: string; caller?: string; since?: string; is_error?: boolean };
 
 export interface SignalsClient extends Partial<AnalyticsClient> {
+  project?(project: string, signal?: AbortSignal): Promise<Project>;
   ingestUrl: string;
   toolTimeseries(project: string, tool: string, range: Range, signal?: AbortSignal): Promise<Point[]>;
   callerTimeseries(project: string, caller: string, range: Range, signal?: AbortSignal): Promise<Point[]>;
