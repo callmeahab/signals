@@ -40,3 +40,23 @@ for (const client of [demoClient,hostClient]) {
   assert(sessions.every(s=>s.client_name));
 }
 console.log('Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.');
+
+// Validate JSON on the wire, independently of the TypeScript implementation.
+const { analyticsShapes, validateShape } = await import('./analytics-shapes.mjs');
+const json = value => JSON.parse(JSON.stringify(value));
+for (const range of ['24h','7d','30d','90d']) {
+ for (const [route,shape] of Object.entries(analyticsShapes)) {
+  if (route === 'timeline') continue;
+  validateShape(json(await demoClient.analytics('demo',route,{range})),shape,route);
+ }
+}
+for(const session of (await demoClient.sessions('demo')).items)
+ validateShape(json(await demoClient.timeline('demo',session.session_id)),analyticsShapes.timeline,'timeline');
+// Guard the validator itself against silently accepting missing/extra keys or bad types.
+const sample=json(await demoClient.analytics('demo','overview',{range:'7d'}));
+const missing=globalThis.structuredClone(sample);delete missing.tiles.tool_calls.value;
+assert.throws(()=>validateShape(missing,analyticsShapes.overview),/missing key/);
+const wrong=globalThis.structuredClone(sample);wrong.tiles.tool_calls.value='48212';
+assert.throws(()=>validateShape(wrong,analyticsShapes.overview),/expected integer/);
+assert.throws(()=>validateShape({...sample,undocumented:true},analyticsShapes.overview),/unexpected key/);
+console.log('Demo contract shapes passed: 8 analytics routes × 4 ranges, all session timelines, missing/extra keys and type-drift guards.');

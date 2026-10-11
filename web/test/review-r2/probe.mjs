@@ -108,8 +108,11 @@ for (const [range, want] of Object.entries(BUCKETS)) {
 // parameter list: range|from|to and the filters client, tool, caller, transport.
 {
   const urls = [];
+  const savedFetch=globalThis.fetch;
+  const savedLocation=globalThis.location;
+  try {
   globalThis.location ??= { origin: 'http://127.0.0.1' };
-  globalThis.fetch = async url => { urls.push(String(url)); return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }); };
+  globalThis.fetch = async url => { urls.push(String(url)); return new globalThis.Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }); };
   const { client } = await import('../../apps/dashboard/src/client.ts');
   for (const range of Object.keys(BUCKETS)) {
     await client.analytics('p1', 'overview', { range });
@@ -118,14 +121,17 @@ for (const [range, want] of Object.entries(BUCKETS)) {
   }
   const allowed = new Set(['range', 'from', 'to', 'client', 'tool', 'caller', 'transport']);
   for (const url of urls.filter(u => u.includes('/analytics/'))) {
-    const params = [...new URLSearchParams(url.split('?')[1] ?? '').keys()].filter(k => !allowed.has(k));
+    const params = [...new globalThis.URLSearchParams(url.split('?')[1] ?? '').keys()].filter(k => !allowed.has(k));
     check(params.length === 0, `analytics request sends non-contract parameter(s) ${params.join(',')}: ${url}`);
   }
   for (const url of urls.filter(u => /timeseries/.test(u))) {
-    const bucket = new URLSearchParams(url.split('?')[1] ?? '').get('bucket');
+    const bucket = new globalThis.URLSearchParams(url.split('?')[1] ?? '').get('bucket');
+    const range = new globalThis.URLSearchParams(url.split('?')[1] ?? '').get('range');
+    check(['24h','7d','30d'].includes(range), `legacy timeseries uses unsupported range: ${url}`);
     check(bucket === null || ['1h', '1d'].includes(bucket), `timeseries request sends bucket=${bucket}, collector accepts only 1h or 1d: ${url}`);
   }
   note(`client request URLs: ${urls.join(' | ')}`);
+  } finally {globalThis.fetch=savedFetch;if(savedLocation===undefined)delete globalThis.location;else globalThis.location=savedLocation;}
 }
 
 // ----------------------------------------------------------- browser measures
@@ -137,7 +143,7 @@ server.stderr.on('data', data => process.stderr.write(data));
 let browser;
 try {
   let ready = false;
-  for (let n = 0; n < 150; n++) { if (server.exitCode !== null) throw new Error('demo server exited'); try { ready = (await fetch(base)).ok; } catch { ready = false; } if (ready) break; await delay(100); }
+  for (let n = 0; n < 150; n++) { if (server.exitCode !== null) throw new Error('demo server exited'); try { ready = (await globalThis.fetch(base)).ok; } catch { ready = false; } if (ready) break; await delay(100); }
   if (!ready) throw new Error('demo server did not start');
   browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? 'chrome' });
 
