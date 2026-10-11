@@ -213,3 +213,15 @@ Both SDKs emit `error_kind: unknown_tool`. Node rejects with MCP protocol code -
 The dead lists are empty because historical traffic already exercised every advertised tool. Tools reports 17 used names versus 15 advertised because it includes the historical `echo` unknown call and this run's `redeploy_v2_unknown_tool`; no catalogue data was fabricated to produce dead entries. Adoption's two identities are network identities, not authenticated subjects.
 
 All eight task containers publish only VPN/loopback addresses or no ports, and have `unless-stopped`. Container-internal listeners use their existing wildcard addresses; no new wildcard host bindings were introduced. No credentials are included in the artifacts.
+
+## Artifact verification and commit
+
+```text
+Configured-secret scan: PASS, no configured secret values in report/non-image artifacts
+PNG screenshots: 12
+git diff --check: exited 0
+git commit -m 'Record v2 redeployment and live dashboard verification': b7909a2
+git status --porcelain: empty after initial evidence commit
+```
+
+Verification logs are explicitly tracked despite the repository's global log ignore rule.
