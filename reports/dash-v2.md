@@ -514,3 +514,114 @@ collector was stopped before conformance. Removed the owned `target/` directory
 and `/var/tmp/dash-int`; preserved useful logs under ignored `web/artifacts/`.
 The demo/Next test runners also stopped their Vite/Next servers and cleaned their
 temporary host package. No deployment or push was performed.
+
+
+## Truncated catalogue
+
+Merged `main` first with `git merge main` (exit 0), fast-forwarding
+`94d5102..932b99e`. Implementation commit: `141a876`.
+
+Changes by file:
+
+- `web/packages/ui/src/analytics-types.ts`: requires `catalog.complete: boolean`
+  and allows `catalog.dead: string[] | null`.
+- `web/packages/ui/src/analytics.tsx`: Tools guards nullable dead values and shows
+  “Catalogue truncated, coverage unknown”; Overview fetches the tools catalogue
+  alongside overview data, shows the same notice, and suppresses dead attention
+  rows unless the catalogue is known and complete. Settings offers tool class
+  selectors only for a known, complete catalogue.
+- `web/apps/dashboard/src/demo-analytics.ts`: complete catalogues remain the
+  default; truncated catalogues have null dead data, preserve called tools, and
+  omit dead attention rows.
+- `web/apps/dashboard/src/demo.ts` and `main.tsx`: selectable `demo-truncated`
+  project; project updates preserve the selected project's identity.
+- `web/scripts/analytics-shapes.mjs`: amended independent wire shape.
+- `web/scripts/spec-qa.mjs`: both catalogue states across all four ranges,
+  required completeness/type guards, null dead data, retained called tools, and
+  rendered Tools/Overview regression checks (including stale dead attention).
+- `web/scripts/visual-qa.mjs`: switches projects in the browser and checks the
+  truncated notice, absent dead rows, retained called tool, absent unverified SLO
+  selectors, and restored selectors after switching back to the complete project.
+
+`grep -nE 'catalog|dead' web/scripts/backend-qa.mjs` returned no matches (exit 1),
+so no backend QA dead-list assertion needed changing. Backend integration was not
+rerun for this frontend-only amendment.
+
+Verification commands were run from `web` with
+`PATH="$HOME/.bun/bin:$PATH"`. Final successful output excerpts:
+
+`bun run check` — exit 0.
+
+```text
+$ bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+```
+
+`bun run build` — exit 0.
+
+```text
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2          14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2          14.88 kB
+dist/assets/urbanist-latin-ext-wght-normal-Bdxck5Au.woff2          16.60 kB
+dist/assets/urbanist-latin-wght-normal-D69JTELx.woff2              27.75 kB
+dist/assets/index-Bxil6BQb.css                                     34.64 kB │ gzip:  7.53 kB
+dist/assets/index-FFgZzShf.js                                     302.94 kB │ gzip: 92.81 kB
+
+✓ built in 588ms
+```
+
+`export PLAYWRIGHT_CHANNEL=chromium; bun run test:next` — exit 0.
+
+```text
+○  (Static)  prerendered as static content
+
+▲ Next.js 16.3.8
+- Local:         http://127.0.0.1:23331
+- Network:       http://127.0.0.1:23331
+✓ Ready in 56ms
+✓ Running next.config.mjs took 11ms
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.
+```
+
+Earlier attempts and resolution:
+
+- The first `bun run check` exited 1 because the new QA used unqualified
+  `structuredClone` twice (`'structuredClone' is not defined  no-undef`). Changed
+  both references to `globalThis.structuredClone`; the check then passed.
+- The first `PLAYWRIGHT_CHANNEL=chromium bun run test` exited 1 in the round-2
+  browser probe with `Cannot read properties of undefined (reading
+  'querySelectorAll')`. It ran concurrently with Next's UI-package rebuild and
+  logged repeated React root reload warnings. Sequential execution passed the
+  same round-2 probe without a code change; a concurrent rebuild is the suspected
+  cause, not a proven application defect.
+- The first `bun run test:next` exited 1 because the default browser was absent:
+  `Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome`.
+  Exporting `PLAYWRIGHT_CHANNEL=chromium` used the installed browser; Next passed.
+
+Contract/design note: completeness exists on the tools route only, so Overview
+now makes one additional analytics request to obtain authoritative catalogue
+metadata. No new overview wire fields were invented. No unresolved contract
+change was found in this task's scope.
+
+`PLAYWRIGHT_CHANNEL=chromium bun run test` — exit 0.
+
+```text
+$ bun scripts/test.mjs
+Snippet UUID QA passed: randomUUID deleted, UUIDv7 timestamp/version/variant, missing and throwing crypto fallbacks.
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+Demo contract shapes passed: 8 analytics routes × 4 ranges × 2 catalogue states, all session timelines, missing/extra keys and type-drift guards.
+Truncated catalogue QA passed: nullable dead, required completeness, retained calls and safe Tools/Overview rendering.
+Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.
+review-r1 probe passed
+review-r2 probe passed
+
+  VITE v8.3.2  ready in 94 ms
+
+  ➜  Local:   http://127.0.0.1:23330/
+Visual QA passed: 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+```
+
+Restored 25 tracked QA screenshots with `git restore -- <tracked PNG paths>` after the visual run. All four acceptance commands passed; nothing remains unfinished in this task.
+
+Final `git diff --check` exited 0 with no output. After committing the report,
+`git status --porcelain` exited 0 with no output (clean working tree).
