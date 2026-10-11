@@ -1,0 +1,28 @@
+import type { Range } from './types.js';
+export type Nullable = number | null;
+export type IdentityKind = 'strong' | 'key' | 'network';
+export type IdentityQuality = Record<IdentityKind, number>;
+export type AnalyticsMeta = { range: {from:string;to:string;prev_from:string;prev_to:string}; generated_at:string };
+export type Cohort = {cohort_start:string;size:number;retained_pct:Nullable[]};
+export type FunnelStep = {step:string;count:number;dropoff_pct?:number};
+export type Latency = {p50:Nullable;p95:Nullable;p99:Nullable;method:'histogram'|'exact'};
+export type AnalyticsTool = {tool:string;slo_class:'read'|'mutate';calls:number;success_rate:Nullable;errors:Record<'tool'|'protocol'|'timeout'|'cancelled'|'unknown',Nullable>;latency:Latency;input_bytes_avg:Nullable;output_bytes_avg:Nullable;output_tokens_est:Nullable;retries:{count:number;self_corrected_pct:Nullable};schema_failures:{input:Nullable;output:Nullable};trend:{t:string;calls:number;errors:number}[]};
+export type OverviewAnalytics = AnalyticsMeta & {
+ tiles:{tool_calls:{value:number;prev:Nullable};active_users:{value:number;prev:Nullable;new:number;by_kind:IdentityQuality};sessions:{value:number;prev:Nullable;calls_per_session:Nullable};success_rate:{value:Nullable;prev:Nullable;tools_below_slo:number};latency:Latency&{prev_p95:Nullable};context_tokens:{value:Nullable;prev?:Nullable;per_call:Nullable;estimated:boolean}};
+ calls_by_client:{buckets:string;points:{t:string;by_client:Record<string,number>}[]};funnel:FunnelStep[];attention:{tool:string;calls:number;success_rate:Nullable;p95:Nullable;slo_class:string;status:'ok'|'warn'|'error'|'dead'}[];cohorts:{kind:string;rows:Cohort[]};
+};
+export type AdoptionAnalytics = AnalyticsMeta & {active:{bucket:string;points:{t:string;users:number;new:number;returning:number;by_kind:IdentityQuality}[];dau:number;wau:number;mau:number};clients:{name:string;version:string;sessions:number;calls:number;pct:number;capabilities:string[]}[];protocol_versions:{version:string;sessions:number}[];transports:{transport:string;sessions:number}[];retention:{daily:{d1:Nullable;d7:Nullable;d30:Nullable};weekly:Cohort[]};funnel:{steps:FunnelStep[]};identity_quality:IdentityQuality};
+export type ToolsAnalytics = AnalyticsMeta & {catalog:{advertised:Nullable;used:number;dead:string[];known:boolean;catalog_hash:string|null;updated_at:string|null};tools:AnalyticsTool[];paths:{sequence:string[];count:number;pct:number}[]};
+export type ReliabilityAnalytics = AnalyticsMeta & {slo:{class:string;target:number;success_rate:Nullable;error_budget_pct:Nullable;burn_rate_1h:Nullable;burn_rate_6h:Nullable}[];handshake:{attempts:number;success_rate:Nullable;p95:Nullable};timeouts:{count:Nullable;pct:Nullable};cancellations:{count:Nullable;pct:Nullable};error_codes:{code:number;kind:string;count:number}[];hallucinated_tools:{count:Nullable;names:string[]};sessions_with_errors:{count:Nullable;pct:Nullable};silent_failures:{count:Nullable};auth_failures:{reason:string;count:number}[];availability:null|{uptime_pct:Nullable;last_probe_at:string|null;last_failure_at:string|null;advertised_tools:Nullable;healthy_tools:Nullable;probes:{t:string;ok:boolean;latency_ms:number}[]}};
+export type CostAnalytics = AnalyticsMeta & {total_tokens_est:Nullable;per_call:Nullable;estimated:boolean;by_tool:{tool:string;calls:number;tokens:number;pct:number}[];by_tenant:{caller:string;identity_kind:IdentityKind;calls:number;tokens:number}[];payload_hist:{buckets:string[];input:number[];output:number[]};billing_periods:{period:string;caller:string;calls:number;tokens:number}[]};
+export type ProtocolAnalytics = AnalyticsMeta & {capabilities:{sessions:number;client:{name:string;sessions:number;pct:number}[];server:{name:string;sessions:number;pct:number}[]};sampling:{requests:Nullable;p95:Nullable;rejected_pct:Nullable;by_model:{model:string;requests:number}[]};elicitation:{requests:Nullable;accept_pct:Nullable;decline_pct:Nullable;cancel_pct:Nullable};tasks:{created:Nullable;completed:Nullable;failed:Nullable;cancelled:Nullable};progress:{long_calls:Nullable;with_progress_pct:Nullable}};
+export type TimelineAnalytics = AnalyticsMeta & {session:{session_id:string;client:string;identity:string;transport:string;reason:string|null;duration_ms:Nullable};events:{offset_ms:number;type:string;tool?:string;method?:string;uri?:string;prompt?:string;duration_ms:Nullable;is_error:boolean;error_kind:string|null;output_kinds:string[];input_bytes:Nullable;output_bytes:Nullable;args_hash:string|null}[]};
+export type AlertRule = {id:string;name:string;enabled:boolean;threshold:number;window_minutes:number;state:string};
+export type AnalyticsSettings = {slo_classes:Record<string,'read'|'mutate'>;slo_targets:{read:number;mutate:number};digest_enabled:boolean;digest_recipient:string;token_divisor:number};
+export type AnalyticsRoutes = {overview:OverviewAnalytics;adoption:AdoptionAnalytics;tools:ToolsAnalytics;reliability:ReliabilityAnalytics;cost:CostAnalytics;protocol:ProtocolAnalytics;alerts:AnalyticsMeta&{rules:AlertRule[]};digest:AnalyticsMeta&{tools:{tool:string;calls:number;delta_pct:Nullable;success_rate:Nullable;p95:Nullable}[];top_error_kinds:{kind:string;count:number}[];new:number;returning:number;dead_tools:string[];changes:string[]}};
+export type AnalyticsQuery = {range?:Range;from?:string;to?:string;client?:string;tool?:string;caller?:string;transport?:string;week?:string};
+export interface AnalyticsClient {
+ analytics<K extends keyof AnalyticsRoutes>(project:string,route:K,query:AnalyticsQuery,signal?:AbortSignal):Promise<AnalyticsRoutes[K]>;
+ timeline(project:string,session:string,signal?:AbortSignal):Promise<TimelineAnalytics>;
+ saveAlerts(project:string,rules:AlertRule[]):Promise<void>;
+}

@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Activity, ArrowDown, ArrowRight, ArrowUp, Check, ChevronDown, Copy, KeyRound, Pause, Play, Plus, Search, Terminal, Trash2, Users, X, Zap } from 'lucide-react';
+import { AnalyticsScreen, AnalyticsSettingsPanel, TenantUsage, Timeline, NoData } from './analytics.js';
 import { snippetId } from './snippet-id.js';
 import { ActivityChart, Sparkline } from './charts.js';
 import type { Caller, Key, Overview, Project, Range, Screen, Session, SignalEvent, SignalsClient, Tool, User } from './types.js';
@@ -10,7 +11,7 @@ const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFracti
 const date = (v: string) => new Date(v).toLocaleString('en', { timeZone: 'UTC', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 const time = (v: string) => new Date(v).toLocaleTimeString('en', { timeZone: 'UTC', hour12: false });
 
-function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[]) {
+export function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[]) {
   const [state, setState] = useState<{ value?: T; error?: string; loading: boolean }>({ loading: true });
   const loader = useRef(load);
   loader.current = load;
@@ -25,17 +26,17 @@ function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unknown[])
   useEffect(() => {
     const controller = new AbortController();
     setState({ loading: true });
-    loader.current(controller.signal).then(value => { if (!controller.signal.aborted) setState({ value, loading: false }); }, error => { if (!controller.signal.aborted) setState({ error: error instanceof Error ? error.message : 'Could not load data.', loading: false }); });
+    Promise.resolve().then(() => loader.current(controller.signal)).then(value => { if (!controller.signal.aborted) setState({ value, loading: false }); }, error => { if (!controller.signal.aborted) setState({ error: error instanceof Error ? error.message : 'Could not load data.', loading: false }); });
     return () => controller.abort();
   }, [dependencyVersion, refresh]);
   return { ...state, reload: () => setRefresh(n => n + 1) };
 }
 
-function QueryState({ loading, error, retry }: { loading: boolean; error?: string; retry: () => void }) {
+export function QueryState({ loading, error, retry }: { loading: boolean; error?: string; retry: () => void }) {
   return loading ? <div className="loading-state" role="status"><Activity size={22} /><span>Reading your signals…</span></div> : error ? <div className="empty-state" role="alert"><h2>Couldn’t load this view</h2><p>{error}</p><button className="button" onClick={retry}>Try again</button></div> : null;
 }
-function Empty({ title, children }: { title: string; children: ReactNode }) { return <div className="empty-state"><Activity size={32} /><h2>{title}</h2><p>{children}</p></div>; }
-function Panel({ title, subtitle, action, children, className = '' }: { title: string; subtitle?: string; action?: ReactNode; children: ReactNode; className?: string }) {
+function Empty({ title, children }: { title: string; children: ReactNode }) { return <div className="empty-state"><NoData reason={`${title} · ${children}`}/></div>; }
+export function Panel({ title, subtitle, action, children, className = '' }: { title: string; subtitle?: string; action?: ReactNode; children: ReactNode; className?: string }) {
   return <section className={`panel ${className}`}><div className="panel-heading"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{action}</div>{children}</section>;
 }
 function Pill({ error = false, children }: { error?: boolean; children: ReactNode }) { return <span className={`status-pill ${error ? 'bad' : 'good'}`}><i />{children}</span>; }
@@ -49,8 +50,11 @@ function Delta({ value, inverse = false }: { value: number | null | undefined; i
 export function SignalsDashboard({ client, project, screen, range, onNavigate, onProjectChange, readOnly = false }: { client: SignalsClient; project: Project; screen: Screen; range: Range; onNavigate: (screen: Screen) => void; onProjectChange: (project: Project) => void; readOnly?: boolean }) {
   const props = { client, project, range };
   return <div className="signals-ui">
-    {screen === 'overview' && <OverviewScreen {...props} onNavigate={onNavigate} />}
-    {screen === 'tools' && <ToolsScreen {...props} />}
+    {client.analytics && (['overview','adoption','tools','reliability','cost','protocol'] as string[]).includes(screen) && <AnalyticsScreen key={screen} {...props} screen={screen as 'overview'|'adoption'|'tools'|'reliability'|'cost'|'protocol'} />}
+    {client.analytics && screen === 'settings' && <AnalyticsSettingsPanel client={client} project={project} onProjectChange={onProjectChange} readOnly={readOnly}/>}
+    {client.analytics && screen === 'callers' && <TenantUsage {...props}/>}
+    {!client.analytics && screen === 'overview' && <OverviewScreen {...props} onNavigate={onNavigate} />}
+    {!client.analytics && screen === 'tools' && <ToolsScreen {...props} />}
     {screen === 'callers' && <CallersScreen {...props} />}
     {screen === 'sessions' && <SessionsScreen {...props} />}
     {screen === 'live' && <LiveScreen {...props} />}
@@ -102,15 +106,15 @@ function CallersScreen({ client, project, range }: ScreenProps) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Caller | null>(null);
   const rows = query.value?.filter(c => `${c.label} ${c.kind}`.toLowerCase().includes(search.toLowerCase())) ?? [];
-  return <><div className="view-toolbar"><SearchInput value={search} onChange={setSearch} placeholder="Find a caller…" /><span>{rows.length} identities</span></div>{!query.value ? <QueryState {...query} retry={query.reload} /> : <Panel title="A name behind every connection" subtitle="Keys, authenticated subjects, and anonymous network identities"><div className="table-scroll"><table><thead><tr><th>Caller</th><th>Identity</th><th>Calls</th><th>Sessions</th><th>Errors</th><th>Clients</th><th>Last seen</th></tr></thead><tbody>{rows.map(c => <tr key={c.id}><td><button className="row-button" onClick={() => setSelected(c)}><span className="caller-icon"><Users size={15} /></span>{c.label}</button></td><td><span className="neutral-pill">{c.kind}</span></td><td>{number.format(c.calls)}</td><td>{c.sessions}</td><td className={c.errors ? 'error-text' : ''}>{c.errors}</td><td>{c.clients.join(', ')}</td><td className="mono muted">{date(c.last_seen)}</td></tr>)}</tbody></table></div>{!rows.length && <Empty title="No callers yet">Caller identities appear when the first event arrives.</Empty>}</Panel>}{selected && <CallerDrawer client={client} project={project.id} caller={selected} range={range} onClose={() => setSelected(null)} />}</>;
+  return <><div className="view-toolbar"><SearchInput value={search} onChange={setSearch} placeholder="Find a caller…" /><span>{rows.length} identities</span></div>{!query.value ? <QueryState {...query} retry={query.reload} /> : <Panel title="A name behind every connection" subtitle="Keys, authenticated subjects, and anonymous network identities"><div className="table-scroll"><table><thead><tr><th>Caller</th><th>Identity</th><th>Calls</th><th>Sessions</th><th>Errors</th><th>Clients</th><th>First seen</th><th>Last seen</th><th>Error rate</th><th>Favourite tools</th></tr></thead><tbody>{rows.map(c => <tr key={c.id}><td><button className="row-button" onClick={() => setSelected(c)}><span className="caller-icon"><Users size={15} /></span>{c.label}</button></td><td><span className="neutral-pill">{c.kind}</span></td><td>{number.format(c.calls)}</td><td>{c.sessions}</td><td className={c.errors ? 'error-text' : ''}>{c.errors}</td><td>{c.clients.join(', ')}</td><td className="mono muted">{date(c.first_seen)}</td><td className="mono muted">{date(c.last_seen)}</td><td>{c.calls?`${(100*c.errors/c.calls).toFixed(1)}%`:"No data yet"}</td><td className="mono">{c.favourite_tools?.join(", ")??"No data yet"}</td></tr>)}</tbody></table></div>{!rows.length && <Empty title="No callers yet">Caller identities appear when the first event arrives.</Empty>}</Panel>}{selected && <CallerDrawer client={client} project={project.id} caller={selected} range={range} onClose={() => setSelected(null)} />}</>;
 }
 function SessionsScreen({ client, project }: ScreenProps) {
   const [cursor, setCursor] = useState<string | undefined>();
   const query = useQuery(signal => client.sessions(project.id, cursor, signal), [client, project.id, cursor]);
   const [selected, setSelected] = useState<Session | null>(null);
-  return <>{!query.value ? <QueryState {...query} retry={query.reload} /> : <Panel title="The story of a connection" subtitle="Newest sessions first · select one to see its timeline"><div className="table-scroll"><table><thead><tr><th>Client</th><th>Caller</th><th>Started</th><th>Duration</th><th>Calls</th><th>Errors</th><th>Status</th></tr></thead><tbody>{query.value.items.map(s => <tr key={s.session_id}><td><button className="row-button" onClick={() => setSelected(s)}><span className="client-avatar small">{(s.client_name ?? s.client?.name ?? 'Unknown').slice(0, 1)}</span>{s.client_name ?? s.client?.name ?? 'Unknown'}</button></td><td>{s.caller_label}</td><td className="mono muted">{date(s.started_at)}</td><td>{s.ended_at ? `${Math.max(1, Math.round((+new Date(s.ended_at) - +new Date(s.started_at)) / 60000))} min` : '—'}</td><td>{s.calls}</td><td className={s.errors ? 'error-text' : ''}>{s.errors}</td><td><Pill>{s.ended_at ? 'Ended' : 'Active'}</Pill></td></tr>)}</tbody></table></div>{!query.value.items.length && <Empty title="No sessions yet">Connect an MCP client to start your first session.</Empty>}<div className="pagination"><button className="button secondary" disabled={!cursor} onClick={() => setCursor(undefined)}>Newest</button><button className="button secondary" disabled={!query.value.next_cursor} onClick={() => setCursor(query.value?.next_cursor ?? undefined)}>Older sessions<ArrowRight size={15} /></button></div></Panel>}{selected && <SessionDrawer client={client} project={project.id} session={selected} onClose={() => setSelected(null)} />}</>;
+  return <>{!query.value ? <QueryState {...query} retry={query.reload} /> : <Panel title="The story of a connection" subtitle="Newest sessions first · select one to see its timeline"><div className="table-scroll"><table><thead><tr><th>Client</th><th>Caller</th><th>Started</th><th>Duration</th><th>Depth</th><th>Errors</th><th>Outcome</th><th>Transport</th><th>Reason</th></tr></thead><tbody>{query.value.items.map(s => <tr key={s.session_id}><td><button className="row-button" onClick={() => setSelected(s)}><span className="client-avatar small">{(s.client_name ?? s.client?.name ?? 'Unknown').slice(0, 1)}</span>{s.client_name ?? s.client?.name ?? 'Unknown'}</button></td><td>{s.caller_label}</td><td className="mono muted">{date(s.started_at)}</td><td>{s.ended_at ? `${Math.max(1, Math.round((+new Date(s.ended_at) - +new Date(s.started_at)) / 60000))} min` : '—'}</td><td>{s.calls}</td><td className={s.errors ? 'error-text' : ''}>{s.errors}</td><td><Pill error={s.errors>0}>{s.errors?'Error':s.ended_at ? 'Ended' : 'Active'}</Pill></td><td className="mono">{s.transport}</td><td>{s.reason??'No data yet'}</td></tr>)}</tbody></table></div>{!query.value.items.length && <Empty title="No sessions yet">Connect an MCP client to start your first session.</Empty>}<div className="pagination"><button className="button secondary" disabled={!cursor} onClick={() => setCursor(undefined)}>Newest</button><button className="button secondary" disabled={!query.value.next_cursor} onClick={() => setCursor(query.value?.next_cursor ?? undefined)}>Older sessions<ArrowRight size={15} /></button></div></Panel>}{selected && <SessionDrawer client={client} project={project.id} session={selected} onClose={() => setSelected(null)} />}</>;
 }
-function Drawer({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+export function Drawer({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current; dialog?.showModal(); return () => dialog?.close(); }, []);
   return <dialog ref={ref} className="drawer" onCancel={onClose}><div className="drawer-header"><h2>{title}</h2><button className="icon-button" aria-label="Close details" onClick={onClose}><X size={20} /></button></div>{children}</dialog>;
@@ -131,9 +135,9 @@ function SessionDrawer({ client, project, session, onClose }: { client: SignalsC
   const [cursor,setCursor]=useState<string>();const [events,setEvents]=useState<SignalEvent[]>([]);
   const query = useQuery(signal => client.sessionEvents(project, session.session_id, signal, cursor), [client, project, session.session_id,cursor]);
   useEffect(()=>{if(query.value)setEvents(old=>[...old,...query.value!.items.filter(e=>!old.some(o=>o.id===e.id))]);},[query.value]);
-  return <Drawer title={`${session.client_name ?? session.client?.name ?? 'Unknown'} session`} onClose={onClose}><p className="mono hint">{session.session_id}</p><dl className="details"><dt>Caller</dt><dd>{session.caller_label}</dd><dt>Transport</dt><dd>{session.transport}</dd><dt>Started</dt><dd>{date(session.started_at)} UTC</dd></dl><h3>Session timeline</h3><EventRows events={events}/>{query.loading||query.error?<QueryState {...query} retry={query.reload}/>:null}{query.value?.next_cursor&&<button className="button secondary" onClick={()=>setCursor(query.value?.next_cursor??undefined)}>Load more events<ArrowDown size={15}/></button>}</Drawer>;
+  return <Drawer title={`${session.client_name ?? session.client?.name ?? 'Unknown'} session`} onClose={onClose}><p className="mono hint">{session.session_id}</p><dl className="details"><dt>Caller</dt><dd>{session.caller_label}</dd><dt>Transport</dt><dd>{session.transport}</dd><dt>Started</dt><dd>{date(session.started_at)} UTC</dd></dl><h3>Session timeline</h3>{client.timeline?<Timeline client={client} project={project} session={session.session_id}/>:<EventRows events={events}/>}{query.loading||query.error?<QueryState {...query} retry={query.reload}/>:null}{query.value?.next_cursor&&<button className="button secondary" onClick={()=>setCursor(query.value?.next_cursor??undefined)}>Load more events<ArrowDown size={15}/></button>}</Drawer>;
 }
-function LiveScreen({ client, project }: ScreenProps) {
+export function LiveScreen({ client, project }: ScreenProps) {
   const [paused, setPaused] = useState(false);
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
@@ -191,7 +195,7 @@ export function CopyBlock({ code }: { code: string }) {
   const copy = useCallback(async () => { try { await navigator.clipboard.writeText(code); setCopied(true); setError(''); } catch { setError('Copy unavailable. Select and copy the text below.'); } }, [code]);
   return <div className="copy-block"><button className="icon-button" aria-label="Copy code" onClick={() => void copy()}>{copied ? <Check size={16} /> : <Copy size={16} />}</button><pre>{code}</pre>{error && <span className="hint" role="status">{error}</span>}</div>;
 }
-function SetupScreen({ingestUrl}:{ingestUrl:string}) {
+export function SetupScreen({ingestUrl}:{ingestUrl:string}) {
   const [tab, setTab] = useState('python');
   const [sample] = useState(() => {
     const now = Date.now();

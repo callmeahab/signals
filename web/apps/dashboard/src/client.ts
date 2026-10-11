@@ -9,6 +9,9 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 const path = (project: string, route: string) => `/projects/${encodeURIComponent(project)}${route}`;
 const query = (values: Record<string, string | boolean | undefined>) => new URLSearchParams(Object.entries(values).filter(([,v]) => v !== undefined)  .map(([k,v]) => [k,String(v)]) as [string,string][]).toString();
 export const client: SignalsClient = {
+  analytics: (p, route, filters, signal) => request(path(p, `/analytics/${route}?${query({...filters})}`), {signal}),
+  timeline: (p, session, signal) => request(path(p, `/analytics/sessions/${encodeURIComponent(session)}/timeline`), {signal}),
+  saveAlerts: (p, rules) => request(path(p, '/alerts'), {method:'PUT',body:JSON.stringify({rules})}),
   ingestUrl: `${location.origin}/v1/events`,
   toolTimeseries: (p, tool, range, signal) => request<Point[]>(path(p, `/tool-timeseries?${query({tool,range,bucket:range==='30d'?'1d':'1h'})}`), {signal}),
   callerTimeseries: (p, caller, range, signal) => request<Point[]>(path(p, `/callers/${encodeURIComponent(caller)}/timeseries?range=${range}`), {signal}),
