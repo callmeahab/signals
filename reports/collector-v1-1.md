@@ -341,3 +341,262 @@ CLEAN
 Output: `Cleanup verified: target absent; no collector-v11 task containers remain`.
 Generated browser screenshots were restored to their committed versions. Implementation commits: `99b6586`, `fdf6bf3`, `c96a1e7`, `79e7b17`, `726cc4e`; this report is committed separately. No push, deployment, tag or publication was performed.
 
+
+## Merge with main
+
+Merged main `0f229d2` into the reviewed v1.1 branch (`4993fc2`) in commit
+`1b07da4`. The probe merged automatically: main's runner-aware latency budget,
+cold-overview profiling, unused-port checks, and partition-pruning EXPLAIN guard
+remain alongside the already-reviewed v1.1 fixture/expectation additions. No probe
+changes were made to suppress findings during this merge verification.
+
+Resolved the sole textual conflict in `docs/analytics.md` by retaining both main's
+latency/partition documentation and the v1.1 metric documentation. Renamed
+`crates/signals-store/migrations/0009_spec_v11.sql` to `0010_spec_v11.sql` because
+main already owns migration 0009 (hourly arrivals); updated the documentation
+reference. Main's analytics implementation merged with the v1.1 additions.
+The migration renumbering requires a database based on main, or a fresh test
+database; a disposable database that previously applied this branch's old 0009
+must be recreated rather than reused. No deployed database was modified.
+
+Verification used `PATH="$HOME/.cargo/bin:$HOME/.bun/bin:$PATH"`. `ss -ltn`
+confirmed ports 25472–25476 were unused before provisioning. Two disposable
+Postgres containers were started with `--shm-size=1g`: `collector-v11-merge-pg`
+on 127.0.0.1:25472 and `collector-v11-merge-ci-pg` on 127.0.0.1:25473, both
+`postgres:18.6-bookworm` with database/user `signals`/`postgres` and password
+`signals`. The containers isolate the benchmark from conformance.
+
+Commands and output tails (all exited 0):
+
+```sh
+bun install --cwd web --frozen-lockfile && bun run --cwd web build
+```
+```text
+dist/assets/index-Bxil6BQb.css                                     34.64 kB │ gzip:  7.53 kB
+dist/assets/index-CZafG21I.js                                     302.09 kB │ gzip: 92.62 kB
+
+✓ built in 300ms
+```
+
+```sh
+cargo fmt --all -- --check
+```
+```text
+(no output; exit 0)
+```
+
+```sh
+cargo clippy --locked --workspace --all-targets -- -D warnings
+```
+```text
+    Checking signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-store)
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 31.74s
+```
+
+```sh
+cargo test --locked --workspace
+```
+```text
+   Doc-tests signals_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+```
+
+```sh
+python3 scripts/release-check.py
+```
+```text
+Official contract release gate passed
+```
+
+```sh
+cargo build --locked --bin signals
+```
+```text
+   Compiling signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-store)
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 45.01s
+```
+
+```sh
+SQLX_OFFLINE=false DATABASE_URL=postgres://postgres:signals@127.0.0.1:25472/signals cargo sqlx prepare --check --workspace -- --all-targets
+```
+```text
+    Checking signals-core v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-core)
+    Checking signals-store v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-store)
+    Checking signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/crates/signals-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 53.13s
+```
+
+```sh
+cargo run --locked -p signals-xtask -- --check
+```
+```text
+   Compiling signals-xtask v0.1.0 (/home/vuk/orca/workspaces/signals-collector/collector-v1-1/xtask)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 36.96s
+     Running `target/debug/signals-xtask --check`
+Official schemas parsed; runtime validation replaces generated wire types
+```
+
+```sh
+docker build -f docker/Dockerfile .
+```
+```text
+Step 25/25 : CMD ["serve"]
+ ---> Running in 4721b0cc8b27
+ ---> Removed intermediate container 4721b0cc8b27
+ ---> 176525bd24b9
+Successfully built 176525bd24b9
+```
+
+Database provisioning and migrations (each command exited 0):
+
+```sh
+docker run -d --name collector-v11-merge-pg --shm-size=1g -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:25472:5432 postgres:18.6-bookworm
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:25472/signals cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i collector-v11-merge-pg psql -U postgres -d signals -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+```
+```text
+Applied 8/migrate analytics scope (9.940013ms)
+Applied 9/migrate analytics hourly arrivals (11.765326ms)
+Applied 10/migrate spec v11 (12.338934ms)
+CREATE TABLE
+```
+
+```sh
+docker run -d --name collector-v11-merge-ci-pg --shm-size=1g -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:25473:5432 postgres:18.6-bookworm
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:25473/signals cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i collector-v11-merge-ci-pg psql -U postgres -d signals -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+```
+```text
+Applied 8/migrate analytics scope (7.256376ms)
+Applied 9/migrate analytics hourly arrivals (10.193094ms)
+Applied 10/migrate spec v11 (11.251052ms)
+CREATE TABLE
+```
+
+Full ignored database suite, exit 0 (all nine tests passed):
+
+```sh
+TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25472/signals cargo test --locked --release --workspace -- --ignored --test-threads=1
+```
+```text
+test three_day_analytics_contract_and_idempotence ... ok
+test histogram_eligibility_avoids_raw_partitions_and_tracks_late_arrivals ... ok
+test collector_replays_late_rollups_tenant_isolation_and_keys ... ok
+test migration_comment_cleanup_preserves_existing_databases ... ok
+test thirty_day_dashboard_measurements ... ok
+test random_lateness_matches_brute_force_sql ... ok
+test storage_error_is_atomic_and_unlimited_session_history ... ok
+test worker_exclusion_partial_ranges_and_retained_caller_history ... ok
+test v11_storage_protocol_and_delivery ... ok
+
+   Doc-tests signals_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+```
+
+The release read benchmark freshly seeded 1000000 events. Its measured p95 values (ms) were:
+
+```json
+{
+  "caller_history": 1.227,
+  "callers": 23.875,
+  "events": 10.122,
+  "overview": 31.465,
+  "session_events": 17.949,
+  "sessions": 1.008,
+  "timeseries": 45.507,
+  "tool_timeseries": 6.443,
+  "tools": 27.393
+}
+```
+
+Full CI conformance, exit 0. The actual wrapper used Python
+`tempfile.TemporaryDirectory(prefix="collector-v11-merge-", dir="/var/tmp")`
+to set TMPDIR and automatically delete it after the subprocess:
+
+```sh
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:25473/signals \
+ANALYTICS_PG_CONTAINER=collector-v11-merge-ci-pg \
+SIGNALS_URL=http://127.0.0.1:25474 \
+ANALYTICS_REVIEW_URL=http://127.0.0.1:25475 \
+ANALYTICS_REVIEW_PROBE_PORT=25476 PLAYWRIGHT_CHANNEL=chromium \
+PYTHONUNBUFFERED=1 SIGNALS_PROBE_LATENCY_BUDGET_MS=900 \
+python3 - <<'PYTHON'
+import os, subprocess, tempfile
+with tempfile.TemporaryDirectory(prefix='collector-v11-merge-', dir='/var/tmp') as temporary:
+    subprocess.run(['python3', 'scripts/ci-conformance.py'],
+                   env={**os.environ, 'TMPDIR': temporary}, check=True)
+PYTHON
+```
+
+Selected output plus final output tail:
+
+```text
+identity: 52/52 valid fixtures matched
+identity: 54/54 invalid fixtures matched
+gzip: 52/52 valid fixtures matched
+gzip: 54/54 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v2 analytics, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+accepted 525 rejected batches 0
+identities {'strong': 13, 'key': 6, 'network': 4} distinct 23
+populated daily partition fixture 31
+perf facts 100000
+Latency budget: 900 ms; warmup then median of three
+]
+subject_kind breakdown {'key': 1, 'network': 1, 'strong': 0} status 200
+FINDINGS 0 MISMATCHES 0
+CI EXIT 0
+```
+
+No new collector defect or contract divergence was found by the merged harness.
+The existing v1.1 fixture adaptations were retained without further probe changes.
+Main’s partition-eligibility regression and EXPLAIN guard both passed.
+
+Route timings from the same CI invocation:
+
+```text
+BENCH overview: median 115.11 ms; samples [121.56, 115.11, 114.21]
+BENCH adoption: median 223.94 ms; samples [222.29, 223.94, 252.48]
+BENCH tools: median 120.85 ms; samples [122.76, 118.62, 120.85]
+BENCH reliability: median 91.89 ms; samples [91.89, 91.65, 105.51]
+BENCH cost: median 136.19 ms; samples [136.3, 136.11, 136.19]
+BENCH protocol: median 59.43 ms; samples [61.36, 59.43, 59.32]
+BENCH digest: median 156.81 ms; samples [156.81, 155.61, 168.05]
+BENCH alerts: median 2.09 ms; samples [2.14, 2.09, 1.92]
+BENCH timeline: median 18.47 ms; samples [10.27, 18.47, 28.39]
+```
+
+Cleanup completed (exit 0):
+
+```sh
+docker stop collector-v11-merge-pg collector-v11-merge-ci-pg
+docker rm collector-v11-merge-pg collector-v11-merge-ci-pg
+```
+```text
+collector-v11-merge-pg
+collector-v11-merge-ci-pg
+collector-v11-merge-pg
+collector-v11-merge-ci-pg
+```
+
+A Python cleanup asserted the exact worktree path and that `target` was not a
+symlink, called `shutil.rmtree(root / "target")`, and asserted target and both
+task containers were absent. Its output was:
+
+```text
+target absent; task containers absent
+```
+
+Browser-generated screenshots were restored to their committed versions. No
+requested work remains unfinished; nothing was pushed.
