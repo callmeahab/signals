@@ -44,7 +44,7 @@ export const demoClient:SignalsClient = {
   async callers() {return callerRows;}, async sessions() {return {items:sessionRows,next_cursor:null};},
   async sessionEvents(_p,id) {return {items:Array.from({length:16},(_,i)=>({...event(i),session_id:id})).reverse(),next_cursor:null};},
   async events(_p,filter) {return {items:Array.from({length:40},(_,i)=>event(i)).filter(e=>(!filter.tool||e.attrs.tool===filter.tool)&&(!filter.type||e.type===filter.type)&&(!filter.q||JSON.stringify(e).toLowerCase().includes(filter.q.toLowerCase()))&&(!filter.caller||e.caller_id===filter.caller)&&(filter.is_error===undefined||(e.type==='error'||e.attrs.is_error===true||e.attrs.level==='error')===filter.is_error)),next_cursor:null};},
-  subscribe(_p,onEvent,onStatus) {onStatus('connected');let i=100;const timer=setInterval(()=>onEvent({...event(i++),ts:new Date().toISOString()}),2200);return ()=>clearInterval(timer);},
+  subscribe(_p,onEvent,onStatus) {onStatus('connected');if(typeof window!=='undefined'&&(window as Window & {__SIGNALS_VISUAL_QA__?:boolean}).__SIGNALS_VISUAL_QA__)return ()=>{};let i=100;const timer=setInterval(()=>onEvent({...event(i++),ts:new Date().toISOString()}),2200);return ()=>clearInterval(timer);},
   async keys(){return [...keys];},
   async createKey(_p,label,scopes) {const secret=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');const key:Key={id:crypto.randomUUID(),key_id:crypto.randomUUID().replaceAll('-',''),label,scopes,created_at:new Date().toISOString(),last_used_at:null,revoked_at:null};keys=[key,...keys];return {key,secret:`sgk_${key.key_id}_${secret}`};},
   async revokeKey(_p,id){keys=keys.map(k=>k.id===id?{...k,revoked_at:new Date().toISOString()}:k);},

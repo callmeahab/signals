@@ -1,3 +1,4 @@
+import { bucketForRange } from '@mcpramen/signals-ui';
 import type { Caller, EventFilter, Key, Overview, Page, Point, Project, Range, Session, SignalEvent, SignalsClient, Tool, User } from '@mcpramen/signals-ui';
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -9,14 +10,14 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 const path = (project: string, route: string) => `/projects/${encodeURIComponent(project)}${route}`;
 const query = (values: Record<string, string | boolean | undefined>) => new URLSearchParams(Object.entries(values).filter(([,v]) => v !== undefined)  .map(([k,v]) => [k,String(v)]) as [string,string][]).toString();
 export const client: SignalsClient = {
-  analytics: (p, route, filters, signal) => request(path(p, `/analytics/${route}?${query({...filters})}`), {signal}),
+  analytics: (p, route, filters, signal) => request(path(p, `/analytics/${route}?${query({...filters,bucket:bucketForRange(filters.range)})}`), {signal}),
   timeline: (p, session, signal) => request(path(p, `/analytics/sessions/${encodeURIComponent(session)}/timeline`), {signal}),
   saveAlerts: (p, rules) => request(path(p, '/alerts'), {method:'PUT',body:JSON.stringify({rules})}),
   ingestUrl: `${location.origin}/v1/events`,
-  toolTimeseries: (p, tool, range, signal) => request<Point[]>(path(p, `/tool-timeseries?${query({tool,range,bucket:range==='30d'?'1d':'1h'})}`), {signal}),
+  toolTimeseries: (p, tool, range, signal) => request<Point[]>(path(p, `/tool-timeseries?${query({tool,range,bucket:bucketForRange(range)==='hour'?'1h':bucketForRange(range)==='week'?'1w':'1d'})}`), {signal}),
   callerTimeseries: (p, caller, range, signal) => request<Point[]>(path(p, `/callers/${encodeURIComponent(caller)}/timeseries?range=${range}`), {signal}),
   overview: (p, range, signal) => request<Overview>(path(p, `/overview?range=${range}`), { signal }),
-  timeseries: (p, range, signal) => request<Point[]>(path(p, `/timeseries?range=${range}&bucket=${range === '30d' ? '1d' : '1h'}`), { signal }),
+  timeseries: (p, range, signal) => request<Point[]>(path(p, `/timeseries?range=${range}&bucket=${bucketForRange(range)==='hour'?'1h':bucketForRange(range)==='week'?'1w':'1d'}`), { signal }),
   tools: (p, range, signal) => request<Tool[]>(path(p, `/tools?range=${range}`), { signal }),
   callers: (p, range, signal) => request<Caller[]>(path(p, `/callers?range=${range}`), { signal }),
   sessions: (p, cursor, signal) => request<Page<Session>>(path(p, `/sessions?${query({cursor})}`), { signal }),

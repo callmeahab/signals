@@ -9,8 +9,18 @@ const check = (ok, message) => { if (!ok) failures.push(message); };
 try {
   for (const theme of ['light', 'dark']) {
     for (const width of [390, 1440]) {
-      const context = await browser.newContext({ viewport: { width, height: 1000 }, colorScheme: theme });
+      const context = await browser.newContext({ viewport: { width, height: 1000 }, colorScheme: theme, timezoneId: 'UTC', reducedMotion: 'reduce' });
+      await context.addInitScript(() => {
+        let seed=123456789;
+        const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+        Math.random=random;
+        Object.defineProperty(crypto,'getRandomValues',{value:array=>{for(let i=0;i<array.length;i++)array[i]=Math.floor(random()*256);return array;}});
+        Object.defineProperty(crypto,'randomUUID',{value:()=> 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.floor(random()*16);return (c==='x'?r:(r&3)|8).toString(16);})});
+      });
       const page = await context.newPage();
+      await page.clock.setFixedTime(new Date('2026-10-12T00:00:00Z'));
+      await context.addInitScript(() => { globalThis.__SIGNALS_VISUAL_QA__ = true; });
+
       page.on('pageerror', error => failures.push(error.message));
       await page.goto(base);
       await page.getByRole('heading', { name: 'Calls by client' }).waitFor();
@@ -19,24 +29,38 @@ try {
       check(/Urbanist/.test(fonts.body) && fonts.loaded.some(f => /Urbanist/.test(f)), `${width}/${theme}: Urbanist loaded`);
       check(fonts.loaded.some(f => /IBM Plex Mono/.test(f)), `${width}/${theme}: mono loaded`);
       check(/Krona One/.test(fonts.heading) && fonts.loaded.some(f => /Krona One/.test(f)), `${width}/${theme}: Krona One loaded`);
-      await page.screenshot({ path: `artifacts/v2/overview-${width}-${theme}.png`, fullPage: true });
+      await page.evaluate(() => document.fonts.ready);
+      await page.screenshot({ path: `artifacts/v2/overview-${width}-${theme}.png`, fullPage: true, animations: 'disabled' });
       for (const screen of ['overview', 'adoption', 'tools', 'reliability', 'sessions', 'callers', 'cost', 'protocol', 'live', 'settings', 'setup']) {
         await page.goto(`${base}/#${screen}`);
         await page.waitForTimeout(150);
         await page.locator('.signals-ui .panel').first().waitFor();
         await page.evaluate(() => document.fonts.ready);
         check(await page.locator('.brand svg[aria-label="mcpramen"]').count() === 1, `${screen}: wordmark present`);
-        await page.screenshot({path:`artifacts/v2/${screen}-${width}-${theme}.png`,fullPage:true});
+        await page.evaluate(() => document.fonts.ready);
+      await page.screenshot({path:`artifacts/v2/${screen}-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+        const layout = await page.evaluate(() => ({
+          krona: [...document.querySelectorAll('body *')].filter(el => getComputedStyle(el).fontFamily.includes('Krona One')).every(el => getComputedStyle(el).fontWeight === '400' && getComputedStyle(el).fontSynthesis === 'none'),
+          mono: [...document.querySelectorAll('.eyebrow,.status-pill')].every(el => getComputedStyle(el).fontSize === '10.5px'),
+          tables: [...document.querySelectorAll('.table-scroll')].every(el => innerWidth <= 600
+            ? [...el.querySelectorAll('tbody tr')].every(row => getComputedStyle(row).display === 'flex') && [...el.querySelectorAll('td')].every(cell => cell.scrollWidth <= cell.clientWidth + 1)
+            : el.scrollWidth <= el.clientWidth + 1 || !!el.parentElement.querySelector('.table-scroll-hint'))
+        }));
+        check(layout.krona, `${screen} ${width}/${theme}: Krona weight and synthesis`);
+        check(layout.mono, `${screen} ${width}/${theme}: 10.5px eyebrows and pills`);
+        check(layout.tables, `${screen} ${width}/${theme}: mobile list or visible scroll affordance`);
         const size = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
         check(size[0] <= size[1], `${screen} ${width}/${theme}: overflow ${size}`);
       }
       await page.goto(`${base}/#setup`);
       await page.getByRole('button', {name:'Python',exact:true}).click();
       check((await page.locator('.copy-block').last().innerText()).includes('signals.asgi(mcp.streamable_http_app())'), 'Python SDK snippet');
-      await page.screenshot({path:`artifacts/setup-python-${width}-${theme}.png`,fullPage:true});
+      await page.evaluate(() => document.fonts.ready);
+      await page.screenshot({path:`artifacts/setup-python-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.getByRole('button', {name:'Node.js',exact:true}).click();
       check((await page.locator('.copy-block').last().innerText()).includes('app.use(signals.express())'), 'Node SDK snippet');
-      await page.screenshot({path:`artifacts/setup-node-${width}-${theme}.png`,fullPage:true});
+      await page.evaluate(() => document.fonts.ready);
+      await page.screenshot({path:`artifacts/setup-node-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.getByRole('button', {name:'cURL',exact:true}).click();
       const curl = await page.locator('.copy-block pre').last().innerText();
       const batch = JSON.parse(curl.match(/-d '(.+)'/)[1]);
@@ -44,7 +68,8 @@ try {
       check(batch.events[0].type === 'custom' && batch.events[0].attrs.name === 'hello', 'spec custom attrs');
       check(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(batch.events[0].id), 'raw example UUIDv7');
       check(curl.includes('Bearer $SIGNALS_KEY'), 'raw example authorization');
-      await page.screenshot({path:`artifacts/setup-curl-${width}-${theme}.png`,fullPage:true});
+      await page.evaluate(() => document.fonts.ready);
+      await page.screenshot({path:`artifacts/setup-curl-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.goto(`${base}/#tools`);
       await page.getByRole('button', { name: 'search_products', exact: true }).click();
       check(await page.getByRole('dialog').isVisible(), 'tool details open');

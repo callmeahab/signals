@@ -3,6 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 await import('./snippet-id-qa.mjs');
 await import('./spec-qa.mjs');
 await import('./analytics-qa.mjs');
+await import('../test/review-r1/probe.mjs');
 const port=Number(process.env.SIGNALS_TEST_UI_PORT??23330);
 const base=`http://127.0.0.1:${port}`;
 const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config','apps/dashboard/vite.config.ts','--host','127.0.0.1','--port',String(port)],{env:{...process.env,VITE_DEMO:'1'},stdio:'pipe'});

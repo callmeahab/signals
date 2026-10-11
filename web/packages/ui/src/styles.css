@@ -206,3 +206,23 @@ body{font-weight:500;font-size:14px}h1,h2,h3,h4,.metric-value{font-weight:400!im
 @media(max-width:760px){.analytics-grid{grid-template-columns:1fr}.tile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{padding:17px}.tile>strong{font-size:22px}.alert-rule{grid-template-columns:1fr 1fr}.alert-rule>label:first-child{grid-column:1/-1}.bar-row{grid-template-columns:minmax(80px,1fr) minmax(30px,1fr) auto;gap:8px}.panel-heading{padding-inline:16px}.panel form{padding:16px}.timeline li{grid-template-columns:62px 1fr;gap:8px}.status-pill{font-size:10px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 .dead-tool{display:inline-block;max-width:100%;overflow-wrap:anywhere}.tile-grid,.analytics-grid{min-width:0}.tile .eyebrow{line-height:1.5}
+
+/* Round 1: single-weight display type and the divided mobile table/list pattern. */
+.client-avatar,.metric-value,.tile>strong,.brand-app,.setup-intro h2{font-weight:400!important;font-synthesis:none}
+.eyebrow,.status-pill{font-size:10.5px!important}
+.table-container{min-width:0;max-width:100%}.table-scroll{overflow-x:auto;scrollbar-width:auto;scrollbar-color:var(--ink-faint) var(--muted)}
+.table-scroll-hint{margin:0;padding:9px 20px;border-bottom:1px solid var(--border);color:var(--muted-foreground);font:11px var(--font-mono)}
+@media(max-width:600px){
+ .table-scroll{overflow:visible!important;margin:0!important}.table-scroll-hint{display:none}
+ .table-scroll table,.table-scroll tbody{display:block;width:100%;min-width:0!important}
+ .table-scroll thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .table-scroll tbody tr{display:flex;flex-direction:column;gap:10px;padding:16px;border-bottom:1px solid var(--border)}
+ .table-scroll tbody tr:last-child{border-bottom:0}
+ .table-scroll td{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px;padding:0!important;border:0!important;white-space:normal!important;text-align:left;min-width:0;overflow-wrap:anywhere}
+ .table-scroll td::before{content:attr(data-label);font:500 12px var(--font-sans);color:var(--muted-foreground)}
+ .table-scroll td:first-child{display:block;font-weight:600}.table-scroll td:first-child::before{display:none}
+ .table-scroll td>*{min-width:0;max-width:100%}.table-scroll .row-button{white-space:normal;text-align:left;overflow-wrap:anywhere}
+ .table-scroll .status-pill{justify-self:start}.heat-cell{min-width:0}
+}
+
+.detail-metrics strong,.slo-body>strong,.tile>strong{font-weight:400!important;font-synthesis:none}
