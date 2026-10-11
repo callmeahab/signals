@@ -35,3 +35,6 @@ venv/
 *.swo
 *~
 .DS_Store
+
+# runtime QA captures from web/scripts/e2e-insecure-qa.mjs
+web/artifacts/e2e-http-setup-*.png
