@@ -9,7 +9,7 @@ const points = (range: Range): Point[] => Array.from({length:range==='24h'?24:ra
   return {ts:range==='30d'?ts((29-i)*24):ts((range==='24h'?23:167)-i),requests,errors:Math.max(0,Math.round(requests*.012+(i%9===0?12:0))),sessions:Math.round(requests*.06),callers:Math.round(requests*.025),latency_p50:80+(i%7)*12,latency_p95:210+(i%8)*24};
 });
 const callerRows:Caller[] = ['Production app','Avery Chen','Support workspace','Network a18c72','Development key','Jordan Lee'].map((label,i)=>({id:String(i+1),label,kind:i===3?'network':i%2?'subject':'key',calls:3800-i*550,errors:i%3*4,sessions:28-i*3,clients:[clients[i%4]],first_seen:ts(24*12+i),last_seen:ts(i*.02)}));
-const sessionRows:Session[] = Array.from({length:12},(_,i)=>({session_id:`demo-session-${i}`,client:{name:clients[i%4],version:'1.0',protocol_version:'2025-03-26'},caller_label:callerRows[i%6].label,started_at:ts(i*.2),ended_at:i<2?null:ts(i*.2-.12),calls:12+i*2,errors:i%5===0?1:0,transport:'streamable-http'}));
+const sessionRows:Session[] = Array.from({length:12},(_,i)=>({session_id:`demo-session-${i}`,client_name:clients[i%4],caller_label:callerRows[i%6].label,started_at:ts(i*.2),ended_at:i<2?null:ts(i*.2-.12),calls:12+i*2,errors:i%5===0?1:0,transport:'streamable-http'}));
 const eventTypes:EventType[] = ['session.started','mcp.initialize','tool.called','resource.read','prompt.get','mcp.request','log','error','custom','session.ended'];
 function event(i:number):SignalEvent {
   const type = eventTypes[i % eventTypes.length];

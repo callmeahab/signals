@@ -37,6 +37,6 @@ for (const client of [demoClient,hostClient]) {
   const {items:toolErrors}=await client.events('demo',{tool:'search_documents',is_error:true});
   assert(toolErrors.length>0 && toolErrors.every(e=>e.attrs.tool==='search_documents' && e.attrs.is_error));
   const {items:sessions}=await client.sessions('demo');
-  assert(sessions.every(s=>s.client.name));
+  assert(sessions.every(s=>s.client_name));
 }
 console.log('Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.');

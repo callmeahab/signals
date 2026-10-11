@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
+await import('./snippet-id-qa.mjs');
 await import('./spec-qa.mjs');
 const port=Number(process.env.SIGNALS_TEST_UI_PORT??23330);
 const base=`http://127.0.0.1:${port}`;
