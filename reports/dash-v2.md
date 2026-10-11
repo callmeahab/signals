@@ -330,3 +330,187 @@ REPEAT_EXIT:0
 `git status --porcelain` produced no output after that run. `git diff --check` also produced no output. Earlier in this pass, lint flagged undeclared runtime globals in the new checks and imported review probe; explicit globalThis references resolved them before the final successful checks.
 
 No round-two findings remain open. The original backend integration notes remain applicable; legacy 90-day requests intentionally fall back to the collector's supported 30-day maximum, while analytics continues to support 90 days.
+
+
+## Integration
+
+Merged `main` first: fast-forward from `9cc578d` to `f00e64b`, without conflicts.
+Built the real Rust collector and dashboard, migrated an isolated PostgreSQL 16
+container (`dash-v2-integration-pg`, host port 25460, 1 GiB shared memory), and ran
+the browser against localhost port 25461 with Chromium using `/var/tmp/dash-int`.
+
+### Integration findings and changes
+
+- Replaced the stale backend browser QA with an isolated-project scenario: real
+  sign-in/project switching, UI key mint/revoke, 29 spec-valid events and replay,
+  exact 25 tool calls / one identity / one session / 96% success / 250 estimated
+  tokens, all eleven screens, the analytics timeline, legacy caller/session
+  rollups, SSE, settings persistence, rejected PATCH feedback, CSRF and logout.
+  The legacy caller count includes MCP requests and initialize events (27), while
+  analytics tool calls count only the 25 tool events. QA waits for the legacy
+  minute-based rollup rather than assuming immediate session materialization.
+- Timeline client/identity are structured objects, lifecycle output kinds can be
+  null, and day-seven funnel counts can be null with an optional eligible count.
+  Updated types, rendering, demo timeline shapes, and the existing header
+  assertion to inspect client name and identity key without reducing test scope.
+- Settings use the real nested `digest` document. Alert labels come from stable
+  rule IDs when names are absent; threshold/window controls appear only when
+  those fields exist. Existing demo alert editor coverage remains in place.
+  The request helper displays the server's explanatory message for 4xx responses.
+  PATCH serializes writable fields so read-only project metadata is not sent back.
+- Charts collect client names across all response buckets, render one-bucket
+  data visibly, and show an empty state for an empty series.
+
+### Backend contract escalation
+
+The initial backend returned only legacy project fields from `auth::account`
+(`GET /auth/me`) and offered PATCH but no GET at `/v1/projects/{id}`. Therefore a
+reload lost SLO settings, digest preferences and token divisor, despite successful
+PATCH persistence. Escalated this exact read-path gap through Orca ask, without
+changing Rust or manufacturing frontend defaults to conceal persisted settings.
+The coordinator amended `analytics-api.md` with **Settings read**: GET project
+and `/auth/me` carry safe analytics settings, PATCH returns the same document,
+and the secret is redacted to `probe_key_set`. The backend author owns that fix;
+the frontend now reads GET project when loading Settings.
+
+Merged backend commit `71cc3d4` via merge `8cc1007` (see Git history for merge
+identity), then rebuilt the collector. Settings now saves SLO classes, alert rules,
+digest and token divisor in one PATCH. Live QA confirmed those fields in the
+PATCH response and after browser reload; token cost changed from 260 to 130 after
+the divisor changed from 4 to 8 (including the additional Live event).
+
+### Verification
+
+Environment and commands used (all services isolated to localhost):
+
+```sh
+export PATH=/var/tmp/dash-int/bin:$HOME/.cargo/bin:$HOME/.bun/bin:$PATH
+export CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 TMPDIR=/var/tmp/dash-int
+export DATABASE_URL=postgres://postgres:postgres@127.0.0.1:25460/signals
+export SIGNALS_URL=http://127.0.0.1:25461 PLAYWRIGHT_CHANNEL=chromium
+export ANALYTICS_REVIEW_URL=http://127.0.0.1:25462 ANALYTICS_REVIEW_PROBE_PORT=25463
+# /var/tmp/dash-int/bin/psql delegates to docker exec -i
+# dash-v2-integration-pg psql, rewriting host port 25460 to 5432.
+cd web
+BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun install --frozen-lockfile
+bun run check
+bun run build
+BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run test
+BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun run test:next
+cd ..
+cargo build --locked --bin signals
+target/debug/signals migrate
+docker exec -i dash-v2-integration-pg psql -U postgres -d signals < .sqlx/dev.sql
+python3 scripts/ci-conformance.py
+```
+
+Install reported `Checked 171 installs across 193 packages (no changes)`.
+The final check, build, demo and Next-host commands all exited 0; tails:
+
+
+`web/artifacts/integration-check.log`:
+
+```text
+$ bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+```
+
+`web/artifacts/integration-build.log`:
+
+```text
+dist/assets/urbanist-latin-ext-wght-normal-Bdxck5Au.woff2          16.60 kB
+dist/assets/urbanist-latin-wght-normal-D69JTELx.woff2              27.75 kB
+dist/assets/index-Bxil6BQb.css                                     34.64 kB │ gzip:  7.53 kB
+dist/assets/index-CZafG21I.js                                     302.09 kB │ gzip: 92.62 kB
+
+✓ built in 292ms
+```
+
+`web/artifacts/integration-demo.log`:
+
+```text
+$ bun scripts/test.mjs
+Snippet UUID QA passed: randomUUID deleted, UUIDv7 timestamp/version/variant, missing and throwing crypto fallbacks.
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+Demo contract shapes passed: 8 analytics routes × 4 ranges, all session timelines, missing/extra keys and type-drift guards.
+Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.
+review-r1 probe passed
+review-r2 probe passed
+
+  VITE v8.3.2  ready in 104 ms
+
+  ➜  Local:   http://127.0.0.1:23330/
+Visual QA passed: 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+```
+
+`web/artifacts/integration-next.log`:
+
+```text
+▲ Next.js 16.3.8
+- Local:         http://127.0.0.1:23331
+- Network:       http://127.0.0.1:23331
+✓ Ready in 75ms
+✓ Running next.config.mjs took 7ms
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.
+```
+
+Committed real-data captures: `web/artifacts/v2-live/overview.png`,
+`tools.png`, and `cost.png`. These came from the successful browser QA against
+the real collector, before the additional Live event and settings changes; they
+show 25 calls and 250 estimated tokens. All three were visually inspected.
+The full demo visual run also regenerated its tracked screenshots without drift.
+
+### Complete conformance result and cleanup
+
+`python3 scripts/ci-conformance.py` exited **0**. This ran the spec sweep,
+transport probes, login-style QA, the rewritten real-backend browser QA, the
+release build, and the independent analytics review probe. Selected literal
+output and the final tail from `web/artifacts/integration-ci.log`:
+
+```text
+identity: 39/39 valid fixtures matched
+identity: 49/49 invalid fixtures matched
+gzip: 39/39 valid fixtures matched
+gzip: 49/49 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v2 analytics, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+perf facts 100000
+
+]
+subject_kind breakdown {'key': 1, 'network': 1, 'strong': 0} status 200
+FINDINGS 0 MISMATCHES 0
+```
+
+The probe result was preserved before deleting `target/`:
+
+```json
+{
+  "findings": [],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 188.86,
+    "adoption": 256.27,
+    "tools": 139.05,
+    "reliability": 120.81,
+    "cost": 150.77,
+    "protocol": 45.87,
+    "digest": 167.12,
+    "alerts": 1.86,
+    "timeline": 9.79
+  }
+}
+```
+
+All required acceptance commands passed. No backend deviation remains unresolved:
+the settings-read gap was fixed by its author and verified through real GET,
+PATCH, `/auth/me`, and browser reload behavior. Rust source was imported through
+the backend author's merge rather than edited in this dashboard task.
+
+Stopped and removed only the owned `dash-v2-integration-pg` container. Both
+collector processes were stopped by their test runners; the initial manual
+collector was stopped before conformance. Removed the owned `target/` directory
+and `/var/tmp/dash-int`; preserved useful logs under ignored `web/artifacts/`.
+The demo/Next test runners also stopped their Vite/Next servers and cleaned their
+temporary host package. No deployment or push was performed.

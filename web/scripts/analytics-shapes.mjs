@@ -9,7 +9,7 @@ const n='number', i='integer', s='string', b='boolean', nn=nullable(n), ni=nulla
 const identity={strong:i,key:i,network:i};
 const latency={p50:ni,p95:ni,p99:ni,method:s};
 const cohort={cohort_start:s,size:i,retained_pct:list(nn)};
-const funnel={step:s,count:i,dropoff_pct:optional(n)};
+const funnel={step:s,count:ni,eligible:optional(i),dropoff_pct:optional(nn)};
 const meta={range:{from:s,to:s,prev_from:s,prev_to:s},generated_at:s};
 const tool={tool:s,slo_class:s,calls:i,success_rate:nn,errors:{tool:ni,protocol:ni,timeout:ni,cancelled:ni,unknown:ni},latency,input_bytes_avg:nn,output_bytes_avg:nn,output_tokens_est:nn,retries:{count:i,self_corrected_pct:nn},schema_failures:{input:ni,output:ni},trend:list({t:s,calls:i,errors:i})};
 const capability={name:s,sessions:i,pct:n};
@@ -25,7 +25,7 @@ export const analyticsShapes={
  // their contents in prose rather than complete JSON examples (see report).
  alerts:{...meta,rules:list({id:s,name:s,enabled:b,threshold:n,window_minutes:i,state:s})},
  digest:{...meta,tools:list({tool:s,calls:i,delta_pct:nn,success_rate:nn,p95:ni}),top_error_kinds:list({kind:s,count:i}),new:i,returning:i,dead_tools:list(s),changes:list(s)},
- timeline:{...meta,session:{session_id:s,client:s,identity:s,transport:s,reason:ns,duration_ms:ni},events:list({offset_ms:i,type:s,tool:optional(s),method:optional(s),uri:optional(s),prompt:optional(s),duration_ms:ni,is_error:b,error_kind:ns,output_kinds:list(s),input_bytes:ni,output_bytes:ni,args_hash:ns})},
+ timeline:{...meta,session:{session_id:s,client:nullable({name:s,version:optional(s),protocol_version:optional(s)}),identity:nullable({kind:s,key:s}),transport:ns,reason:ns,duration_ms:ni},events:list({id:optional(s),ts:optional(s),offset_ms:i,type:s,tool:optional(s),method:optional(s),uri:optional(s),prompt:optional(s),duration_ms:ni,is_error:nullable(b),error_kind:ns,output_kinds:nullable(list(s)),input_bytes:ni,output_bytes:ni,args_hash:ns})},
 };
 export function validateShape(value,shape,path='payload') {
  if(typeof shape==='string'){

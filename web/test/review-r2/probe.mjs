@@ -376,7 +376,7 @@ try {
     check(seen.items.length === timeline.events.length, `sessions drawer: ${seen.items.length} timeline rows, demo timeline has ${timeline.events.length}`);
     const offsets = timeline.events.map(e => e.offset_ms);
     check(offsets.every((v, i) => i === 0 || offsets[i - 1] <= v), `sessions drawer: timeline offsets not ordered ${offsets.join(',')}`);
-    for (const field of [timeline.session.client, timeline.session.transport, timeline.session.identity]) {
+    for (const field of [timeline.session.client?.name, timeline.session.transport, timeline.session.identity?.key]) {
       if (field) check(seen.text.includes(String(field)), `sessions drawer: header field "${field}" missing`);
     }
     check(!/\b0 ms\b/.test(seen.text.split('Session timeline')[0]), `sessions drawer: running session duration rendered as 0 ms: ${seen.text}`);

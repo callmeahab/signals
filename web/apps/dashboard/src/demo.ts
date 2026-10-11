@@ -48,7 +48,7 @@ export const demoClient:SignalsClient = {
   async keys(){return [...keys];},
   async createKey(_p,label,scopes) {const secret=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');const key:Key={id:crypto.randomUUID(),key_id:crypto.randomUUID().replaceAll('-',''),label,scopes,created_at:new Date().toISOString(),last_used_at:null,revoked_at:null};keys=[key,...keys];return {key,secret:`sgk_${key.key_id}_${secret}`};},
   async revokeKey(_p,id){keys=keys.map(k=>k.id===id?{...k,revoked_at:new Date().toISOString()}:k);},
-  async updateProject(_p,settings){setAnalyticsSettings(settings);Object.assign(demoProject,settings);return {...demoProject};},
+  async updateProject(_p,settings){setAnalyticsSettings(settings);if(settings.alerts)setRules(settings.alerts);Object.assign(demoProject,settings);return {...demoProject};},
   async users(){return [...demoUsers];},
   async createUser(_p,email,_password,role){const user={id:crypto.randomUUID(),email,role};demoUsers=[...demoUsers,user];return user;},
 };
