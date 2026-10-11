@@ -1282,6 +1282,8 @@ def e2e_catalogue_progress_probe(client, tenant_id):
 
     def send(kind, attrs):
         nonlocal stamp
+        if kind == "tool.called":
+            attrs = {"input_bytes": 1, "output_bytes": 1, "output_kinds": ["text"], "cancelled": False, "is_error": False, **attrs}
         stamp += timedelta(seconds=1)
         status, body, _ = client.request("POST", "/v1/events", {
             "schema_version": 1, "sent_at": fmt(datetime.now(timezone.utc)),

@@ -48,6 +48,10 @@ async fn v11_storage_protocol_and_delivery() {
     let values = values
         .into_iter()
         .map(|mut e| {
+            e["attrs"]["input_bytes"] = json!(1);
+            e["attrs"]["output_bytes"] = json!(1);
+            e["attrs"]["output_kinds"] = json!(["text"]);
+            e["attrs"]["cancelled"] = json!(false);
             e["id"] = json!(Uuid::now_v7());
             e["ts"] = json!(at);
             e
