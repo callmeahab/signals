@@ -1,5 +1,9 @@
 # Private Docker Compose deployment
 
+Postgres uses `shm_size: 1g` in both Compose files. Analytics parallel queries can
+exceed Docker’s default 64 MB `/dev/shm`; standalone test containers must also use
+`docker run --shm-size=1g`.
+
 Run from the repository root. Docker and Compose are required. The runtime image
 is built by `docker/Dockerfile` and tagged `signals-collector:local`.
 

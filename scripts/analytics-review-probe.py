@@ -250,8 +250,8 @@ class Builder:
         elif listed:
             self.add(ident, cursor, "tools.listed", {
                 "count": len(CATALOG),
-                "tools": [{"name": name, "annotations": ann, "schema_hash": "s-" + name} for name, ann in CATALOG],
-                "catalog_hash": "cat-review-1",
+                "tools": [{"name": name, "annotations": ann, "schema_hash": hashlib.sha256(name.encode()).hexdigest()} for name, ann in CATALOG],
+                "catalog_hash": "c" * 64,
                 "future_optional": True,
             }, listing=True)
             cursor += timedelta(seconds=1)
@@ -938,7 +938,7 @@ def expect_reliability(all_events, window, filters, settings):
             codes[(event["attrs"]["error_code"], event["attrs"].get("error_kind"))] += 1
         if event["type"] == "error" and event["attrs"].get("where") == "auth" and isinstance(event["attrs"].get("reason"), str):
             auth[event["attrs"]["reason"]] += 1
-    hallucinated = [e for e in calls if e["attrs"].get("error_kind") == "unknown_tool"]
+    hallucinated = [e for e in calls if e["attrs"].get("error_kind") == "unknown_tool" or (catalog["known"] and e["tool"] not in catalog["tools"])]
     sessions = {e["session_id"] for e in events if e["session_id"]}
     bad_sessions = {e["session_id"] for e in events if e["is_error"] and e["session_id"]}
     measured = any(isinstance(e["attrs"].get("output_bytes"), int) for e in calls)
@@ -953,7 +953,7 @@ def expect_reliability(all_events, window, filters, settings):
         "timeouts": {"count": timeouts, "pct": None if timeouts is None else rate(timeouts, len(calls))},
         "cancellations": {"count": cancellations, "pct": None if cancellations is None else rate(cancellations, len(calls))},
         "error_codes": [{"code": code, "kind": kind, "count": count} for (code, kind), count in sorted(codes.items(), key=lambda item: (item[0][0], item[0][1] or ""))],
-        "hallucinated_tools": {"count": len(hallucinated) if kind_known else None, "names": sorted({e["tool"] for e in hallucinated if e["tool"]})},
+        "hallucinated_tools": {"count": len(hallucinated) if kind_known or catalog["known"] else None, "names": sorted({e["tool"] for e in hallucinated if e["tool"]})},
         "sessions_with_errors": {"count": len(bad_sessions), "pct": rate(len(bad_sessions), len(sessions))},
         "silent_failures": {"count": silent if measured else None},
         "auth_failures": [{"reason": reason, "count": count} for reason, count in sorted(auth.items())],
@@ -1176,7 +1176,7 @@ def expect_protocol(all_events, window, filters):
         "sampling": {"requests": None, "p95": None, "rejected_pct": None, "by_model": []},
         "elicitation": {"requests": None, "accept_pct": None, "decline_pct": None, "cancel_pct": None},
         "tasks": {"created": None, "completed": None, "failed": None, "cancelled": None},
-        "progress": {"long_calls": None, "with_progress_pct": None},
+        "progress": {"long_calls": sum(e["type"] == "tool.called" and e["attrs"].get("duration_ms", 0) >= 1000 for e in events) if calls_of(events) else None, "with_progress_pct": None},
     }
 
 
@@ -1617,7 +1617,7 @@ def main():
         "client_name": "Claude", "client_version": "1", "protocol": "2025-06-18",
         "caller": {"subject": "alert-user"}, "identity": ("strong", "alert-user"), "tool": None,
         "duration_ms": None, "is_error": False, "transport": None,
-        "attrs": {"tools": [{"name": "get_product", "annotations": ["readOnly"]}, {"name": "book_flight", "annotations": ["destructive"]}], "catalog_hash": "alert-cat"},
+        "attrs": {"tools": [{"name": "get_product", "annotations": ["readOnly"]}, {"name": "book_flight", "annotations": ["destructive"]}], "catalog_hash": "a" * 64},
     })
     accepted, rejected = ingest(client, alert_key, alert_events)
     print("alert ingest", accepted, rejected[:1])

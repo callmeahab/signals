@@ -1,5 +1,6 @@
 pub mod analytics;
 pub mod auth;
+pub mod delivery;
 pub mod handlers;
 pub mod middleware;
 pub mod openapi;

@@ -304,6 +304,7 @@ async fn main() -> Result<()> {
                 loop {
                     tokio::select! {_=interval.tick()=>{if let Err(e)=worker_store.rollup().await{tracing::error!(error=%e,"rollup failed");}
                     if let Err(e)=worker_store.evaluate_alerts().await{tracing::error!(error=%e,"alerts evaluation failed");}
+                    if let Err(e)=signals_server::delivery::run(&worker_store).await{tracing::error!(error=%e,"notification worker failed");}
                     if let Err(e)=signals_server::prober::run(&worker_store).await{tracing::error!(error=%e,"prober failed");}ticks+=1;if ticks.is_multiple_of(10){if let Err(e)=worker_store.maintain().await{tracing::error!(error=%e,"maintenance failed");}}},_=worker_shutdown.changed()=>break}
                 }
             });

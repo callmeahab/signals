@@ -24,8 +24,8 @@ are null; a measured count of zero is zero.
 - Identity precedence: OAuth subject (also a subject without `subject_kind`), then
   caller key, then hashed network address. Kind is part of identity uniqueness;
   equal strings in different kinds do not merge. Raw IPs never become identifiers.
-  v1.0's closed caller schema is unchanged; the precedence calculation also handles
-  `subject_kind` in stored data for a future vendored schema.
+  Spec v1.1 validates `subject_kind`; v1.0 events without it keep their existing
+  precedence. Non-OAuth subjects do not become strong identities.
 - Calls count only `tool.called`. Success excludes calls with `is_error=true`.
   Session depth counts tool calls; existing dashboard request counts retain their
   original meaning. Session first/last tool and error state come from ordered events.
@@ -55,8 +55,10 @@ are null; a measured count of zero is zero.
   Weekly cohorts start on Monday; unfinished weeks are null.
 - Catalogue snapshots may be empty. The latest event-time snapshot controls the
   advertised set, while individual tool records preserve first/last seen metadata.
-  `tools.listed` receives the normal envelope/depth/size validation with open attrs.
-  No other previously unknown event type is enabled.
+  `tools.listed` and the optional protocol events receive full v1.1 schema validation.
+  Failed listings do not replace a successful snapshot. Truncation is retained on
+  both tool records and snapshots; incomplete snapshots cannot classify absent
+  tool names as hallucinations. The catalogue reflects the latest project snapshot.
 
 ## Storage and freshness
 
@@ -113,8 +115,24 @@ preceding 24 hours, a one-minute error rate continuously above the threshold for
 burn. A missing sample, a gap over 90 seconds between evaluations, disabling the
 rule, or changing its settings resets the pending error breach. Only transitions
 are inserted into `alerts_log`; missing evidence yields `no_data`. Digest computes weekly comparisons
-on demand. Delivery remains compute-only; alert details record `delivery: log_only`.
-No SMTP or webhook requests are sent.
+on demand. When `digest.enabled` is true, delivery becomes due Monday at 07:00
+in `digest.timezone` (IANA name, default `UTC`). A restarted worker catches up within
+the same local week. Reporting uses the completed UTC ISO week, exactly as the
+`digest?week=YYYY-Www` endpoint does; the timezone changes delivery time only.
+
+Configure `digest.recipient` and `SIGNALS_SMTP_URL` / `SIGNALS_SMTP_FROM` for email,
+and/or `digest.webhook_url` for a JSON POST. SMTP URLs support `smtp://` (including
+local relays) and `smtps://`, credentials and STARTTLS as supported by lettre.
+Emails contain plain-text and HTML alternatives, inline stone/gold styles and a
+Krona One heading with Arial fallback. Webhooks include `type`, `project_id`, project
+name and either the digest week/range/data or alert rule/state/changed_at/details.
+Alert state transitions use the configured channels independently of digest.enabled.
+
+The durable outbox deduplicates each digest week or alert transition per channel.
+Failed channels retry after five minutes; successful channels are not repeated.
+Multiple workers claim rows with database locks. Delivery is at-least-once: a crash
+after a receiver accepts but before the database commit can repeat a notification.
+Errors are logged without SMTP credentials, recipient addresses or webhook URLs.
 
 Probing is disabled until both `probe_url` and `probe_key` are configured. The worker
 performs initialize, initialized notification, and paginated tools/list over
@@ -171,3 +189,27 @@ The probe credential is never returned. `probe_key_set` is false before a key is
 configured or after an owner clears it with `{"probe_key":null}`. It is a derived,
 read-only field ignored by PATCH, so round-tripping the document preserves the key.
 Authentication/login account responses use the same safe project serializer.
+
+## Spec v1.1 metric coverage
+
+Migration 0009 preserves request IDs, output item counts, derived-session markers,
+progress, sampling, elicitation, task and discovery metadata in compact facts, alongside
+error kinds/codes, output characters, schema validation flags, initialize timing/error,
+and auth failure reasons. Raw event attrs retain all schema-valid fields. Hourly
+rollups include measured error splits/timeouts and character-based token estimates;
+daily rollups include the protocol summary. Missing measurements remain null.
+
+Protocol sampling counts observed requests, p95 duration, rejection percentage among
+requests reporting `rejected`, and counts by returned model. Elicitation percentages
+use events with a reported action. Task `created` counts distinct session/task IDs
+observed in the window (creation itself is not a distinct spec event); status counts
+count observed transitions, including completed/failed/cancelled. Progress calls are
+long at 1,000 ms or more; the percentage uses long calls reporting `progress_events`.
+`protocol.discovery` adds request count, p95 and total measured discovery duration.
+Explicit tools.listed and legacy tools/list requests both contribute observed events.
+Unknown fields or no observed optional protocol events produce null measurements.
+
+`cargo test -p signals-server --test v11 -- --ignored` checks the v1.1 fixture through
+storage, retained facts, protocol/reliability metrics, and real local SMTP/webhook
+receivers, including digest deduplication and alert transition delivery. Set an isolated
+`TEST_DATABASE_URL` first. Scheduler unit tests cover both US DST transitions.

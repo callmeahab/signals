@@ -6,6 +6,8 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgres://signals:signals@postgres/signals
+      SIGNALS_SMTP_URL: ${SIGNALS_SMTP_URL:-}
+      SIGNALS_SMTP_FROM: ${SIGNALS_SMTP_FROM:-}
       SIGNALS_BIND: 0.0.0.0:8300
       SIGNALS_PUBLIC_URL: ${SIGNALS_PUBLIC_URL:-http://localhost:8300}
       SIGNALS_ADMIN_TOKEN: ${SIGNALS_ADMIN_TOKEN:?Set SIGNALS_ADMIN_TOKEN in .env}

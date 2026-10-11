@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO notification_outbox(project_id,dedupe_key,channel,destination,payload) VALUES($1,$2,$3,$4,$5) ON CONFLICT(project_id,dedupe_key,channel) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5b163f99332bf73fa5b1600284f025370a172a2111a754c65061b1ef79695319"
+}

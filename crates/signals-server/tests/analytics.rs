@@ -122,7 +122,7 @@ async fn three_day_analytics_contract_and_idempotence() {
                 json!({"transport":"streamable-http"}),
             ));
             events.push(event("mcp.initialize",1,json!({"requested_protocol_version":"2025-03-26","client_capabilities":["roots"],"server_capabilities":["tools"]})));
-            events.push(event("tools.listed",2,json!({"count":3,"tools":[{"name":"get_item","annotations":["readOnly"],"schema_hash":"a"},{"name":"set_item","annotations":["destructive"]},{"name":"dead_tool"}],"catalog_hash":"catalog-1","future_optional":true})));
+            events.push(event("tools.listed",2,json!({"count":3,"tools":[{"name":"get_item","annotations":["readOnly"],"schema_hash":"a".repeat(64)},{"name":"set_item","annotations":["destructive"]},{"name":"dead_tool"}],"catalog_hash":"c".repeat(64),"future_optional":true})));
             for i in 0..6 {
                 events.push(event("tool.called",3+i,json!({"tool":if i<3{"get_item"}else{"set_item"},"duration_ms":100+i*10,"is_error":i==0,"input_bytes":100,"output_bytes":400,"output_chars":200,"output_kinds":["text"],"cancelled":false,"args":{"id":1},"private_note":"not-an-analytics-field"})));
             }

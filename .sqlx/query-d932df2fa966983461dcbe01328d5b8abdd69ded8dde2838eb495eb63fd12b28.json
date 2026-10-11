@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ts,catalog_hash,truncated,advertised_count FROM catalog_snapshots WHERE project_id=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ts",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "catalog_snapshots",
+            "name": "ts"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "catalog_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "catalog_snapshots",
+            "name": "catalog_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "truncated",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "catalog_snapshots",
+            "name": "truncated"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "advertised_count",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "catalog_snapshots",
+            "name": "advertised_count"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "d932df2fa966983461dcbe01328d5b8abdd69ded8dde2838eb495eb63fd12b28"
+}

@@ -326,14 +326,14 @@ impl Store {
         let mut catalog = BTreeMap::new();
         for r in checked_query!("SELECT c.tool,c.annotations FROM tool_catalog c JOIN catalog_snapshots s ON s.project_id=c.project_id AND c.tool=ANY(s.tools) WHERE c.project_id=$1",project).fetch_all(&self.pool).await? {catalog.insert(r.get("tool"),r.get::<Option<Value>,_>("annotations").unwrap_or(Value::Null));}
         let snapshot = checked_query!(
-            "SELECT ts,catalog_hash FROM catalog_snapshots WHERE project_id=$1",
+            "SELECT ts,catalog_hash,truncated,advertised_count FROM catalog_snapshots WHERE project_id=$1",
             project
         )
         .fetch_optional(&self.pool)
         .await?;
         let catalog_info = match snapshot {
             Some(r) => {
-                json!({"known":true,"catalog_hash":r.get::<Option<String>,_>("catalog_hash"),"updated_at":r.get::<DateTime<Utc>,_>("ts")})
+                json!({"known":true,"truncated":r.get::<bool,_>("truncated"),"advertised_count":r.get::<Option<i64>,_>("advertised_count"),"catalog_hash":r.get::<Option<String>,_>("catalog_hash"),"updated_at":r.get::<DateTime<Utc>,_>("ts")})
             }
             None => json!({"known":false,"catalog_hash":null,"updated_at":null}),
         };
@@ -524,7 +524,9 @@ impl Data {
         let total = paths.iter().map(|p| p.1).sum();
         let mut catalog = self.catalog_info.clone();
         catalog["advertised"] = if catalog["known"] == true {
-            json!(self.catalog.len())
+            catalog["advertised_count"]
+                .as_i64()
+                .map_or_else(|| json!(self.catalog.len()), |n| json!(n))
         } else {
             Value::Null
         };
@@ -738,7 +740,14 @@ impl Data {
         let hallucinated: Vec<_> = m
             .calls
             .iter()
-            .filter(|e| e.attrs["error_kind"] == "unknown_tool")
+            .filter(|e| {
+                e.attrs["error_kind"] == "unknown_tool"
+                    || (self.catalog_info["known"] == true
+                        && self.catalog_info["truncated"] != true
+                        && e.tool
+                            .as_ref()
+                            .is_some_and(|t| !self.catalog.contains_key(t)))
+            })
             .collect();
         let sessions: BTreeSet<_> = events
             .iter()
@@ -758,7 +767,7 @@ impl Data {
                         && e.number("output_bytes").is_some_and(|n| n > 0))
             })
             .count();
-        json!({"slo":slo,"handshake":{"attempts":handshakes.len(),"success_rate":handshake_known.then(||rate(handshakes.iter().filter(|e|!e.is_error).count(),handshakes.len())).flatten(),"p95":(!hd.is_empty()).then(||hd[(hd.len() as f64*0.95).ceil() as usize-1])},"timeouts":{"count":timeouts,"pct":timeouts.and_then(|n|rate(n,m.calls.len()))},"cancellations":{"count":cancellations,"pct":cancellations.and_then(|n|rate(n,m.calls.len()))},"error_codes":codes.into_iter().map(|((code,kind),count)|json!({"code":code,"kind":kind,"count":count})).collect::<Vec<_>>(),"hallucinated_tools":{"count":m.calls.iter().any(|e|e.attrs["error_kind"].is_string()).then_some(hallucinated.len()),"names":hallucinated.iter().filter_map(|e|e.tool.as_ref()).collect::<BTreeSet<_>>()},"sessions_with_errors":{"count":errors.len(),"pct":rate(errors.len(),sessions.len())},"silent_failures":{"count":m.calls.iter().any(|e|e.number("output_bytes").is_some()).then_some(silent)},"auth_failures":auth.into_iter().map(|(reason,count)|json!({"reason":reason,"count":count})).collect::<Vec<_>>(),"availability":null})
+        json!({"slo":slo,"handshake":{"attempts":handshakes.len(),"success_rate":handshake_known.then(||rate(handshakes.iter().filter(|e|e.attrs["is_error"] == false).count(),handshakes.iter().filter(|e|e.attrs["is_error"].is_boolean()).count())).flatten(),"p95":(!hd.is_empty()).then(||hd[(hd.len() as f64*0.95).ceil() as usize-1])},"timeouts":{"count":timeouts,"pct":timeouts.and_then(|n|rate(n,m.calls.len()))},"cancellations":{"count":cancellations,"pct":cancellations.and_then(|n|rate(n,m.calls.len()))},"error_codes":codes.into_iter().map(|((code,kind),count)|json!({"code":code,"kind":kind,"count":count})).collect::<Vec<_>>(),"hallucinated_tools":{"count":(self.catalog_info["known"] == true && self.catalog_info["truncated"] != true || m.calls.iter().any(|e|e.attrs["error_kind"].is_string())).then_some(hallucinated.len()),"names":hallucinated.iter().filter_map(|e|e.tool.as_ref()).collect::<BTreeSet<_>>()},"sessions_with_errors":{"count":errors.len(),"pct":rate(errors.len(),sessions.len())},"silent_failures":{"count":m.calls.iter().any(|e|e.number("output_bytes").is_some()).then_some(silent)},"auth_failures":auth.into_iter().map(|(reason,count)|json!({"reason":reason,"count":count})).collect::<Vec<_>>(),"availability":null})
     }
     pub fn protocol(&self, events: &[&Fact]) -> Value {
         let sessions: BTreeSet<_> = events
@@ -776,7 +785,81 @@ impl Data {
             }
             caps.into_iter().map(|(name,es)|json!({"name":name,"sessions":es.len(),"pct":rate(es.len(),sessions.len())})).collect::<Vec<_>>()
         };
-        json!({"capabilities":{"sessions":sessions.len(),"client":capabilities("client_capabilities"),"server":capabilities("server_capabilities")},"sampling":{"requests":null,"p95":null,"rejected_pct":null,"by_model":[]},"elicitation":{"requests":null,"accept_pct":null,"decline_pct":null,"cancel_pct":null},"tasks":{"created":null,"completed":null,"failed":null,"cancelled":null},"progress":{"long_calls":null,"with_progress_pct":null}})
+        let sampling: Vec<_> = events
+            .iter()
+            .copied()
+            .filter(|e| e.event_type == "sampling.requested")
+            .collect();
+        let elicitation: Vec<_> = events
+            .iter()
+            .copied()
+            .filter(|e| e.event_type == "elicitation.requested")
+            .collect();
+        let tasks: Vec<_> = events
+            .iter()
+            .copied()
+            .filter(|e| e.event_type == "task.updated")
+            .collect();
+        let discovery: Vec<_> = events
+            .iter()
+            .copied()
+            .filter(|e| {
+                e.event_type == "tools.listed"
+                    || (e.event_type == "mcp.request" && e.attrs["method"] == "tools/list")
+            })
+            .collect();
+        let p95 = |es: &[&Fact]| {
+            let mut d: Vec<_> = es.iter().filter_map(|e| e.duration_ms).collect();
+            d.sort_unstable();
+            (!d.is_empty()).then(|| d[(d.len() as f64 * 0.95).ceil() as usize - 1])
+        };
+        let mut models = BTreeMap::<&str, usize>::new();
+        for e in &sampling {
+            if let Some(model) = e.attrs["model"].as_str() {
+                *models.entry(model).or_default() += 1;
+            }
+        }
+        let action = |name| {
+            rate(
+                elicitation
+                    .iter()
+                    .filter(|e| e.attrs["action"] == name)
+                    .count(),
+                elicitation
+                    .iter()
+                    .filter(|e| e.attrs["action"].is_string())
+                    .count(),
+            )
+        };
+        let task_count = |status| {
+            tasks
+                .iter()
+                .any(|e| e.attrs["status"].is_string())
+                .then(|| tasks.iter().filter(|e| e.attrs["status"] == status).count())
+        };
+        let created: BTreeSet<_> = tasks
+            .iter()
+            .filter_map(|e| {
+                e.attrs["task_id"]
+                    .as_str()
+                    .map(|id| (e.session_id.as_deref(), id))
+            })
+            .collect();
+        let long: Vec<_> = events
+            .iter()
+            .copied()
+            .filter(|e| e.call() && e.duration_ms.is_some_and(|n| n >= 1000))
+            .collect();
+        let progress: Vec<_> = long
+            .iter()
+            .filter(|e| e.number("progress_events").is_some())
+            .collect();
+        json!({"capabilities":{"sessions":sessions.len(),"client":capabilities("client_capabilities"),"server":capabilities("server_capabilities")},
+          "sampling":{"requests":(!sampling.is_empty()).then_some(sampling.len()),"p95":p95(&sampling),"rejected_pct":rate(sampling.iter().filter(|e|e.attrs["rejected"]==true).count(),sampling.iter().filter(|e|e.attrs["rejected"].is_boolean()).count()),"by_model":models.into_iter().map(|(model,requests)|json!({"model":model,"requests":requests})).collect::<Vec<_>>()},
+          "elicitation":{"requests":(!elicitation.is_empty()).then_some(elicitation.len()),"accept_pct":action("accept"),"decline_pct":action("decline"),"cancel_pct":action("cancel")},
+          "tasks":{"created":(!created.is_empty()).then_some(created.len()),"completed":task_count("completed"),"failed":task_count("failed"),"cancelled":task_count("cancelled")},
+          "progress":{"long_calls":events.iter().any(|e|e.call() && e.duration_ms.is_some()).then_some(long.len()),"with_progress_pct":rate(progress.iter().filter(|e|e.number("progress_events").is_some_and(|n|n>0)).count(),progress.len())},
+          "discovery":{"requests":(!discovery.is_empty()).then_some(discovery.len()),"p95":p95(&discovery),"duration_ms":discovery.iter().any(|e|e.duration_ms.is_some()).then(||discovery.iter().filter_map(|e|e.duration_ms.map(i64::from)).sum::<i64>())}})
     }
     pub fn digest(&self, w: Window, f: &Filters) -> Value {
         let events = self.selected(w, f);

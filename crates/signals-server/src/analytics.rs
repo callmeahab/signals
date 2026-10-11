@@ -192,7 +192,7 @@ pub async fn read(
             "cost" => data.cost(&data.selected(w, &f)),
             "protocol" => data.protocol(&data.selected(w, &f)),
             "digest" => {
-                tracing::info!(%project,from=%w.from,to=%w.to,"weekly digest computed; delivery is log-only");
+                tracing::info!(%project,from=%w.from,to=%w.to,"weekly digest computed");
                 data.digest(w, &f)
             }
             _ => unreachable!(),
@@ -318,10 +318,14 @@ pub fn validate_settings(input: &Value) -> crate::Result<()> {
                 if !value.as_object().is_some_and(|m| {
                     m.iter().all(|(k, v)| match k.as_str() {
                         "enabled" => v.is_boolean(),
+                        "timezone" => v
+                            .as_str()
+                            .is_some_and(|s| s.parse::<chrono_tz::Tz>().is_ok()),
                         "recipient" => {
                             v.is_null()
-                                || v.as_str()
-                                    .is_some_and(|v| v.contains('@') && v.len() <= 320)
+                                || v.as_str().is_some_and(|v| {
+                                    v.len() <= 320 && v.parse::<lettre::message::Mailbox>().is_ok()
+                                })
                         }
                         "webhook_url" => v.is_null() || v.as_str().is_some_and(valid_url),
                         _ => false,

@@ -121,6 +121,7 @@ impl Store {
                 metrics["sessions"] = json!(sessions.len());
                 metrics["sessions_with_errors"] = json!(errors.len());
                 metrics["capabilities"] = data.protocol(&events)["capabilities"].clone();
+                metrics["protocol"] = data.protocol(&events);
                 checked_query!("INSERT INTO analytics_daily VALUES($1,$2,$3) ON CONFLICT(project_id,day) DO UPDATE SET metrics=EXCLUDED.metrics",project,day,metrics).execute(&mut *tx).await?;
                 let mut ids = BTreeMap::new();
                 for e in &events {
@@ -365,7 +366,7 @@ fn alert_states(data: &Data, now: DateTime<Utc>) -> Vec<(String, String, Value)>
             (
                 id.into(),
                 state.into(),
-                json!({"evaluated_at":now,"delivery":"log_only"}),
+                json!({"evaluated_at":now,"delivery":"queued"}),
             )
         })
         .collect()

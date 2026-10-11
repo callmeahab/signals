@@ -6,6 +6,8 @@ services:
       dockerfile: docker/Dockerfile
     environment:
       DATABASE_URL: postgres://signals:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres/signals
+      SIGNALS_SMTP_URL: ${SIGNALS_SMTP_URL:-}
+      SIGNALS_SMTP_FROM: ${SIGNALS_SMTP_FROM:-}
       SIGNALS_BIND: 0.0.0.0:8300
       SIGNALS_PUBLIC_URL: ${SIGNALS_PUBLIC_URL:?Set SIGNALS_PUBLIC_URL}
       SIGNALS_CORS_ORIGINS: ${SIGNALS_CORS_ORIGINS:?Set SIGNALS_CORS_ORIGINS}

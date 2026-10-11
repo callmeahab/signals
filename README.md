@@ -1,6 +1,9 @@
 # Signals
 
-Self-hosted MCP event collector and dashboard.
+Self-hosted MCP event collector and dashboard. Implements Signals spec **v1.1.0**,
+including tool catalogues and optional sampling, elicitation, and task events.
+The [analytics API](docs/analytics.md) at `/v1/projects/{project}/analytics/` powers
+adoption, tool reliability, cost, protocol, timelines, weekly digests, and alerts.
 
 ## Run
 
