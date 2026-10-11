@@ -1600,3 +1600,174 @@ output was header-only, target was absent, ownership diff and whitespace checks
 were empty, and the post-commit status was clean. No work remains under the
 coordinator's corrected scope and accepted timing-repeat criterion; changes are
 committed locally without a push.
+
+## Partition pruning
+
+`git merge main` reported `Already up to date` at `19d56c0`. Read COMMON and the
+partition-pruning brief before work. Inspected the cited GitHub run:
+
+```sh
+gh run view 38156371320 --repo callmeahab/signals --log-failed > /tmp/pruning-ci.log
+grep -n '\[should-fix\]\|FINDINGS' /tmp/pruning-ci.log | tail -4
+```
+
+Exit 0. CI reported one `explain-events` finding and zero semantic mismatches.
+The executed plan repeatedly scanned populated September event partitions (58
+inner loops in the supplied plan). This was the SQL eligibility anti-join, not
+the prior task's bounded in-memory fallback scan.
+
+Changes by file:
+
+- `crates/signals-store/migrations/0009_analytics_hourly_arrivals.sql`: new indexed
+  per-project/hour arrival maxima, one-time raw-event backfill, and statement-level
+  transactional capture with monotonic `greatest` updates.
+- `crates/signals-store/queries/analytics_histograms.sql`: eligibility joins only
+  hourly aggregate and arrival metadata; no raw-event relation is referenced.
+- `crates/signals-store/src/analytics.rs`: compile-checked production SQL file.
+- `crates/signals-store/src/workers.rs`: arrival metadata shares the existing
+  400-day hourly/fact retention horizon.
+- `.sqlx/`: regenerated metadata for eligibility and metadata cleanup.
+- `crates/signals-server/tests/histogram_eligibility.rs`: 31 populated daily
+  partitions, ANALYZE, executed plans with both old/current watermarks, late-arrival
+  fallback, rollback atomicity, post-rollup equality, raw retention and marker cleanup.
+- `.github/workflows/signals.yml`: runs the new database regression in CI.
+- `scripts/analytics-review-probe.py`: creates 31 populated daily partitions via
+  ingestion and EXPLAINs the production SQL file instead of a handwritten copy.
+  The existing executed raw-scan guard is retained.
+- `docs/analytics.md`: eligibility, migration and retention behavior.
+- `reports/collector-analytics.md`: verification evidence.
+
+Setup:
+
+```sh
+export PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0
+(cd web && BUN_INSTALL_CACHE_DIR=$PWD/artifacts/install-cache bun install --frozen-lockfile && bun run build)
+docker run -d --name signals-pruning-pg --shm-size=1g -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:25439:5432 postgres:18.6-bookworm
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals
+cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i signals-pruning-pg psql -U postgres -d signals -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+SQLX_OFFLINE=false cargo build --locked --bin signals
+```
+
+All exited 0. Selected final output:
+
+```text
+dist/assets/index-CZafG21I.js                                     302.09 kB │ gzip: 92.62 kB
+
+✓ built in 439ms
+Applied 1/migrate initial (14.333757ms)
+Applied 2/migrate query indexes (1.981782ms)
+Applied 3/migrate spec v1 (1.136996ms)
+Applied 4/migrate analytics (10.115504ms)
+Applied 5/migrate analytics revision (1.198007ms)
+Applied 6/migrate analytics facts (2.572329ms)
+Applied 7/migrate alert pending (1.378829ms)
+Applied 8/migrate analytics scope (1.47193ms)
+Applied 9/migrate analytics hourly arrivals (1.382969ms)
+CREATE TABLE
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/analytics-v2/crates/signals-server)
+    Finished `dev` profile [unoptimized] target(s) in 8.84s
+```
+
+Targeted regression:
+
+```sh
+export TEST_DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals SQLX_OFFLINE=false
+cargo test --locked -p signals-server --test histogram_eligibility -- --ignored --nocapture
+```
+
+Exit 0, first before and then after adding marker-retention coverage. Final run:
+
+```text
+running 1 test
+PASS 31 populated daily partitions: no raw-event plan nodes, late-arrival fallback, rollback atomicity, raw retention and metadata cleanup
+test histogram_eligibility_avoids_raw_partitions_and_tracks_late_arrivals ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+```
+
+Upgrade and before/after plan reproduction:
+
+```sh
+docker exec signals-pruning-pg createdb -U postgres signals_upgrade
+export DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals_upgrade
+cargo sqlx migrate run --source crates/signals-store/migrations --target-version 8
+docker exec -i signals-pruning-pg psql -U postgres -d signals_upgrade -v ON_ERROR_STOP=1 <<'SQL'
+DO $$ DECLARE d date; BEGIN
+ FOR d IN SELECT current_date-g FROM generate_series(1,31) g LOOP
+ EXECUTE format('CREATE TABLE %I PARTITION OF events FOR VALUES FROM (%L) TO (%L)','events_'||to_char(d,'YYYY_MM_DD'),d,d+1);
+ END LOOP;
+END $$;
+INSERT INTO tenants VALUES(gen_random_uuid(),'upgrade','Upgrade',NULL,'salt'::bytea,now());
+INSERT INTO projects(id,tenant_id,slug,name) SELECT gen_random_uuid(),id,'upgrade','Upgrade' FROM tenants;
+INSERT INTO events(project_id,ts,received_at,id,type,tool,duration_ms,is_error,attrs)
+SELECT p.id,current_date-g*interval '1 day'+n*interval '1 minute',clock_timestamp(),gen_random_uuid(),'tool.called','read_item',100,false,'{}'::jsonb
+FROM projects p CROSS JOIN generate_series(1,31) g CROSS JOIN generate_series(1,20) n;
+INSERT INTO analytics_hourly(project_id,hour,tool,is_project,metrics)
+SELECT id,current_date-g*interval '1 day','',true,jsonb_build_object('latency_hist',to_jsonb(array_fill(1,ARRAY[60]))) FROM projects CROSS JOIN generate_series(1,31) g;
+SQL
+cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec signals-pruning-pg psql -U postgres -d signals_upgrade -c 'ANALYZE events; ANALYZE analytics_hourly;'
+python3 - <<'PY'
+import subprocess,json
+from pathlib import Path
+def sql(q):return subprocess.check_output(['docker','exec','signals-pruning-pg','psql','-U','postgres','-d','signals_upgrade','-Atc',q],text=True).strip()
+p=sql('SELECT id FROM projects')
+assert sql('SELECT count(*) FROM analytics_hourly_arrivals')=='31'
+assert sql("SELECT bool_and(a.received_at=x.received_at) FROM analytics_hourly_arrivals a JOIN (SELECT project_id,date_trunc('hour',ts,'UTC') AS bucket,max(received_at) AS received_at FROM events GROUP BY project_id,date_trunc('hour',ts,'UTC')) x ON x.project_id=a.project_id AND x.bucket=a.hour")=='t'
+print('PASS migration from version 8 backfilled 31 hourly arrival maxima')
+old=f"SELECT r.hour FROM analytics_hourly r WHERE project_id='{p}' AND hour>=now()-interval '7 days' AND hour+interval '1 hour'<=now() AND NOT EXISTS(SELECT 1 FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour AND e.ts<r.hour+interval '1 hour' AND e.received_at>'1970-01-01')"
+new=Path('crates/signals-store/queries/analytics_histograms.sql').read_text()
+for k,v in (('$1',f"'{p}'::uuid"),('$2',"now()-interval '7 days'"),('$3','now()'),('$4',"'1970-01-01'::timestamptz")):new=new.replace(k,v)
+def scans(n):
+ result=[]
+ if n.get('Node Type')=='Seq Scan' and n.get('Relation Name','').startswith('events') and n.get('Actual Loops',0)>0 and n.get('Actual Rows',0)+n.get('Rows Removed by Filter',0)>0:result.append(n['Relation Name'])
+ for c in n.get('Plans',[]):result+=scans(c)
+ return result
+for label,q in [('old',old),('new',new)]:
+ plan=json.loads(sql('EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) '+q))
+ Path('/tmp/pruning-'+label+'-plan.json').write_text(json.dumps(plan,indent=2))
+ raw=scans(plan[0]['Plan']);print(label,'populated raw sequential scans',len(raw),raw)
+ assert bool(raw)==(label=='old')
+print('PASS old query reproduces guard failure; production metadata query avoids it')
+PY
+```
+
+All final commands exited 0. Initial diagnostic attempts encountered a corrected
+SQL alias typo and, before ANALYZE, an old plan using index scans instead of the CI
+sequential-scan plan; after gathering normal table statistics, the guard failure
+reproduced without disabling indexes or changing planner settings. Final output:
+
+```text
+PASS migration from version 8 backfilled 31 hourly arrival maxima
+old populated raw sequential scans 31 ['events_2026_09_10', 'events_2026_09_11', 'events_2026_09_12', 'events_2026_09_13', 'events_2026_09_14', 'events_2026_09_15', 'events_2026_09_16', 'events_2026_09_17', 'events_2026_09_18', 'events_2026_09_19', 'events_2026_09_20', 'events_2026_09_21', 'events_2026_09_22', 'events_2026_09_23', 'events_2026_09_24', 'events_2026_09_25', 'events_2026_09_26', 'events_2026_09_27', 'events_2026_09_28', 'events_2026_09_29', 'events_2026_09_30', 'events_2026_10_01', 'events_2026_10_02', 'events_2026_10_03', 'events_2026_10_04', 'events_2026_10_05', 'events_2026_10_06', 'events_2026_10_07', 'events_2026_10_08', 'events_2026_10_09', 'events_2026_10_10']
+new populated raw sequential scans 0 []
+PASS old query reproduces guard failure; production metadata query avoids it
+```
+
+Final migration hardening: migration 9 explicitly acquires `SHARE ROW EXCLUSIVE`
+on `events` before the one-time backfill and holds it through trigger installation.
+This prevents concurrent ingestion from committing between those steps without
+an arrival marker. Because this is a new, unpublished migration, a fresh disposable
+database was used for final acceptance rather than changing applied checksums.
+
+```sh
+docker exec signals-pruning-pg createdb -U postgres signals_final
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals_final cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec -i signals-pruning-pg psql -U postgres -d signals_final -v ON_ERROR_STOP=1 < .sqlx/dev.sql
+# After the earlier validation process exited:
+docker exec signals-pruning-pg psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c 'ALTER DATABASE signals RENAME TO signals_prelock' -c 'ALTER DATABASE signals_final RENAME TO signals'
+# Reset only migration 9 objects in the isolated upgrade fixture, then reapply
+# the finalized migration to its existing 31-partition version-8 data:
+docker exec signals-pruning-pg psql -U postgres -d signals_upgrade -v ON_ERROR_STOP=1 -c 'DROP TRIGGER analytics_record_arrivals ON events; DROP FUNCTION analytics_record_arrivals(); DROP TABLE analytics_hourly_arrivals; DELETE FROM _sqlx_migrations WHERE version=9;'
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:25439/signals_upgrade cargo sqlx migrate run --source crates/signals-store/migrations
+docker exec signals-pruning-pg psql -U postgres -d signals_upgrade -Atc "SELECT count(*),bool_and(a.received_at=x.received_at) FROM analytics_hourly_arrivals a JOIN (SELECT project_id,date_trunc('hour',ts,'UTC') AS bucket,max(received_at) AS received_at FROM events GROUP BY project_id,date_trunc('hour',ts,'UTC')) x ON x.project_id=a.project_id AND x.bucket=a.hour"
+```
+
+All exited 0; final upgrade output:
+
+```text
+Applied 9/migrate analytics hourly arrivals (21.16597ms)
+31|t
+```

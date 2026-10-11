@@ -204,7 +204,8 @@ than the analytics rollup watermark; excluded and partial hours use retained fac
 Eligibility never reads raw `events` partitions, including after raw retention.
 Markers expire with hourly aggregates after 400 days.
 
-Migration 9 backfills markers from existing raw events once. Production, the
+Migration 9 backfills markers from existing raw events once, holding an event-write
+lock through backfill and trigger installation to avoid missed arrivals. Production, the
 31-partition database regression test, and the review probe use the same SQL file
 at `crates/signals-store/queries/analytics_histograms.sql`. The probe creates its
 own 31 populated daily partitions, and CI explicitly runs the database regression
