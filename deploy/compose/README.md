@@ -1,76 +1,63 @@
-# Private Docker Compose deployment
+# Docker Compose deployment
 
-Postgres uses `shm_size: 1g` in both Compose files. Analytics parallel queries can
-exceed Docker’s default 64 MB `/dev/shm`; standalone test containers must also use
-`docker run --shm-size=1g`.
+A self-contained, restart-safe deployment: the collector built from `docker/Dockerfile`
+and Postgres 18 on a named volume. Run every command from the repository root.
 
-Run from the repository root. Docker and Compose are required. The runtime image
-is built by `docker/Dockerfile` and tagged `signals-collector:local`.
+## 1. Environment
 
-Create `/home/vuk/signals-deploy/.env` with mode `0600`, using the secret generation
-in `scripts/init-env.sh`. That script normally writes to the checkout; the rtxbox
-installation ran its contents with only its working-directory line redirected to
-`/home/vuk/signals-deploy`, feeding the email and generated 24-character password
-through stdin without displaying them. The deployment environment contains:
+Create an env file **outside** the repository (for example `~/signals-deploy/.env`,
+mode `0600`). `scripts/init-env.sh` generates the secrets; copy its output or write:
 
 ```dotenv
-SIGNALS_BIND_ADDRESS=10.8.0.11
-SIGNALS_PUBLIC_URL=http://10.8.0.11:8300
-SIGNALS_CORS_ORIGINS=http://10.8.0.11:8300
-SIGNALS_BOOTSTRAP_EMAIL=vuk@rtxbox.local
-# Generate these; do not use literal placeholders:
-SIGNALS_BOOTSTRAP_PASSWORD=<24-character random password>
-SIGNALS_ADMIN_TOKEN=<random 32-byte hex token>
-SIGNALS_SESSION_SECRET=<random 32-byte hex secret>
-POSTGRES_PASSWORD=<random 24-byte hex password>
+SIGNALS_BIND_ADDRESS=127.0.0.1          # the host address that publishes port 8300; never 0.0.0.0
+SIGNALS_PUBLIC_URL=http://127.0.0.1:8300
+SIGNALS_CORS_ORIGINS=http://127.0.0.1:8300
+SIGNALS_BOOTSTRAP_EMAIL=owner@example.com
+SIGNALS_BOOTSTRAP_PASSWORD=<24+ random characters>
+SIGNALS_ADMIN_TOKEN=<random 32-byte hex>
+SIGNALS_SESSION_SECRET=<random 32-byte hex>
+POSTGRES_PASSWORD=<random 24-byte hex>      # hex, so it is safe inside the database URL
+SIGNALS_SMTP_URL=                            # optional, for digest and alert email
+SIGNALS_SMTP_FROM=
 ```
 
-Keep credentials outside version control. Use a hexadecimal Postgres password so
-it is safe to interpolate into the database URL. Never use `0.0.0.0` or `::` for
-`SIGNALS_BIND_ADDRESS`: choose loopback (the default) or a private VPN address.
-The process listens on all interfaces **inside its isolated container**; only the
-specified host address publishes port 8300. Postgres has no published port and
-stores data in the `signals_pgdata18` named volume at `/var/lib/postgresql`.
+Bind to loopback or a private (VPN) address. Postgres has no published port; its
+data lives in the `pgdata18` volume. Postgres runs with `shm_size: 1g` because the
+analytics queries exceed Docker's default 64 MB `/dev/shm`; standalone test
+containers need `docker run --shm-size=1g` for the same reason.
+
+## 2. Run
 
 ```sh
-chmod 600 /home/vuk/signals-deploy/.env
-docker compose -p signals --env-file /home/vuk/signals-deploy/.env -f deploy/compose/compose.yaml config --quiet
-docker compose -p signals --env-file /home/vuk/signals-deploy/.env -f deploy/compose/compose.yaml up -d --build
-curl --fail http://10.8.0.11:8300/healthz
-curl --fail http://10.8.0.11:8300/readyz
-docker compose -p signals --env-file /home/vuk/signals-deploy/.env -f deploy/compose/compose.yaml exec signals /signals --help
-docker compose -p signals --env-file /home/vuk/signals-deploy/.env -f deploy/compose/compose.yaml restart
+ENV=~/signals-deploy/.env
+docker compose -p signals --env-file $ENV -f deploy/compose/compose.yaml config --quiet
+docker compose -p signals --env-file $ENV -f deploy/compose/compose.yaml up -d --build
+curl --fail http://127.0.0.1:8300/healthz
+curl --fail http://127.0.0.1:8300/readyz
 ```
 
-Postgres has a `pg_isready` healthcheck and the collector waits for it. The
-distroless collector contains no shell, curl, or wget, and its binary has no
-healthcheck subcommand, so check `/healthz` and `/readyz` externally. Both services
-use `init: true` and `restart: unless-stopped`. Enable Docker at boot and ensure
-the configured VPN address is available when Docker starts. Do not run
-`down --volumes` unless intentionally deleting persisted data.
+Both services use `init: true` and `restart: unless-stopped`; enable Docker at boot.
+The distroless collector image has no shell or curl, so check `/healthz` and
+`/readyz` from outside. Do not run `down --volumes` unless you mean to delete data.
 
-Provision tenants, projects and ingest-only keys with `/v1/admin/{tenants,projects,keys}`
-or the container CLI. The bootstrap owner initially belongs to `default`; the
-rtxbox deployment moves that owner to `mcpramen` in Postgres so the dashboard can
-see both eggs. Log in at `/v1/auth/login`, then use the session and matching Origin
-with `PATCH /v1/projects/{id}` to set `rate_events_per_min=5000` and
-`rate_bytes_per_min=33554432` (plus name and retention_days).
+## 3. Provision
 
-The existing egg environments receive `SIGNALS_URL`, their own `SIGNALS_KEY`, and
-`SIGNALS_SERVICE_NAME`. Their persisted auth profiles and existing auxiliary
-containers are preserved. Rebuild each main application from its own checkout:
+The bootstrap owner, tenant `default` and project `my-server` are created on first
+start. Create more tenants, projects and ingest keys with the admin API
+(`POST /v1/admin/{tenants,projects,keys}` with `Authorization: Bearer $SIGNALS_ADMIN_TOKEN`)
+or the container CLI (`docker compose -p signals exec signals /signals --help`).
+Per-project rate limits, retention, SLO classes and alert rules are set in the
+dashboard Settings or with `PATCH /v1/projects/{id}` using a logged-in session.
+
+Point your MCP servers at the collector with the SDKs:
+`SIGNALS_URL=http://<collector>:8300` and `SIGNALS_KEY=sgk_…`.
+
+## 4. Verify
 
 ```sh
-(cd /home/vuk/mcpramen-egg-node && docker compose -p egg-node up -d --build)
-(cd /home/vuk/mcpramen-egg-python && docker compose -p egg-python up -d --build)
+SIGNALS_URL=http://127.0.0.1:8300 SIGNALS_KEYS=sgk_a,sgk_b \
+SIGNALS_EMAIL=owner@example.com SIGNALS_PASSWORD=… python3 deploy/compose/verify.py
 ```
 
-Use `docker inspect` to verify existing issuer/proxy/bootstrap containers retain
-their original bindings. The deployment found the Node issuer and both proxies
-with restart disabled and applied `docker update --restart unless-stopped
-egg-node-issuer-1 egg-node-proxy-1 egg-python-proxy-1`. Repeat that update if these
-auxiliary containers are recreated; their upstream Compose files do not declare
-the policy. The credentials file `/home/vuk/signals-deploy/credentials.md` (mode 0600) holds
-the bootstrap password and both ingest keys. The committed report is sanitized.
-Run `python3 deploy/compose/verify-rtxbox.py` to repeat the live acceptance checks
-(this sends one read-only `search_products` call to each egg).
+The script checks health, `whoami` for every key, dashboard login, and that each
+project's analytics overview is readable. It prints no secrets.
