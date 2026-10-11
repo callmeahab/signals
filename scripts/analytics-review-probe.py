@@ -12,6 +12,7 @@ import math
 import os
 import re
 import subprocess
+import statistics
 import threading
 import time
 import urllib.error
@@ -36,6 +37,10 @@ ARTIFACTS = os.path.join(ROOT, "target", "analytics-review")
 os.makedirs(ARTIFACTS, exist_ok=True)
 FINDINGS = []
 MISMATCHES = []
+LATENCY_BUDGET_MS = float(os.getenv("SIGNALS_PROBE_LATENCY_BUDGET_MS", "300"))
+if not math.isfinite(LATENCY_BUDGET_MS) or LATENCY_BUDGET_MS <= 0:
+    raise ValueError("SIGNALS_PROBE_LATENCY_BUDGET_MS must be finite and positive")
+TIMING_SAMPLES = {}
 
 
 def half_away(x):
@@ -1767,9 +1772,13 @@ def main():
     wait_watermark(received, timeout=240)
     timings = {}
     perf_base = f"/v1/projects/{perf}/analytics"
-    for name in ("overview", "adoption", "tools", "reliability", "cost", "protocol", "digest", "alerts"):
-        url = f"{perf_base}/{name}?range=7d"
-        client.request("GET", url, key=perf_key, timeout=30)
+    print(f"Latency budget: {LATENCY_BUDGET_MS:g} ms; warmup then median of three")
+    for name in ("overview", "adoption", "tools", "reliability", "cost", "protocol", "digest", "alerts", "timeline"):
+        route = "sessions/bench-0/timeline" if name == "timeline" else name
+        url = f"{perf_base}/{route}?range=7d"
+        status, _, _ = client.request("GET", url, key=perf_key, timeout=30)
+        if status != 200:
+            finding("blocker", "perf-status", f"{name} warmup returned {status}")
         samples = []
         for _ in range(3):
             started = time.perf_counter()
@@ -1777,21 +1786,12 @@ def main():
             samples.append((time.perf_counter() - started) * 1000)
             if status != 200:
                 finding("blocker", "perf-status", f"{name} returned {status}")
-                break
-        timings[name] = round(max(samples), 2) if samples else None
-        print(f"BENCH {name}: {timings[name]} ms")
-        if timings[name] and timings[name] > 1000:
-            finding("blocker", "perf-" + name, f"{timings[name]} ms")
-        elif timings[name] and timings[name] > 300:
-            finding("should-fix", "perf-" + name, f"{timings[name]} ms")
-    started = time.perf_counter()
-    status, _, _ = client.request("GET", f"{perf_base}/sessions/bench-0/timeline?range=7d", key=perf_key, timeout=30)
-    timings["timeline"] = round((time.perf_counter() - started) * 1000, 2)
-    print("BENCH timeline", timings["timeline"], status)
-    if status == 200 and timings["timeline"] > 1000:
-        finding("blocker", "perf-timeline", f"{timings['timeline']} ms")
-    elif status == 200 and timings["timeline"] > 300:
-        finding("should-fix", "perf-timeline", f"{timings['timeline']} ms")
+        TIMING_SAMPLES[name] = [round(sample, 2) for sample in samples]
+        elapsed = statistics.median(samples)
+        timings[name] = round(elapsed, 2)
+        print(f"BENCH {name}: median {timings[name]} ms; samples {TIMING_SAMPLES[name]}")
+        if elapsed > LATENCY_BUDGET_MS:
+            finding("should-fix", "perf-" + name, f"{timings[name]} ms median exceeds {LATENCY_BUDGET_MS:g} ms budget")
     plan = psql(
         "EXPLAIN SELECT ts,id,type FROM analytics_facts WHERE project_id="
         f"'{perf}' AND ts < now()"
@@ -1830,7 +1830,7 @@ def main():
 
 
 def dump_results(timings=None):
-    out = {"findings": FINDINGS, "mismatches": MISMATCHES[:80], "mismatch_count": len(MISMATCHES), "timings": timings or {}}
+    out = {"findings": FINDINGS, "mismatches": MISMATCHES[:80], "mismatch_count": len(MISMATCHES), "timings": timings or {}, "timing_samples": TIMING_SAMPLES, "latency_budget_ms": LATENCY_BUDGET_MS, "latency_statistic": "median_of_three_after_warmup"}
     with open(os.path.join(ARTIFACTS, "findings.json"), "w") as handle:
         json.dump(out, handle, indent=2, default=str)
     print("FINDINGS", len(FINDINGS), "MISMATCHES", len(MISMATCHES))

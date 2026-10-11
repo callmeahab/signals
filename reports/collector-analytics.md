@@ -991,3 +991,36 @@ git diff --check
 All exited 0: stop/remove each printed `signals-settings-read-pg`; no matching
 container remained, socket output was header-only, target was absent, ownership
 diff and whitespace check were empty. Changes are committed locally; no push.
+
+## CI alerts determinism
+
+Merged `main` first with `git merge main`, fast-forwarding `5dc50d5..37cec73`.
+Read the task brief and COMMON rules, then inspected the cited CI failure before
+changing code:
+
+```sh
+gh run view 38150894037 --repo callmeahab/signals --log-failed > /tmp/alerts-ci-failure.log
+grep -n '\[blocker\]\|\[should-fix\]\|errors after\|alerts ' /tmp/alerts-ci-failure.log | head -30
+```
+
+Both commands exited 0. Relevant output (GitHub timestamps omitted):
+
+```text
+alerts burn=firing:1 | destructive=firing:1 | errors=no_data:1 | latency=firing:1 | volume=firing:1
+errors after sustained backdate firing
+[should-fix] perf-overview: 966.93 ms
+[should-fix] perf-adoption: 319.95 ms
+FINDINGS 2 MISMATCHES 0
+```
+
+The cited run passed the sustained-error assertion; its two failures were latency
+checks. The initial error `no_data` precedes the probe's sustained-error stage.
+Inspection of `alert_states` confirms a rolling `[now - 60 seconds, now)` window,
+not an aligned minute bucket. Requested coordinator clarification before making
+alert behavior changes based on a failure that the cited run does not exhibit.
+
+Coordinator correction: the brief misread the CI log. Scope changed to profiling
+cold overview latency, fixing observed work, and configuring the latency probe as
+warmup plus median of three with `SIGNALS_PROBE_LATENCY_BUDGET_MS` (local default
+300, CI 900). Correctness mismatches remain a hard failure. Explicit-clock alert
+work was explicitly dropped; the remaining acceptance checks still apply.

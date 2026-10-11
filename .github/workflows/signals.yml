@@ -43,6 +43,9 @@ jobs:
       - run: cargo sqlx prepare --check --workspace -- --all-targets
       - run: cargo test --locked -p signals-server --test integration --test rollup_properties -- --ignored --test-threads=1
       - name: Official spec fixtures (identity and gzip)
+        env:
+          # Shared runners gate correctness with a wider latency budget; local release probes default to 300 ms.
+          SIGNALS_PROBE_LATENCY_BUDGET_MS: 900
         run: python3 scripts/ci-conformance.py
       - run: bun run test:next
         working-directory: web
