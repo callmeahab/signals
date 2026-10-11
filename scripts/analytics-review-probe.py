@@ -1232,6 +1232,19 @@ def snapshot(project):
     )
 
 
+def executed_event_scans(node):
+    """Ignore empty or runtime-pruned partitions; flag actual event row scans."""
+    scans = []
+    if (node.get("Node Type") == "Seq Scan"
+            and node.get("Relation Name", "").startswith("events")
+            and node.get("Actual Loops", 0) > 0
+            and node.get("Actual Rows", 0) + node.get("Rows Removed by Filter", 0) > 0):
+        scans.append(node["Relation Name"])
+    for child in node.get("Plans", []):
+        scans.extend(executed_event_scans(child))
+    return scans
+
+
 def percentile_bound(events, body):
     calls = calls_of(events)
     durations = [e["duration_ms"] for e in calls if isinstance(e["duration_ms"], int) and e["duration_ms"] > 0]
@@ -1438,7 +1451,7 @@ def main():
         observed = adoption["retention"]["daily"]["d1"]
         code_like = retention(events, window, selected(events, window, {}), first, 1)
         calendar, eligible = calendar_retention(window, selected(events, window, {}), first, 1)
-        print("d1 api", observed, "timestamp-cutoff", code_like, "anniversary-ended", calendar, "eligible", eligible)
+        print("d1 api", observed, "expected", code_like, "anniversary-ended", calendar, "eligible", eligible)
         if observed != calendar:
             finding("should-fix", "d1-eligibility", f"D1 is {observed}. Identities whose UTC anniversary day has fully ended are still excluded until the same clock time two days later, so a missed return is omitted. Anniversary-ended D1 would be {calendar}; timestamp-cutoff D1 is {code_like}.")
 
@@ -1784,15 +1797,16 @@ def main():
         f"'{perf}' AND ts < now()"
     )
     nested = psql(
-        "EXPLAIN SELECT r.hour FROM analytics_hourly r WHERE project_id="
+        "EXPLAIN (ANALYZE, FORMAT JSON) SELECT r.hour FROM analytics_hourly r WHERE project_id="
         f"'{perf}' AND hour>=now()-interval '7 days' AND hour+interval '1 hour'<=now() "
         "AND NOT EXISTS (SELECT 1 FROM events e WHERE e.project_id=r.project_id AND e.ts>=r.hour "
         "AND e.ts<r.hour+interval '1 hour' AND e.received_at>'1970-01-01')"
     )
     print("EXPLAIN facts\n", plan)
     print("EXPLAIN hourly\n", nested)
-    if "Seq Scan on events" in nested:
-        finding("should-fix", "explain-events", "analytics histogram eligibility seq-scans events:\n" + nested)
+    scans = executed_event_scans(json.loads(nested)[0]["Plan"])
+    if scans:
+        finding("should-fix", "explain-events", "analytics histogram eligibility scans populated event partitions: " + ", ".join(scans))
 
     # Stored subject_kind precedence, which v1.0 wire schema cannot carry.
     kind_project = client.admin("projects", {"tenant_id": tenant_id, "slug": "kinds", "name": "Kinds"})["id"]
@@ -1871,7 +1885,7 @@ if __name__ == "__main__":
         main()
         if FINDINGS or MISMATCHES:
             raise SystemExit(1)
-    except BaseException:
+    except Exception:
         dump_results()
         raise
     finally:
