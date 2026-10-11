@@ -274,12 +274,15 @@ async fn three_day_analytics_contract_and_idempotence() {
         assert_eq!(error["error"], "invalid_settings");
         assert!(!error["message"].as_str().unwrap().is_empty());
     }
-    let request=Request::builder().method("PATCH").uri(format!("/v1/projects/{}",project.id)).header("content-type","application/json").header("cookie",format!("signals_session={}",auth::signed_cookie(&app_state,secret))).body(Body::from(json!({"token_divisor":2,"slo_classes":{"get_item":"mutate"},"digest":{"enabled":true,"recipient":"owner@example.test"},"probe_key":"secret"}).to_string())).unwrap();
+    let request=Request::builder().method("PATCH").uri(format!("/v1/projects/{}",project.id)).header("content-type","application/json").header("cookie",format!("signals_session={}",auth::signed_cookie(&app_state,secret))).body(Body::from(json!({"id":Uuid::new_v4(),"tenant_id":Uuid::new_v4(),"slug":"ignored-read-only","token_divisor":2,"slo_classes":{"get_item":"mutate"},"digest":{"enabled":true,"recipient":"owner@example.test"},"probe_key":"secret"}).to_string())).unwrap();
     let response = app.clone().oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let settings: Value =
         serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(settings["token_divisor"], 2.0);
+    assert_eq!(settings["id"], project.id.to_string());
+    assert_eq!(settings["tenant_id"], tenant.to_string());
+    assert_eq!(settings["slug"], project.slug);
     assert!(settings.get("probe_key").is_none());
     let (_, cost_after) = call(&app, "GET", &get("cost"), &key, Value::Null).await;
     assert_eq!(cost_after["total_tokens_est"], 3600);

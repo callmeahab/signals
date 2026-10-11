@@ -13,7 +13,8 @@ exact matches; unknown query keys and malformed ranges return `invalid_filter`.
 Invalid project settings (`PATCH /v1/projects/{project}`) and alert rules
 (`PUT /v1/projects/{project}/alerts`) return HTTP 400 with
 `{"error":"invalid_settings","message":"human-readable reason"}`. Query validation
-continues to use `invalid_filter`.
+continues to use `invalid_filter`. Read-only `id`, `tenant_id`, and `slug` fields
+are ignored when existing dashboard clients round-trip a project document.
 Digest additionally accepts an ISO week (`week=2026-W41`). No matching events is a
 valid response. Missing measurements, denominators, and future protocol fields
 are null; a measured count of zero is zero.

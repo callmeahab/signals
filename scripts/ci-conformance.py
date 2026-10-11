@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, os, subprocess, time, urllib.request
+import json, os, subprocess, time, urllib.request, uuid
 from pathlib import Path
 root=Path(__file__).resolve().parents[1];base=os.getenv("SIGNALS_URL","http://127.0.0.1:8350");token="ci-isolated-admin-token-32-characters"
 from urllib.parse import urlparse
@@ -18,7 +18,7 @@ with open(root/"target/ci-server.log","w") as log:
   else:raise RuntimeError("Collector not ready")
   def provision(route,data):
    with urllib.request.urlopen(urllib.request.Request(base+"/v1/admin/"+route,json.dumps(data).encode(),headers={"Authorization":"Bearer "+token,"Content-Type":"application/json"})) as response:return json.load(response)
-  tenant=provision("tenants",{"slug":"conformance","name":"Conformance"});project=provision("projects",{"tenant_id":tenant["id"],"slug":"fixtures","name":"Fixtures"});key=provision("keys",{"project_id":project["id"],"label":"Fixtures","scopes":["ingest","read"]})["secret"]
+  tenant=provision("tenants",{"slug":"conformance-"+uuid.uuid4().hex[:8],"name":"Conformance"});project=provision("projects",{"tenant_id":tenant["id"],"slug":"fixtures","name":"Fixtures"});key=provision("keys",{"project_id":project["id"],"label":"Fixtures","scopes":["ingest","read"]})["secret"]
   pg = os.getenv("ANALYTICS_PG_CONTAINER")
   psql = ["docker", "exec", "-i", pg, "psql", "-U", "postgres", "-d", "signals"] if pg else ["psql", os.environ["DATABASE_URL"]]
   subprocess.run(psql+["-v","ON_ERROR_STOP=1","-c",f"UPDATE projects SET retention_days=30,rate_events_per_min=100000,rate_bytes_per_min=1073741824 WHERE id='{project['id']}'"],check=True)

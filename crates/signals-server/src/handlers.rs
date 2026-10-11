@@ -581,6 +581,11 @@ pub async fn update_project(
     let object = input
         .as_object_mut()
         .ok_or_else(|| Error::bad("Expected settings object"))?;
+    // Existing dashboard clients round-trip the project document. These fields
+    // were ignored by the former typed Settings extractor and remain read-only.
+    for key in ["id", "tenant_id", "slug"] {
+        object.remove(key);
+    }
     let name = object.remove("name");
     let retention = object.remove("retention_days");
     let rate = object.remove("rate_events_per_min");
