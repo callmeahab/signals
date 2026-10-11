@@ -290,9 +290,19 @@ fn analytics_document(api: &mut utoipa::openapi::OpenApi) {
             ("network", int.clone()),
         ]),
     );
+    schemas.insert("AnalyticsLatencyBuckets".into(), json!({"oneOf":[{"type":"null"},{"type":"object","required":["edges","counts"],"properties":{
+        "edges":{"type":"array","minItems":61,"maxItems":61,"items":{"type":["number","null"]},"description":"60 lower boundaries in milliseconds followed by null for the unbounded overflow edge; zero durations clamp into the first bin"},
+        "counts":{"type":"array","minItems":60,"maxItems":60,"items":{"type":"integer","minimum":0}}
+    }}]}));
+    schemas.insert("AnalyticsLatencySeries".into(), json!({"oneOf":[{"type":"null"},obj(&[
+        ("bucket",json!({"type":"string","enum":["hour","day"]})),
+        ("method",json!({"type":"string","enum":["exact","histogram"]})),
+        ("points",arr(obj(&[("t",date.clone()),("p50",int.clone()),("p95",int.clone()),("p99",int.clone())])))
+    ])]}));
     schemas.insert(
         "AnalyticsLatency".into(),
         obj(&[
+            ("buckets", reference("AnalyticsLatencyBuckets")),
             ("p50", int.clone()),
             ("p95", int.clone()),
             ("p99", int.clone()),
@@ -346,6 +356,7 @@ fn analytics_document(api: &mut utoipa::openapi::OpenApi) {
     let pair = obj(&[("value", number.clone()), ("prev", number.clone())]);
     let mut latency = schemas["AnalyticsLatency"].clone();
     latency["properties"]["prev_p95"] = int.clone();
+    latency["properties"]["sparkline"] = json!({"oneOf":[{"type":"null"},arr(int.clone())]});
     let overview = obj(&[
         (
             "tiles",
@@ -536,6 +547,7 @@ fn analytics_document(api: &mut utoipa::openapi::OpenApi) {
     ]);
     let count_pct = obj(&[("count", int.clone()), ("pct", number.clone())]);
     let reliability = obj(&[
+        ("latency_over_time", reference("AnalyticsLatencySeries")),
         (
             "slo",
             arr(obj(&[

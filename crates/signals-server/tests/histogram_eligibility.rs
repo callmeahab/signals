@@ -124,6 +124,13 @@ async fn histogram_eligibility_avoids_raw_partitions_and_tracks_late_arrivals() 
         .await
         .unwrap();
     assert!(fallback[&None]["p95"].as_i64().unwrap() > 1000);
+    let series_before = store
+        .analytics_latency_detail(project, window, &data)
+        .await
+        .unwrap()
+        .1;
+    assert_eq!(series_before["points"][0]["p95"], fallback[&None]["p95"]);
+    assert_eq!(series_before["method"], "histogram");
     // A rolled-back arrival must not make metadata dirty.
     let arrived: chrono::DateTime<Utc> = sqlx::query_scalar(
         "SELECT received_at FROM analytics_hourly_arrivals WHERE project_id=$1 AND hour=$2",
@@ -154,6 +161,14 @@ async fn histogram_eligibility_avoids_raw_partitions_and_tracks_late_arrivals() 
             .await
             .unwrap()
     );
+    assert_eq!(
+        series_before,
+        store
+            .analytics_latency_detail(project, window, &data)
+            .await
+            .unwrap()
+            .1
+    );
     // Retention may remove every raw row without losing eligibility information.
     sqlx::query("DELETE FROM events WHERE project_id=$1")
         .bind(project)
@@ -167,6 +182,14 @@ async fn histogram_eligibility_avoids_raw_partitions_and_tracks_late_arrivals() 
             .analytics_histograms(project, window, &data)
             .await
             .unwrap()
+    );
+    assert_eq!(
+        series_before,
+        store
+            .analytics_latency_detail(project, window, &data)
+            .await
+            .unwrap()
+            .1
     );
     sqlx::query("INSERT INTO analytics_hourly_arrivals VALUES($1,$2,$3)")
         .bind(project)

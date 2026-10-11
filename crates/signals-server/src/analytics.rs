@@ -202,13 +202,21 @@ pub async fn read(
             && f.tool.is_none()
             && f.caller.is_none()
             && f.transport.is_none()
-            && matches!(name.as_str(), "overview" | "tools" | "digest")
+            && matches!(
+                name.as_str(),
+                "overview" | "tools" | "digest" | "reliability"
+            )
         {
-            let hist = app.store.analytics_histograms(project, w, &data).await?;
+            let (hist, series) = app
+                .store
+                .analytics_latency_detail(project, w, &data)
+                .await?;
             if name == "overview" {
                 if let Some(latency) = hist.get(&None) {
                     value["tiles"]["latency"] = latency.clone();
                 }
+                value["tiles"]["latency"]["sparkline"] =
+                    signals_store::analytics::latency_sparkline(&series);
                 let previous = app
                     .store
                     .analytics_histograms(project, w.previous(), &data)
@@ -217,6 +225,8 @@ pub async fn read(
                     .get(&None)
                     .map(|v| v["p95"].clone())
                     .unwrap_or(Value::Null);
+            } else if name == "reliability" {
+                value["latency_over_time"] = series;
             } else if let Some(tools) = value["tools"].as_array_mut() {
                 for tool in tools {
                     if let Some(latency) = tool["tool"]

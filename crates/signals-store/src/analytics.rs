@@ -1,7 +1,7 @@
 //! Shared analytics definitions. Windows are half-open and all calendar buckets are UTC.
 use crate::{checked_query, checked_query_as, Store};
 use anyhow::Result;
-use chrono::{DateTime, Datelike, Duration, NaiveDate, Utc};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::{FromRow, Row};
@@ -46,6 +46,61 @@ pub fn histogram(values: impl IntoIterator<Item = i32>) -> Vec<i64> {
         hist[b.min(59)] += 1;
     }
     hist
+}
+pub fn histogram_buckets(hist: &[i64]) -> Value {
+    if hist.iter().sum::<i64>() == 0 {
+        return Value::Null;
+    }
+    let mut edges: Vec<Value> = (0..60)
+        .map(|b| json!(600000f64.powf(b as f64 / 59.0)))
+        .collect();
+    edges.push(Value::Null);
+    json!({"edges":edges,"counts":hist})
+}
+pub fn merge_histogram(target: &mut [i64], source: &[i64]) {
+    for (a, b) in target.iter_mut().zip(source) {
+        *a += b;
+    }
+}
+fn histogram_latency(hist: &[i64]) -> Value {
+    json!({"p50":percentile(hist,0.5),"p95":percentile(hist,0.95),"p99":percentile(hist,0.99),"method":"histogram","buckets":histogram_buckets(hist)})
+}
+fn series_bucket(w: Window, t: DateTime<Utc>) -> DateTime<Utc> {
+    if w.to - w.from <= Duration::hours(48) {
+        t.with_minute(0)
+            .unwrap()
+            .with_second(0)
+            .unwrap()
+            .with_nanosecond(0)
+            .unwrap()
+    } else {
+        t.date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc()
+    }
+}
+fn latency_series(w: Window, values: BTreeMap<DateTime<Utc>, Value>) -> Value {
+    if values.values().all(|v| v["p95"].is_null()) {
+        return Value::Null;
+    }
+    let method = values.values().next().unwrap()["method"].clone();
+    let hourly = w.to - w.from <= Duration::hours(48);
+    let mut t = series_bucket(w, w.from);
+    let mut points = Vec::new();
+    while t < w.to {
+        let v = values.get(&t).cloned().unwrap_or(Value::Null);
+        points.push(json!({"t":t,"p50":v["p50"],"p95":v["p95"],"p99":v["p99"]}));
+        t += if hourly {
+            Duration::hours(1)
+        } else {
+            Duration::days(1)
+        };
+    }
+    json!({"bucket":if hourly {"hour"} else {"day"},"method":method,"points":points})
+}
+pub fn latency_sparkline(series: &Value) -> Value {
+    series["points"]
+        .as_array()
+        .map(|points| json!(points.iter().map(|p| p["p95"].clone()).collect::<Vec<_>>()))
+        .unwrap_or(Value::Null)
 }
 pub fn percentile(hist: &[i64], q: f64) -> Option<i64> {
     let total: i64 = hist.iter().sum();
@@ -155,7 +210,7 @@ impl<'a> Metrics<'a> {
                 percentile(&hist, q)
             }
         };
-        json!({"p50":p(0.5),"p95":p(0.95),"p99":p(0.99),"method":if exact {"exact"} else {"histogram"}})
+        json!({"p50":p(0.5),"p95":p(0.95),"p99":p(0.99),"method":if exact {"exact"} else {"histogram"},"buckets":histogram_buckets(&hist)})
     }
     pub fn tokens(&self, divisor: f64) -> Option<i64> {
         let values: Vec<_> = self
@@ -510,6 +565,19 @@ impl Data {
             })
             .collect()
     }
+    pub fn latency_over_time(&self, w: Window, f: &Filters) -> Value {
+        let mut groups = BTreeMap::<DateTime<Utc>, Vec<&Fact>>::new();
+        for e in self.selected(w, f).into_iter().filter(|e| e.call()) {
+            groups.entry(series_bucket(w, e.ts)).or_default().push(e);
+        }
+        latency_series(
+            w,
+            groups
+                .into_iter()
+                .map(|(t, es)| (t, Metrics::new(es).latency(w.exact())))
+                .collect(),
+        )
+    }
     pub fn tools(&self, w: Window, events: &[&Fact]) -> Value {
         let mut grouped = BTreeMap::<String, Vec<&Fact>>::new();
         for t in self.catalog.keys() {
@@ -624,6 +692,7 @@ impl Data {
         let tokens = m.tokens(self.divisor());
         let mut latency = m.latency(w.exact());
         latency["prev_p95"] = pm.latency(w.exact())["p95"].clone();
+        latency["sparkline"] = latency_sparkline(&self.latency_over_time(w, f));
         json!({"tiles":{"tool_calls":{"value":m.calls.len(),"prev":pm.calls.len()},"active_users":{"value":ids.len(),"prev":prev.iter().filter_map(|e|e.identity()).collect::<BTreeSet<_>>().len(),"new":ids.iter().filter(|id|self.first.get(*id).is_some_and(|t|w.contains(*t))).count(),"by_kind":by_kind},"sessions":{"value":sessions.len(),"prev":prev.iter().filter_map(|e|e.session_id.as_ref()).collect::<BTreeSet<_>>().len(),"calls_per_session":(!sessions.is_empty()).then(||(m.calls.len() as f64/sessions.len() as f64*10.0).round()/10.0)},"success_rate":{"value":m.success(),"prev":pm.success(),"tools_below_slo":attention.iter().filter(|t|t["status"]=="error").count()},"latency":latency,"context_tokens":{"value":tokens,"per_call":tokens.map(|n|(n as f64/m.calls.len() as f64).round() as i64),"estimated":true}},"calls_by_client":{"buckets":"day","points":clients.into_iter().map(|(t,by_client)|json!({"t":t,"by_client":by_client})).collect::<Vec<_>>()},"funnel":self.funnel(w,&events),"attention":attention,"cohorts":{"kind":"weekly","rows":self.cohorts(w,f)}})
     }
     pub fn adoption(&self, w: Window, f: &Filters) -> Value {
@@ -796,7 +865,7 @@ impl Data {
                         && e.number("output_bytes").is_some_and(|n| n > 0))
             })
             .count();
-        json!({"slo":slo,"handshake":{"attempts":handshakes.len(),"success_rate":handshake_known.then(||rate(handshakes.iter().filter(|e|e.attrs["is_error"] == false).count(),handshakes.iter().filter(|e|e.attrs["is_error"].is_boolean()).count())).flatten(),"p95":(!hd.is_empty()).then(||hd[(hd.len() as f64*0.95).ceil() as usize-1])},"timeouts":{"count":timeouts,"pct":timeouts.and_then(|n|rate(n,m.calls.len()))},"cancellations":{"count":cancellations,"pct":cancellations.and_then(|n|rate(n,m.calls.len()))},"error_codes":codes.into_iter().map(|((code,kind),count)|json!({"code":code,"kind":kind,"count":count})).collect::<Vec<_>>(),"hallucinated_tools":{"count":(self.catalog_info["known"] == true && self.catalog_info["truncated"] != true || m.calls.iter().any(|e|e.attrs["error_kind"].is_string())).then_some(hallucinated.len()),"names":hallucinated.iter().filter_map(|e|e.tool.as_ref()).collect::<BTreeSet<_>>()},"sessions_with_errors":{"count":errors.len(),"pct":rate(errors.len(),sessions.len())},"silent_failures":{"count":m.calls.iter().any(|e|e.number("output_bytes").is_some()).then_some(silent)},"auth_failures":auth.into_iter().map(|(reason,count)|json!({"reason":reason,"count":count})).collect::<Vec<_>>(),"availability":null})
+        json!({"latency_over_time":self.latency_over_time(w, f),"slo":slo,"handshake":{"attempts":handshakes.len(),"success_rate":handshake_known.then(||rate(handshakes.iter().filter(|e|e.attrs["is_error"] == false).count(),handshakes.iter().filter(|e|e.attrs["is_error"].is_boolean()).count())).flatten(),"p95":(!hd.is_empty()).then(||hd[(hd.len() as f64*0.95).ceil() as usize-1])},"timeouts":{"count":timeouts,"pct":timeouts.and_then(|n|rate(n,m.calls.len()))},"cancellations":{"count":cancellations,"pct":cancellations.and_then(|n|rate(n,m.calls.len()))},"error_codes":codes.into_iter().map(|((code,kind),count)|json!({"code":code,"kind":kind,"count":count})).collect::<Vec<_>>(),"hallucinated_tools":{"count":(self.catalog_info["known"] == true && self.catalog_info["truncated"] != true || m.calls.iter().any(|e|e.attrs["error_kind"].is_string())).then_some(hallucinated.len()),"names":hallucinated.iter().filter_map(|e|e.tool.as_ref()).collect::<BTreeSet<_>>()},"sessions_with_errors":{"count":errors.len(),"pct":rate(errors.len(),sessions.len())},"silent_failures":{"count":m.calls.iter().any(|e|e.number("output_bytes").is_some()).then_some(silent)},"auth_failures":auth.into_iter().map(|(reason,count)|json!({"reason":reason,"count":count})).collect::<Vec<_>>(),"availability":null})
     }
     pub fn protocol(&self, events: &[&Fact]) -> Value {
         let sessions: BTreeSet<_> = events
@@ -918,7 +987,14 @@ impl Store {
         w: Window,
         data: &Data,
     ) -> Result<BTreeMap<Option<String>, Value>> {
-        use chrono::Timelike;
+        Ok(self.analytics_latency_detail(project, w, data).await?.0)
+    }
+    pub async fn analytics_latency_detail(
+        &self,
+        project: Uuid,
+        w: Window,
+        data: &Data,
+    ) -> Result<(BTreeMap<Option<String>, Value>, Value)> {
         let watermark: DateTime<Utc> = crate::checked_query_scalar!(
             "SELECT received_at_watermark FROM rollup_cursor WHERE name='analytics'"
         )
@@ -934,6 +1010,7 @@ impl Store {
         .fetch_all(&self.pool)
         .await?;
         let mut hist = BTreeMap::<Option<String>, Vec<i64>>::new();
+        let mut series = BTreeMap::<DateTime<Utc>, Vec<i64>>::new();
         let mut covered = BTreeSet::new();
         for row in rows {
             let tool = (!row.is_project).then_some(row.tool);
@@ -942,6 +1019,18 @@ impl Store {
             let h = hist.entry(tool.clone()).or_insert_with(|| vec![0; 60]);
             for (a, b) in h.iter_mut().zip(bins.as_array().into_iter().flatten()) {
                 *a += b.as_i64().unwrap_or(0);
+            }
+            if tool.is_none() {
+                let h = series
+                    .entry(series_bucket(w, hour))
+                    .or_insert_with(|| vec![0; 60]);
+                let counts: Vec<_> = bins
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|v| v.as_i64().unwrap_or(0))
+                    .collect();
+                merge_histogram(h, &counts);
             }
             covered.insert((hour, tool));
         }
@@ -963,11 +1052,27 @@ impl Store {
                     if let Some(d) = e.duration_ms {
                         let b = ((d.max(1) as f64).ln() / 600000f64.ln() * 59.0).floor() as usize;
                         h[b.min(59)] += 1;
+                        if tool.is_none() {
+                            series
+                                .entry(series_bucket(w, hour))
+                                .or_insert_with(|| vec![0; 60])[b.min(59)] += 1;
+                        }
                     }
                 }
             }
         }
-        Ok(hist.into_iter().map(|(tool,h)|(tool,json!({"p50":percentile(&h,0.5),"p95":percentile(&h,0.95),"p99":percentile(&h,0.99),"method":"histogram"}))).collect())
+        Ok((
+            hist.into_iter()
+                .map(|(tool, h)| (tool, histogram_latency(&h)))
+                .collect(),
+            latency_series(
+                w,
+                series
+                    .into_iter()
+                    .map(|(t, h)| (t, histogram_latency(&h)))
+                    .collect(),
+            ),
+        ))
     }
 }
 #[cfg(test)]
@@ -988,6 +1093,80 @@ mod tests {
             client: None,
             caller: Some(json!({"subject":"a"})),
         }
+    }
+    #[test]
+    fn latency_histogram_edges_merge_and_overflow() {
+        let a = histogram([0, 1, 2, 600000, i32::MAX]);
+        let b = histogram([100, 120, 500]);
+        let mut merged = a.clone();
+        merge_histogram(&mut merged, &b);
+        assert_eq!(
+            merged,
+            histogram([0, 1, 2, 600000, i32::MAX, 100, 120, 500])
+        );
+        assert_eq!(merged.iter().sum::<i64>(), 8);
+        let buckets = histogram_buckets(&merged);
+        let edges = buckets["edges"].as_array().unwrap();
+        assert_eq!(edges.len(), 61);
+        assert_eq!(edges[0], 1.0);
+        assert_eq!(edges[59], 600000.0);
+        assert!(edges[60].is_null());
+        for i in 1..60 {
+            assert!(edges[i].as_f64().unwrap() > edges[i - 1].as_f64().unwrap());
+        }
+        assert_eq!(merged[0], 2);
+        assert_eq!(merged[59], 2);
+        for v in [2, 5, 100, 501, 599999] {
+            let h = histogram([v]);
+            let bin = h.iter().position(|n| *n == 1).unwrap();
+            assert!(edges[bin].as_f64().unwrap() <= f64::from(v));
+            assert!(edges[bin + 1].as_f64().unwrap() > f64::from(v));
+        }
+        assert!(histogram_buckets(&[0; 60]).is_null());
+    }
+    #[test]
+    fn latency_series_gaps_filters_and_methods() {
+        let from = DateTime::parse_from_rfc3339("2026-10-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let w = Window {
+            from,
+            to: from + Duration::hours(3),
+        };
+        let mut slow = fact(from + Duration::hours(2), "tool.called", "b", false);
+        slow.duration_ms = Some(500);
+        let data = Data {
+            events: vec![fact(from, "tool.called", "a", false), slow],
+            first: BTreeMap::new(),
+            settings: json!({}),
+            catalog: BTreeMap::new(),
+            catalog_info: json!({"known":false}),
+        };
+        let series = data.latency_over_time(w, &Filters::default());
+        assert_eq!(series["method"], "exact");
+        assert_eq!(series["bucket"], "hour");
+        assert_eq!(latency_sparkline(&series), json!([100, null, 500]));
+        let filtered = data.latency_over_time(
+            w,
+            &Filters {
+                tool: Some("a".into()),
+                ..Default::default()
+            },
+        );
+        assert_eq!(latency_sparkline(&filtered), json!([100, null, null]));
+        let daily = data.latency_over_time(
+            Window {
+                from,
+                to: from + Duration::days(3),
+            },
+            &Filters::default(),
+        );
+        assert_eq!(daily["bucket"], "day");
+        assert_eq!(daily["method"], "histogram");
+        assert_eq!(daily["points"].as_array().unwrap().len(), 3);
+        assert!(data
+            .latency_over_time(w.previous(), &Filters::default())
+            .is_null());
     }
     #[test]
     fn catalogue_limits_tool_rows_and_attention_but_preserves_hallucinations() {

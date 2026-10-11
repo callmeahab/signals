@@ -267,3 +267,24 @@ for late arrivals, transaction rollback, retention, and the executed query plan.
 On a shared development host, select unused `ANALYTICS_REVIEW_URL` and
 `ANALYTICS_REVIEW_PROBE_PORT` values for the review probe. It rejects occupied
 ports before launching its collector or sending fixture requests.
+
+## Latency detail
+
+Tool latency includes nullable `buckets: {edges, counts}` with 60 integer counts
+and 61 edges. The first 60 edges are the stored log-spaced lower bounds
+`600000^(i/59)` milliseconds for i=0..59; the final edge is null (unbounded).
+Zero-duration calls clamp into bin 0, and durations >=600000 enter the final
+overflow bin. Empty tools have null buckets. Counts sum to measured calls.
+
+Reliability exposes nullable `latency_over_time: {bucket, method, points}` with
+UTC-aligned points `{t,p50,p95,p99}`. Windows up to 48 hours use hourly buckets;
+longer windows use daily buckets, matching read-series granularity. Empty buckets
+have null percentiles, and a completely empty window returns null. Overview
+`tiles.latency.sparkline` contains the same ordered p95 values, or null without data.
+Windows shorter than six hours use exact percentiles (`method: exact`); others
+merge histograms (`method: histogram`). Filters apply to all latency detail.
+
+Unfiltered long windows merge stored hourly histograms; partial or dirty hours
+use retained facts, so late arrivals are included exactly once. Daily percentiles
+come from merged counts, never from averaging hourly percentiles. Raw-event
+retention does not remove these measurements.
