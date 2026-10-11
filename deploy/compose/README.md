@@ -62,5 +62,11 @@ containers are preserved. Rebuild each main application from its own checkout:
 ```
 
 Use `docker inspect` to verify existing issuer/proxy/bootstrap containers retain
-their original bindings and restart policy. The private deployment report holds
-the bootstrap password; never commit that report or paste it into terminal logs.
+their original bindings. The deployment found the Node issuer and both proxies
+with restart disabled and applied `docker update --restart unless-stopped
+egg-node-issuer-1 egg-node-proxy-1 egg-python-proxy-1`. Repeat that update if these
+auxiliary containers are recreated; their upstream Compose files do not declare
+the policy. The credentials file `/home/vuk/signals-deploy/credentials.md` (mode 0600) holds
+the bootstrap password and both ingest keys. The committed report is sanitized.
+Run `python3 deploy/compose/verify-rtxbox.py` to repeat the live acceptance checks
+(this sends one read-only `search_products` call to each egg).
