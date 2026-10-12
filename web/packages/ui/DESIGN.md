@@ -4,7 +4,8 @@
 
 1. All screen tile rows use three columns at ≥1024px, two on tablet, and one at
    ≤560px. Tile sparklines use a 108px SVG (98px plot range) across the tile width.
-   Existing tokens, headline values, chips, null captions and motion timings remain.
+   Tiles have a shared 240px minimum height. Existing tokens, headline values,
+   chips, null captions and motion timings remain.
 2. Overview calls, client mix and attention each occupy a full row. The bounded
    activation funnel and weekly retention share the next row. Client mix places
    its donut to the left and legend in three columns at ≥1280px, two at ≥1024px,

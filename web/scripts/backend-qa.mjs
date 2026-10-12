@@ -96,7 +96,7 @@ try {
    await expect(funnelCard.locator('.chart-funnel rect.nullstep')).toHaveCount(1);
    await expect(funnelCard.locator('.emptychart')).toHaveCount(0);
    assert.deepEqual(await funnelCard.locator('.chart-funnel table.sr-only tbody tr').last().locator('td').allTextContents(),['returned_day_7','—','—']);}
-  if(screen==='reliability')await expect(page.locator('.chart-band svg')).toHaveCount(1);
+  if(screen==='reliability'){await page.locator('.chart-band').scrollIntoViewIfNeeded();await expect(page.locator('.chart-band svg')).toHaveCount(1);}
   if(screen==='overview')await expect(page.locator('.ribrow').filter({hasText:deadTool})).toContainText('dead');
   if(screen==='cost'){await expect(page.locator('.tile').filter({hasText:'Context tokens'}).locator('strong')).toHaveText('≈ 260');await expect(page.getByRole('table',{name:'Tenant share',exact:true})).toContainText('260');}
   if(screen==='protocol')await expect(page.locator('.chart-dot-grid').filter({has:page.locator('table').filter({hasText:'roots'})})).toContainText('100');

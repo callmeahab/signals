@@ -42,7 +42,7 @@ export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:An
   return {tool,slo_class:settings.slo_classes?.[tool]??(i<6?'read':'mutate'),calls,success_rate:calls?Math.round((1-errors/calls)*1000)/10:null,errors:{tool:errors,protocol:null,timeout:null,cancelled:null,unknown:null},latency:{p50:95+i*15,p95:i===6?1900:320+i*28,p99:i===6?3200:900+i*150,method:'histogram',buckets:demoBuckets(calls,95+i*15,i===6?1900:320+i*28)},input_bytes_avg:210+i*12,output_bytes_avg:1840+i*80,output_tokens_est:Math.round((1840+i*80)/(settings.token_divisor??4)),retries:{count:Math.round(errors*.7),self_corrected_pct:72.5},schema_failures:{input:null,output:null},trend:Array.from({length:count},(_,d)=>({t:iso(from+step*d),calls:split(calls,d),errors:split(errors,d)}))};
  }).filter(t=>!query.tool||t.tool===query.tool);
  const calls=tools.reduce((s,t)=>s+t.calls,0),errors=tools.reduce((s,t)=>s+(t.errors.tool??0),0),totalTokens=tools.reduce((s,t)=>s+t.calls*(t.output_tokens_est??0),0);
- const sessionCount=manyClients?27:scale(6480), active=scale(1094),newUsers=scale(312);
+ const sessionCount=manyClients?27*Math.max(1,Math.round(scale(6480)/27)):scale(6480), active=scale(1094),newUsers=scale(312);
  const quality={strong:Math.round(active*.75),key:Math.round(active*.174),network:active-Math.round(active*.75)-Math.round(active*.174)};
  const steps=[['connected',312],['listed_tools',274],['first_call',190],['five_calls',137],['returned_day_7',84]] as const;
  const funnel:FunnelStep[]=steps.map(([step,count],i)=>({step,count:scale(count),dropoff_pct:i?Math.round((1-count/steps[i-1][1])*1000)/10:0}));
@@ -56,7 +56,7 @@ export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:An
  if(manyClients&&!query.client){
   const weights=Array.from({length:27},(_,i)=>i===26?0:27-i),total=weights.reduce((a,b)=>a+b,0);
   const allocations=weights.map(w=>Math.floor(calls*w/total));allocations[0]+=calls-allocations.reduce((a,b)=>a+b,0);
-  byClient=weights.map((_,i)=>({name:`Client ${String(Math.floor(i/2)+1).padStart(2,'0')}`,version:`${i%2+1}.0.0`,calls:allocations[i],sessions:1,pct:0,capabilities:['roots']}));
+  byClient=weights.map((_,i)=>({name:`Client ${String(Math.floor(i/2)+1).padStart(2,'0')}`,version:`${i%2+1}.0.0`,calls:allocations[i],sessions:sessionCount/27,pct:0,capabilities:['roots']}));
  }
  byClient=byClient.map(c=>({...c,pct:calls?Math.round(c.calls/calls*1000)/10:null}));
  if(query.client){const selected=byClient.find(c=>c.name===query.client)!;byClient.splice(0,byClient.length,{...selected,calls,sessions:sessionCount,pct:calls?100:null});}
