@@ -1,0 +1,107 @@
+[
+  {
+    "i": 1,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 64.31 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 2,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 70.99 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 3,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 66.29 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 4,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 61.56 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 5,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 60.62 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 6,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 63.78 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 7,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 61.32 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 8,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 59.72 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 9,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 64.17 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 10,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 60.14 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 11,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 82.18 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 12,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 66.19 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 13,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 59.16 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 14,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 64.45 ms (budget < 100 ms)"
+    ]
+  },
+  {
+    "i": 15,
+    "code": 0,
+    "out": [
+      "Run 1 overview \u2192 adoption: 64.39 ms (budget < 100 ms)"
+    ]
+  }
+]
