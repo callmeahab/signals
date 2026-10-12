@@ -366,3 +366,118 @@ docker rm -v dash-v3-fix-r1-pg
 git status --porcelain
 # no output after the evidence commit
 ```
+
+
+## Round 2 fixes
+
+Main (`d8f6123`) was already an ancestor of this worktree; `git merge main` returned `Already up to date.` No API or backend contract changed.
+
+### Cause and implementation
+
+The independent baseline retention probe reproduced the reported pattern: returning to Overview cost 151.539 ms, including 72.784 ms of style recalculation; GC reduced 9,515 nodes to 1,359. This was collectible detached DOM, not evidence of a permanent leak. Explicit listener/observer cleanup alone did not remove the cost. Isolating tile/card entrances reduced a ten-step walk to 33–84 ms, identifying repeated entrance animation work as the major amplification of the session's growing pending-GC state.
+
+- `web/packages/ui/src/charts/index.tsx`: chart lifecycle uses layout-effect cleanup, disconnects both observers, cancels both pending animation frames, detaches renderer handlers before redraw/unmount, rejects disposed paints, and empties its imperative SVG host before removal. Redrawing cancels the previous reveal frame.
+- `web/packages/ui/src/charts/renderers.js`: stacked-area pointer handlers now return an explicit remover, breaking the SVG/crosshair/tooltip closure cycle on redraw and unmount.
+- `web/packages/ui/src/analytics-v3.tsx`: component-owned entrance handles are cancelled on unmount; only visible cards animate. Six separate tile entrances become one row entrance. Count-up updates reuse their Text node rather than creating a new node each tick.
+- `web/apps/dashboard/src/main.tsx`: the font-ready continuation cannot schedule a navigation animation frame after cleanup.
+- `web/packages/ui/src/styles.css`: dark success pills use lighter teal ink, preserving their background tint; tile labels wrap below 360 px. Nested chart entry durations are bounded.
+- `web/scripts/performance-qa.mjs`: retains the single-switch instrument and adds `--walk` with the exact ten transitions, three sessions, 750 ms measured settling, CDP input, tracing, and an assertion for **every** switch at the unchanged 100 ms budget. `PERFORMANCE_REPEATS` additionally allows repeated fresh contexts; dark theme is explicitly stored.
+- `web/scripts/visual-qa.mjs`: the shared contrast/clip scan now covers both drawers and the existing 320 px screen pass, including an explicit complete tile-label assertion.
+
+Motion tuning is a deliberate design timing difference: tile rows and visible cards retain fade/lift but enter in 180 ms (cards delayed 40 ms), instead of independent 520 ms tile/card entrances and their stagger; chart layers enter in 240–320 ms and count-up completes in 400 ms. The live lamp remains 2.4 seconds, and reduced motion skips component-owned animations. These changes preserve the rendered layout, chart kinds, data, and interactions while giving the performance gate margin.
+
+Pending-GC node/listener counters still grow between collections, so this report does not claim those counters are constant. The final retention probe measures 9.791 ms style work on Adoption and 14.647 ms on the return to Overview (78.494 ms total); its post-GC Adoption switch is 55.405 ms, and a second GC returns to 973 nodes / 879 layout objects / 181 listeners. No production forced GC, benchmark-only motion behavior, or budget relaxation was introduced.
+
+### Performance evidence
+
+Fifteen separate serial invocations of the single-switch command passed: median **65.704 ms**, maximum **81.998 ms**, 0 failures. `reports/review-r2/single-serial.json` records every invocation; `web/artifacts/v3/performance.json` is the final single invocation. An earlier exploratory batch reused one browser across 15 contexts and had one 130.38 ms outlier; it is not the claimed 15-process acceptance run.
+
+The committed `web/artifacts/v3/performance-walk.json` records all 30 assertions with tracing enabled:
+
+| Transition | Run 1 ms | Run 2 ms | Run 3 ms |
+|---|---:|---:|---:|
+| overview → adoption | 67.837 | 61.601 | 91.278 |
+| adoption → tools | 69.384 | 68.221 | 74.758 |
+| tools → reliability | 71.016 | 63.421 | 72.392 |
+| reliability → sessions | 60.275 | 69.095 | 94.278 |
+| sessions → cost | 64.050 | 56.274 | 70.336 |
+| cost → protocol | 52.862 | 56.934 | 67.078 |
+| protocol → live | 52.670 | 47.492 | 57.360 |
+| live → overview | 68.801 | 74.468 | 74.422 |
+| overview → adoption | 61.443 | 71.272 | 61.106 |
+| adoption → reliability | 56.317 | 78.229 | 69.771 |
+
+Independent reviewer probes: `perf-sequence.mjs 3` reports `over budget: 0 of 30`; `perf-retention.mjs` has no walk or post-GC switch over 100 ms; `drawer-contrast.mjs` reports `failures: 0 clipped: 0`; `variants.mjs` reports 0 contrast failures, 0 clips, 0 overflow, and no negative count-up frames. An independent numeric check of its captured Overview (45 frames) and Adoption (48 frames) series also confirmed all six tiles nonnegative and monotone. Its additional five fresh-screen performance variants also pass (maximum 81.216 ms).
+
+### Verification commands and final results
+
+All commands below ran in this worktree; `bun` was resolved from `$HOME/.bun/bin` and Cargo from `$HOME/.cargo/bin`. Browser runs used Chromium. Final static assets matched the performance bundle (`index-BB9Gtj0K.css`, `index-DJIeRmm6.js`).
+
+| Command | Result / last output |
+|---|---|
+| `git merge main` | `Already up to date.` |
+| `cd web && bun run check` | Exit 0; `bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs` (type and lint checks passed). |
+| `cd web && bun run build` | Exit 0; `dist/assets/index-DF4i3wFq.js 344.02 kB`; `✓ built in 188ms`. |
+| `cd web && SIGNALS_TEST_UI_PORT=26451 R2_PORT=26452 PLAYWRIGHT_CHANNEL=chromium bun run test` | Exit 0; `review-r1 probe passed`, `review-r2 probe passed`, then the Visual QA line below. |
+| `cd web && SIGNALS_NEXT_PORT=26453 PLAYWRIGHT_CHANNEL=chromium bun run test:next` | Exit 0; `Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.` |
+| `cd web && BASE_URL=http://127.0.0.1:26431 bun scripts/performance-qa.mjs` (15 separate serial invocations from a Python subprocess loop) | All exit 0; median 65.704, maximum 81.998 ms; last invocation `Run 1 overview → adoption: 62.91 ms (budget < 100 ms)`. |
+| `cd web && BASE_URL=http://127.0.0.1:26431 bun scripts/performance-qa.mjs --walk` | Exit 0; 30/30 below 100 ms, maximum 94.278 ms; full table above. |
+| `PRODUCT_URL=http://127.0.0.1:26431 bun reports/review-r2/perf-sequence.mjs 3` | `over budget: 0 of 30`. |
+| `PRODUCT_URL=http://127.0.0.1:26431 bun reports/review-r2/perf-retention.mjs` | Walk maximum 78.494 ms; post-GC switch 55.405 ms; final counters `Nodes: 973, LayoutObjects: 879, JSEventListeners: 181, liveDom: 578`. |
+| `PRODUCT_URL=http://127.0.0.1:26431 PLAYWRIGHT_CHANNEL=chromium bun reports/review-r2/drawer-contrast.mjs` | `failures: 0 clipped: 0`. |
+| `PRODUCT_URL=http://127.0.0.1:26431 PLAYWRIGHT_CHANNEL=chromium bun reports/review-r2/variants.mjs` | `contrastFailures: 0`, `clipped: 0`, `overflow: []`, `negativeCountUpFrames: []`; wrote `reports/review-r2/variants.json`. |
+| Python numeric assertions over `variants.json` count-up frames (parse K/M/B multipliers, assert nonnegative and sorted per tile) | `overview 45 frames × 6 tiles: nonnegative and monotone`; `adoption 48 frames × 6 tiles: nonnegative and monotone`. |
+| `cargo build --locked --bin signals` | `Finished dev profile [unoptimized + debuginfo] target(s) in 56.02s`. |
+| `docker run -d --name dash-v3-fix-r2-pg --shm-size=1g -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:26441:5432 postgres:18.6-bookworm` then `docker exec dash-v3-fix-r2-pg pg_isready -U postgres` | Created dedicated container; `/var/run/postgresql:5432 - accepting connections`. |
+| `DATABASE_URL=postgres://postgres:signals@127.0.0.1:26441/signals target/debug/signals migrate` | Exit 0 (no output). |
+
+Final browser suite output:
+
+```text
+Visual QA passed: v3 chart SVG/table twins and both drawer captures; 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+```
+
+The first overlapping browser/Next-host run was interrupted by Vite hot reload when the Next-host helper rebuilt the UI package. The final browser suite ran after that build completed and passed. An initial lint failure from bare `localStorage` in the performance script was corrected to `globalThis.localStorage` before the passing check/build.
+
+Static screenshots were generated with the documented commands:
+
+```sh
+cd web
+VITE_DEMO=1 bun --bun vite build --config apps/dashboard/vite.config.ts --outDir ../../artifacts/v3-demo
+# From repository root, separate terminal:
+python3 -m http.server 26431 --bind 127.0.0.1 --directory web/artifacts/v3-demo
+# From web/, three serial invocations, with SHA-256 captured after each:
+BASE_URL=http://127.0.0.1:26431 PLAYWRIGHT_CHANNEL=chromium bun scripts/visual-qa.mjs
+```
+
+All three capture suites passed. The first comparison had one mismatch (`overview-1440-light.png`); the second capture matched that image's original committed baseline. The final consecutive pair (runs 2 and 3) was byte-identical: `Final two serial static captures: 64 PNGs; 0 changed`. Both hash comparisons are retained in `reports/review-r2/determinism-initial.json` and `determinism.json`; the earlier mismatch was not discarded or attributed to an unproven cause. Four committed PNGs changed overall: both dark session drawers and both dark Settings screens, reflecting the success-pill ink fix. `git status --porcelain -- web/artifacts/v3` returned no output after the final capture.
+
+The integrated harness used an on-disk TMPDIR and a psql shim at `target/r2-bin/psql` that strips its leading DATABASE_URL argument and executes `docker exec -i dash-v3-fix-r2-pg psql -U postgres -d signals`:
+
+```sh
+PATH="$PWD/target/r2-bin:$HOME/.cargo/bin:$HOME/.bun/bin:$PATH" \
+TMPDIR="$PWD/t-r2" \
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:26441/signals \
+ANALYTICS_PG_CONTAINER=dash-v3-fix-r2-pg \
+SIGNALS_URL=http://127.0.0.1:26442 \
+ANALYTICS_REVIEW_URL=http://127.0.0.1:26443 \
+ANALYTICS_REVIEW_PROBE_PORT=26444 \
+SIGNALS_PROBE_LATENCY_BUDGET_MS=900 PLAYWRIGHT_CHANNEL=chromium \
+python3 scripts/ci-conformance.py
+```
+
+The integrated command exited 0. Its pass lines and final output were:
+
+```text
+identity: 52/52 valid fixtures matched
+identity: 54/54 invalid fixtures matched
+gzip: 52/52 valid fixtures matched
+gzip: 54/54 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Backend browser QA passed: real v3 analytics, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+Finished `release` profile [optimized] target(s) in 1m 33s
+subject_kind breakdown {'key': 1, 'network': 1, 'strong': 0} status 200
+FINDINGS 0 MISMATCHES 0
+```
+
+The dedicated container was stopped and removed with `docker stop dash-v3-fix-r2-pg && docker rm dash-v3-fix-r2-pg`; both commands printed its name. The owned static HTTP server was terminated, and Python `shutil.rmtree` removed this worktree's `target/`, `t-r2/`, and temporary static demo directory. No other worker's services, data, or pre-existing dependency caches were removed. No requested fix remains; the evidence limitations and motion timing difference are stated above. Final `git diff --check` and clean status are checked after committing this report; nothing is pushed.
