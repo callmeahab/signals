@@ -434,6 +434,9 @@ fn analytics_document(api: &mut utoipa::openapi::OpenApi) {
                     arr(obj(&[
                         ("t", string.clone()),
                         ("users", int.clone()),
+                        ("sessions", int.clone()),
+                        ("wau", int.clone()),
+                        ("mau", int.clone()),
                         ("new", int.clone()),
                         ("returning", int.clone()),
                         ("by_kind", reference("IdentityQuality")),

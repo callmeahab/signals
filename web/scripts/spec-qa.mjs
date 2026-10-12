@@ -44,7 +44,7 @@ console.log('Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/s
 // Validate JSON on the wire, independently of the TypeScript implementation.
 const { analyticsShapes, validateShape } = await import('./analytics-shapes.mjs');
 const json = value => JSON.parse(JSON.stringify(value));
-for (const project of ['demo','demo-truncated']) for (const range of ['24h','7d','30d','90d']) {
+for (const project of ['demo','demo-truncated','demo-fresh']) for (const range of ['24h','7d','30d','90d']) {
  for (const [route,shape] of Object.entries(analyticsShapes)) {
   if (route === 'timeline') continue;
   validateShape(json(await demoClient.analytics(project,route,{range})),shape,route);
@@ -59,8 +59,17 @@ assert.throws(()=>validateShape(missing,analyticsShapes.overview),/missing key/)
 const wrong=globalThis.structuredClone(sample);wrong.tiles.tool_calls.value='48212';
 assert.throws(()=>validateShape(wrong,analyticsShapes.overview),/expected integer/);
 assert.throws(()=>validateShape({...sample,undocumented:true},analyticsShapes.overview),/unexpected key/);
-console.log('Demo contract shapes passed: 8 analytics routes × 4 ranges × 2 catalogue states, all session timelines, missing/extra keys and type-drift guards.');
+console.log('Demo contract shapes passed: 8 analytics routes × 4 ranges × 3 demo projects (complete, truncated catalogue, fresh window), all session timelines, missing/extra keys and type-drift guards.');
 
+// A fresh project paints every measured step and keeps day 7 as a null step.
+for(const route of ['overview','adoption']){
+ const body=json(await demoClient.analytics('demo-fresh',route,{range:'7d'}));
+ const fresh=route==='overview'?body.funnel:body.funnel.steps;
+ assert.deepEqual(fresh.at(-1),{step:'returned_day_7',count:null,dropoff_pct:null,eligible:0},`${route} day-7 null step`);
+ assert(fresh.slice(0,-1).every(step=>typeof step.count==='number'),`${route} earlier steps keep their counts`);
+}
+assert.equal(json(await demoClient.analytics('demo-fresh','adoption',{range:'7d'})).retention.daily.d7,null);
+assert((json(await demoClient.analytics('demo','overview',{range:'7d'})).funnel.at(-1).count)!==null);
 const completeTools=json(await demoClient.analytics('demo','tools',{}));
 const truncatedTools=json(await demoClient.analytics('demo-truncated','tools',{}));
 assert.equal(completeTools.catalog.complete,true);

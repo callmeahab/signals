@@ -253,6 +253,10 @@ function latencyHist({ buckets, markers, h = 228 }) {
 }
 
 /* ---------------------------------------------------------------- funnel -- */
+/* A step with a null count is one we cannot measure yet, not a zero: it keeps its own
+ * row as an empty track carrying the waiting caption and its eligible note, it does
+ * not scale the painted bars, and no drop-off wedge crosses it. The drop-off figure
+ * appears only where the response actually carries one. */
 function funnel({ steps, h = 252 }) {
   return (w) => {
     const pad = { t: 8, r: 8, b: 8, l: 8 };
@@ -260,12 +264,22 @@ function funnel({ steps, h = 252 }) {
     const gutter = Math.min(104, iw * 0.34);           // the count + drop-off column
     const rowH = (h - pad.t - pad.b - (steps.length - 1) * 10) / steps.length;
     const max = steps[0].count || 1;
-    const bw = (c) => Math.max(26, c / max * (iw - gutter - 8));
+    const track = iw - gutter - 8;
+    const bw = (c) => Math.max(26, c / max * track);
     let out = '';
     steps.forEach((s, i) => {
-      const yTop = pad.t + i * (rowH + 10), wNow = bw(s.count), mid = yTop + rowH / 2 + 4.5;
+      const yTop = pad.t + i * (rowH + 10), mid = yTop + rowH / 2 + 4.5;
+      if (s.count == null) {
+        out += `<rect class="nullstep" x="${px(pad.l)}" y="${px(yTop)}" width="${px(track)}" height="${px(rowH)}" rx="7"
+            fill="var(--viz-track)" stroke="var(--viz-ghost)" stroke-dasharray="5 4"/>
+          <text x="${px(pad.l + 12)}" y="${px(mid - 5)}" style="font:600 13px var(--sans);fill:var(--muted-foreground)">${esc(s.label)}</text>
+          <text class="ax" x="${px(pad.l + 12)}" y="${px(mid + 10)}">Waiting · ${f.int(s.eligible ?? 0)} eligible</text>
+          <text x="${px(pad.l + iw - 52)}" y="${px(mid)}" text-anchor="end" style="font:700 14px var(--sans);fill:var(--muted-foreground)">—</text>`;
+        return;
+      }
+      const wNow = bw(s.count);
       const inside = wNow > s.label.length * 7.1 + 20;
-      if (i) {
+      if (i && steps[i - 1].count != null) {
         const prev = bw(steps[i - 1].count), yPrev = pad.t + (i - 1) * (rowH + 10) + rowH;
         out += `<path class="popin" style="--pd:${260 + i * 80}ms;transform-origin:${px(pad.l + wNow)}px ${px(yPrev)}px"
           d="M${px(pad.l + wNow)},${px(yPrev)} L${px(pad.l + prev)},${px(yPrev)} L${px(pad.l + wNow)},${px(yTop)} Z"
@@ -275,7 +289,7 @@ function funnel({ steps, h = 252 }) {
           width="${px(wNow)}" height="${px(rowH)}" rx="7" fill="url(#fnl)"/>
         <text x="${px(pad.l + (inside ? 12 : wNow + 9))}" y="${px(mid)}" style="font:600 13px var(--sans);fill:${inside ? 'var(--primary-foreground)' : 'var(--muted-foreground)'}">${esc(s.label)}</text>
         <text x="${px(pad.l + iw - 52)}" y="${px(mid)}" text-anchor="end" style="font:700 14px var(--sans);font-variant-numeric:tabular-nums;fill:var(--foreground)">${f.int(s.count)}</text>
-        ${i ? `<text x="${px(pad.l + iw)}" y="${px(mid)}" text-anchor="end" class="ax" style="fill:var(--destructive)">−${s.drop}%</text>` : ''}`;
+        ${i && s.dropoff_pct != null ? `<text x="${px(pad.l + iw)}" y="${px(mid)}" text-anchor="end" class="ax" style="fill:var(--destructive)">−${s.dropoff_pct}%</text>` : ''}`;
     });
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img">
       <defs><linearGradient id="fnl" x1="0" y1="0" x2="1" y2="0">

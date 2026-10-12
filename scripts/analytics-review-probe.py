@@ -1118,6 +1118,7 @@ def compare_route(name, body, events, settings, filters):
         diff("reliability", expected, {k: body.get(k) for k in expected})
     elif name == "adoption":
         diff("adoption", expect_adoption(events, window, filters), {k: body[k] for k in REQUIRED["adoption"] if k not in ("range", "generated_at") and k in body})
+        adoption_trend(body)
     elif name == "cost":
         diff("cost", expect_cost(events, window, filters, settings), {k: body.get(k) for k in ("total_tokens_est", "per_call", "estimated", "by_tool", "by_tenant", "payload_hist", "billing_periods")})
     elif name == "protocol":
@@ -1126,20 +1127,56 @@ def compare_route(name, body, events, settings, filters):
         diff("digest", expect_digest(events, window, filters, settings), {k: body.get(k) for k in ("tools", "top_error_kinds", "new", "returning", "dead_tools", "changes")})
 
 
+def adoption_trend(body):
+    """The tiles draw sparklines from these per-bucket samples, so every bucket must
+    carry them and the rolling counts must contain the bucket they end on."""
+    points = body.get("active", {}).get("points")
+    if not isinstance(points, list):
+        finding("blocker", "adoption-points", f"active.points is {points}")
+        return
+    for point in points:
+        for field in ("sessions", "wau", "mau"):
+            if field not in point:
+                finding("blocker", "adoption-trend", f"{point.get('t')} has no {field}")
+            elif point[field] is not None and not isinstance(point[field], int):
+                finding("blocker", "adoption-trend", f"{point.get('t')} {field} is {point[field]!r}")
+        if isinstance(point.get("wau"), int) and point["wau"] < point["users"]:
+            finding("blocker", "adoption-wau", f"{point['t']} wau {point['wau']} < users {point['users']}")
+        if isinstance(point.get("mau"), int) and isinstance(point.get("wau"), int) and point["mau"] < point["wau"]:
+            finding("blocker", "adoption-mau", f"{point['t']} mau {point['mau']} < wau {point['wau']}")
+
+
 def expect_adoption(all_events, window, filters):
     events = selected(all_events, window, filters)
     first = first_seen_map(all_events)
     days = defaultdict(list)
     for event in events:
         days[event["ts"].date()].append(event)
+    def active_between(lo, hi):
+        rows = selected(all_events, (lo, hi), filters)
+        return len({e["identity"] for e in rows if e["identity"]})
+    # A session belongs to the bucket holding its first selected event, so the
+    # per-bucket counts sum to the overview sessions tile.
+    session_day = {}
+    for event in events:
+        if event["session_id"] and event["session_id"] not in session_day:
+            session_day[event["session_id"]] = event["ts"].date()
+    started = defaultdict(int)
+    for day in session_day.values():
+        started[day] += 1
     points = []
     for day, rows in sorted(days.items()):
         ids = {e["identity"] for e in rows if e["identity"]}
         new = sum(1 for ident in ids if first.get(ident) and first[ident].date() == day)
-        points.append({"t": day.isoformat(), "users": len(ids), "new": new, "returning": len(ids) - new, "by_kind": by_kind(rows)})
+        # Rolling counts end at the bucket end, clamped to the window end.
+        end = min(datetime.combine(day + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc), window[1])
+        points.append({"t": day.isoformat(), "users": len(ids),
+                       "sessions": started[day] if session_day else None,
+                       "wau": active_between(end - timedelta(days=7), end),
+                       "mau": active_between(end - timedelta(days=30), end),
+                       "new": new, "returning": len(ids) - new, "by_kind": by_kind(rows)})
     def active(days_back):
-        rows = selected(all_events, (window[1] - timedelta(days=days_back), window[1]), filters)
-        return len({e["identity"] for e in rows if e["identity"]})
+        return active_between(window[1] - timedelta(days=days_back), window[1])
     clients = {}
     protocols = defaultdict(set)
     transports = defaultdict(set)
@@ -1498,6 +1535,21 @@ def main():
                 print("explicit overview method", method, "span", span[1] - span[0])
                 if span[1] - span[0] < timedelta(hours=6) and method != "exact":
                     finding("blocker", "exact-window", f"sub-6h window method is {method}")
+    # The per-bucket session counts are what the Overview sessions tile draws as its
+    # sparkline, so they must add up to the tile they sit under in every window and
+    # under every filter.
+    for query, _ in queries:
+        adoption_status, adoption_body, _ = client.request("GET", f"{base}/adoption{query}", key=key)
+        overview_status, overview_body, _ = client.request("GET", f"{base}/overview{query}", key=key)
+        if adoption_status != 200 or overview_status != 200:
+            finding("blocker", "sessions-sum", f"{query} returned {adoption_status}/{overview_status}")
+            continue
+        total = sum(point.get("sessions") or 0 for point in adoption_body["active"]["points"])
+        tile = overview_body["tiles"]["sessions"]["value"]
+        print("sessions sum", query, total, "tile", tile)
+        if total != tile:
+            finding("blocker", "sessions-sum", f"{query} per-bucket sessions {total} != sessions tile {tile}")
+
     # Six-hour window is not exact.
     six_from = anchors["heavy_c"] - timedelta(minutes=1)
     status, body, _ = client.request("GET", f"{base}/overview?from={fmt(six_from)}&to={fmt(six_from + timedelta(hours=6))}", key=key)

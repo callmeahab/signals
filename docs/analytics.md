@@ -48,7 +48,12 @@ are null; a measured count of zero is zero.
   `eligible`, the number of selected new identities whose first-seen timestamp plus
   seven days is strictly before the half-open window end. Its `count` and adoption
   `dropoff_pct` are null when eligible is zero; otherwise count includes only returns
-  among eligible identities. Other steps omit `eligible`.
+  among eligible identities. Other steps omit `eligible`. A null step is one step, not
+  an empty funnel: the dashboard paints every step that has a count and renders a step
+  with `count: null` as a null step inside the chart, carrying the waiting caption and
+  its `eligible` note, with `—` in the chart's table twin. The whole-chart empty state
+  belongs only to a funnel with no steps or a null first step, and the Adoption
+  conversion curve ends at the last step that has a count.
   Daily retention counts activity on the exact UTC anniversary day. Eligibility
   begins at midnight UTC after that day (`date(first_seen) + offset + 1`), including
   a window ending exactly at that midnight; it does not depend on first-seen clock time.
@@ -288,3 +293,30 @@ Unfiltered long windows merge stored hourly histograms; partial or dirty hours
 use retained facts, so late arrivals are included exactly once. Daily percentiles
 come from merged counts, never from averaging hourly percentiles. Raw-event
 retention does not remove these measurements.
+
+## Adoption trend series
+
+Each `adoption.active.points[]` entry carries `sessions`, `wau`, and `mau` next to
+`users`, `new`, `returning`, and `by_kind`, so the Overview sessions tile and the
+Adoption WAU / MAU / stickiness tiles draw their sparklines from per-bucket samples
+rather than from the single headline number. Buckets are UTC days.
+
+- `sessions` counts the sessions that began in the bucket. A session belongs to the
+  bucket holding its first selected event, so the per-bucket counts add up exactly to
+  the Overview `tiles.sessions.value` for the same window and filters. The series is
+  null for every bucket when no selected event carries a session id; a bucket with
+  session data but no new session is zero.
+- `wau` and `mau` are distinct identities active in the 7 and 30 days ending at the
+  bucket end, using the same identity model as the headline `dau`/`wau`/`mau`. They
+  are window counts, not bucket counts, so they reach back behind the requested
+  window start and satisfy `mau >= wau >= users` for their own bucket. The bucket end
+  is clamped to the window end, so the final bucket of a window ending now reports
+  exactly the headline `wau` and `mau`.
+- The dashboard derives the per-bucket stickiness series as `users / mau * 100`, null
+  when `mau` is zero or null, and shows "Waiting for trend" only when every sample in
+  a series is null.
+
+The rolling counts are computed from the same in-memory analytics facts as the rest of
+the route: one pass over the widest span any bucket needs, then a two-pointer slide, so
+a 90-bucket series costs no more database work than a 7-bucket one and the read adds no
+query of its own.

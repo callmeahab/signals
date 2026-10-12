@@ -23,6 +23,8 @@ try {
  await page.reload();await page.getByLabel('Select project').selectOption(project.id);
  const route=path=>`${base}/v1/projects/${project.id}/${path}`;
  const analytics=async name=>json(await page.request.get(route(`analytics/${name}`)));
+ // Tiles are addressed by their exact label so "MAU" does not also match the DAU / MAU chip.
+ const tileFor=label=>page.locator('.tile').filter({has:page.getByText(label,{exact:true})});
  const visit=async (screen,api)=>{
   const response=api?page.waitForResponse(r=>r.url().includes(`/projects/${project.id}/${api}`)&&r.request().method()==='GET'):null;
   await page.goto(`${base}/#${screen}`);
@@ -57,16 +59,43 @@ try {
  for(const tool of toolData.tools){if(tool.calls){assert.equal(tool.latency.buckets.edges.length,61);assert.equal(tool.latency.buckets.edges.at(-1),null);assert.equal(tool.latency.buckets.counts.length,60);assert.equal(tool.latency.buckets.counts.reduce((n,c)=>n+c,0),tool.calls);}}
  const overview=await analytics('overview');
  const bucketMs=latencySeries.bucket==='hour'?3600000:86400000;const expectedBuckets=Math.ceil(Date.parse(overview.range.to)/bucketMs)-Math.floor(Date.parse(overview.range.from)/bucketMs);assert.equal(overview.tiles.latency.sparkline.length,expectedBuckets);assert.equal(overview.tiles.latency.sparkline.length,latencySeries.points.length);assert(overview.tiles.latency.sparkline.some(v=>v!==null));
+ // A fresh project has no identity old enough to return on day 7, so that step is
+ // null while the four measured steps keep their counts.
+ assert.deepEqual(overview.funnel.map(step=>step.count),[1,1,1,1,null]);
+ assert.deepEqual(overview.funnel.at(-1),{step:'returned_day_7',count:null,eligible:0});
+ const adoptionData=await analytics('adoption');
+ assert.deepEqual(adoptionData.funnel.steps.at(-1),{step:'returned_day_7',count:null,eligible:0,dropoff_pct:null});
+ // Every bucket carries the three trend series the tiles draw, and the per-bucket
+ // session counts add up to the sessions tile.
+ assert(adoptionData.active.points.length>0,'adoption has at least one bucket');
+ for(const point of adoptionData.active.points){
+  for(const field of ['sessions','wau','mau'])assert.equal(typeof point[field],'number',`adoption point ${field}: ${JSON.stringify(point)}`);
+  assert(point.wau>=point.users&&point.mau>=point.wau,`rolling counts contain the bucket: ${JSON.stringify(point)}`);
+ }
+ assert.equal(adoptionData.active.points.reduce((n,p)=>n+p.sessions,0),overview.tiles.sessions.value);
+ assert.equal(adoptionData.active.points.at(-1).wau,adoptionData.active.wau);
+ assert.equal(adoptionData.active.points.at(-1).mau,adoptionData.active.mau);
  assert(overview.attention.some(t=>t.tool===deadTool&&t.status==='dead'));assert(!overview.attention.some(t=>t.tool===hallucinated));assert.equal(overview.tiles.active_users.value,1);assert.equal(overview.tiles.sessions.value,1);assert.equal(overview.tiles.success_rate.value,92.3);assert.equal(overview.tiles.context_tokens.value,260);
  for(const screen of ['overview','adoption','tools','reliability','cost','protocol']){
   await visit(screen,`analytics/${screen}`);
   await expect(page.getByRole('button',{name:'Try again'})).toHaveCount(0);
   if(screen==='overview'){await expect(page.locator('.tile').filter({hasText:'Tool calls'}).locator('strong')).toHaveText('26');await expect(page.locator('.tile').filter({hasText:'Tool success'}).locator('strong')).toHaveText('92.3%');await expect(page.locator('.legend').getByText('Browser QA client',{exact:true})).toBeVisible();await expect(page.getByRole('img',{name:'Stacked calls by client'}).locator('rect:not(.hit)')).toHaveCount(1);}
-  if(screen==='adoption')await expect(page.getByRole('row').filter({hasText:'Browser QA client'})).toContainText('26');
+  if(screen==='adoption'){await expect(page.getByRole('row').filter({hasText:'Browser QA client'})).toContainText('26');
+   for(const label of ['WAU','MAU','Stickiness']){const tile=tileFor(label);await tile.scrollIntoViewIfNeeded();await expect(tile.locator('.chart-sparkline svg')).toHaveCount(1);await expect(tile.getByText('Waiting for trend',{exact:true})).toHaveCount(0);}
+   await page.locator('.chart-line').scrollIntoViewIfNeeded();
+   await expect(page.locator('.chart-line svg[role=img] circle')).toHaveCount(4);
+   await expect(page.locator('.chart-line svg[role=img]')).not.toContainText('returned day 7');}
   if(screen==='tools'){await expect(page.getByRole('row').filter({has:page.getByRole('button',{name:'search_documents',exact:true})})).toContainText('12');await expect(page.getByRole('row').filter({has:page.getByRole('button',{name:'get_customer',exact:true})})).toContainText('12');}
   if(screen==='reliability'){await expect(page.getByText('96%',{exact:true}).first()).toBeVisible();await expect(page.locator('.tile').filter({hasText:'Hallucinated tools'}).locator('strong')).toHaveText('1');await expect(page.locator('.tile').filter({hasText:'Hallucinated tools'})).toContainText(hallucinated);}
   if(screen==='tools'){assert.deepEqual((await page.locator('tbody button.row-button').allTextContents()).sort(),catalogued);await expect(page.locator('.dead-tool')).toHaveText([deadTool]);await expect(page.getByRole('button',{name:hallucinated,exact:true})).toHaveCount(0);}
   if(screen==='overview')await expect(page.locator('.tile').filter({hasText:'p95 latency'}).locator('.chart-sparkline svg')).toHaveCount(1);
+  if(screen==='overview'){const sessionsTile=tileFor('Sessions');await sessionsTile.scrollIntoViewIfNeeded();await expect(sessionsTile.locator('.chart-sparkline svg')).toHaveCount(1);await expect(sessionsTile.getByText('Waiting for trend',{exact:true})).toHaveCount(0);
+   const funnelCard=page.locator('.card').filter({has:page.getByRole('heading',{name:'Activation funnel',exact:true})});
+   await funnelCard.locator('.chart-funnel').scrollIntoViewIfNeeded();
+   await expect(funnelCard.locator('.chart-funnel svg.growx')).toHaveCount(4);
+   await expect(funnelCard.locator('.chart-funnel rect.nullstep')).toHaveCount(1);
+   await expect(funnelCard.locator('.emptychart')).toHaveCount(0);
+   assert.deepEqual(await funnelCard.locator('.chart-funnel table.sr-only tbody tr').last().locator('td').allTextContents(),['returned_day_7','—','—']);}
   if(screen==='reliability')await expect(page.locator('.chart-band svg')).toHaveCount(1);
   if(screen==='overview')await expect(page.locator('.ribrow').filter({hasText:deadTool})).toContainText('dead');
   if(screen==='cost'){await expect(page.locator('.tile').filter({hasText:'Context tokens'}).locator('strong')).toHaveText('≈ 260');await expect(page.getByRole('table',{name:'Tenant share',exact:true})).toContainText('260');}
@@ -130,5 +159,5 @@ try {
  await page.getByRole('button',{name:'Log out',exact:true}).click();await page.getByRole('button',{name:'Sign in',exact:true}).waitFor();
  assert.equal((await page.request.get(`${base}/v1/auth/me`)).status(),401);assert.deepEqual(failures,[]);
  await context.close();
- console.log('Backend browser QA passed: real v3 analytics, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.');
+ console.log('Backend browser QA passed: real v3 analytics, painted funnel with a null day-7 step, adoption session/WAU/MAU trend series, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.');
 } finally {await browser.close();}

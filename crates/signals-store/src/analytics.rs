@@ -695,13 +695,86 @@ impl Data {
         latency["sparkline"] = latency_sparkline(&self.latency_over_time(w, f));
         json!({"tiles":{"tool_calls":{"value":m.calls.len(),"prev":pm.calls.len()},"active_users":{"value":ids.len(),"prev":prev.iter().filter_map(|e|e.identity()).collect::<BTreeSet<_>>().len(),"new":ids.iter().filter(|id|self.first.get(*id).is_some_and(|t|w.contains(*t))).count(),"by_kind":by_kind},"sessions":{"value":sessions.len(),"prev":prev.iter().filter_map(|e|e.session_id.as_ref()).collect::<BTreeSet<_>>().len(),"calls_per_session":(!sessions.is_empty()).then(||(m.calls.len() as f64/sessions.len() as f64*10.0).round()/10.0)},"success_rate":{"value":m.success(),"prev":pm.success(),"tools_below_slo":attention.iter().filter(|t|t["status"]=="error").count()},"latency":latency,"context_tokens":{"value":tokens,"per_call":tokens.map(|n|(n as f64/m.calls.len() as f64).round() as i64),"estimated":true}},"calls_by_client":{"buckets":"day","points":clients.into_iter().map(|(t,by_client)|json!({"t":t,"by_client":by_client})).collect::<Vec<_>>()},"funnel":self.funnel(w,&events),"attention":attention,"cohorts":{"kind":"weekly","rows":self.cohorts(w,f)}})
     }
+    /// Distinct identities in the `span`-day window ending at each of `ends`, which
+    /// must ascend. One pass over the widest span any end needs, then a two-pointer
+    /// slide, so a 90-bucket series costs no more than a 7-bucket one.
+    fn rolling_identities(&self, f: &Filters, span: i64, ends: &[DateTime<Utc>]) -> Vec<usize> {
+        let (Some(first), Some(last)) = (ends.first(), ends.last()) else {
+            return Vec::new();
+        };
+        let events = self.selected(
+            Window {
+                from: *first - Duration::days(span),
+                to: *last,
+            },
+            f,
+        );
+        let mut index = BTreeMap::<(String, String), usize>::new();
+        let keys: Vec<Option<usize>> = events
+            .iter()
+            .map(|e| {
+                e.identity().map(|id| {
+                    let next = index.len();
+                    *index.entry(id).or_insert(next)
+                })
+            })
+            .collect();
+        let mut live = vec![0usize; index.len()];
+        let (mut left, mut right, mut distinct) = (0, 0, 0);
+        ends.iter()
+            .map(|end| {
+                while right < events.len() && events[right].ts < *end {
+                    if let Some(i) = keys[right] {
+                        live[i] += 1;
+                        distinct += usize::from(live[i] == 1);
+                    }
+                    right += 1;
+                }
+                let from = *end - Duration::days(span);
+                while left < right && events[left].ts < from {
+                    if let Some(i) = keys[left] {
+                        live[i] -= 1;
+                        distinct -= usize::from(live[i] == 0);
+                    }
+                    left += 1;
+                }
+                distinct
+            })
+            .collect()
+    }
     pub fn adoption(&self, w: Window, f: &Filters) -> Value {
         let events = self.selected(w, f);
         let mut days = BTreeMap::<NaiveDate, Vec<&Fact>>::new();
         for e in &events {
             days.entry(e.ts.date_naive()).or_default().push(e);
         }
-        let points:Vec<_>=days.into_iter().map(|(t,es)|{let ids:BTreeSet<_>=es.iter().filter_map(|e|e.identity()).collect();let new=ids.iter().filter(|id|self.first.get(*id).is_some_and(|first|first.date_naive()==t)).count();json!({"t":t,"users":ids.len(),"new":new,"returning":ids.len()-new,"by_kind":self.by_kind(&es)})}).collect();
+        // A session belongs to the bucket holding its first selected event, so the
+        // per-bucket counts sum to the sessions tile. Nothing carrying a session id
+        // leaves the series null rather than a measured zero.
+        let mut started = BTreeMap::<NaiveDate, usize>::new();
+        let mut sessions = BTreeSet::new();
+        for e in &events {
+            if let Some(s) = e.session_id.as_deref() {
+                if sessions.insert(s) {
+                    *started.entry(e.ts.date_naive()).or_default() += 1;
+                }
+            }
+        }
+        // Rolling counts end at the bucket end, clamped to the window end so the last
+        // bucket reports exactly the headline wau / mau.
+        let ends: Vec<DateTime<Utc>> = days
+            .keys()
+            .map(|t| {
+                (*t + Duration::days(1))
+                    .and_hms_opt(0, 0, 0)
+                    .unwrap()
+                    .and_utc()
+                    .min(w.to)
+            })
+            .collect();
+        let wau = self.rolling_identities(f, 7, &ends);
+        let mau = self.rolling_identities(f, 30, &ends);
+        let points:Vec<_>=days.into_iter().enumerate().map(|(i,(t,es))|{let ids:BTreeSet<_>=es.iter().filter_map(|e|e.identity()).collect();let new=ids.iter().filter(|id|self.first.get(*id).is_some_and(|first|first.date_naive()==t)).count();json!({"t":t,"users":ids.len(),"sessions":(!sessions.is_empty()).then(||started.get(&t).copied().unwrap_or(0)),"wau":wau[i],"mau":mau[i],"new":new,"returning":ids.len()-new,"by_kind":self.by_kind(&es)})}).collect();
         let active = |days: i64| {
             self.selected(
                 Window {
@@ -1424,6 +1497,76 @@ mod tests {
                 );
             }
         }
+    }
+    #[test]
+    fn adoption_trend_series() {
+        let at = |d: u32, h: u32| {
+            NaiveDate::from_ymd_opt(2026, 10, d)
+                .unwrap()
+                .and_hms_opt(h, 0, 0)
+                .unwrap()
+                .and_utc()
+        };
+        let sample = |ts: DateTime<Utc>, session: &str, subject: &str| Fact {
+            session_id: Some(session.into()),
+            caller: Some(json!({ "subject": subject })),
+            ..fact(ts, "tool.called", "a", false)
+        };
+        let data = Data {
+            events: vec![
+                sample(at(5, 6), "s0", "a"),
+                sample(at(7, 6), "s1", "b"),
+                sample(at(7, 7), "s1", "b"),
+                sample(at(8, 6), "s2", "a"),
+            ],
+            first: BTreeMap::from([
+                (("strong".into(), "a".into()), at(5, 6)),
+                (("strong".into(), "b".into()), at(7, 6)),
+            ]),
+            settings: json!({}),
+            catalog: BTreeMap::new(),
+            catalog_info: json!({}),
+        };
+        let w = Window {
+            from: at(7, 0),
+            to: at(8, 12),
+        };
+        let adoption = data.adoption(w, &Filters::default());
+        let active = &adoption["active"];
+        let points = active["points"].as_array().unwrap();
+        assert_eq!(points.len(), 2);
+        assert_eq!(
+            points[0],
+            json!({"t":"2026-10-07","users":1,"sessions":1,"wau":2,"mau":2,"new":1,"returning":0,"by_kind":{"strong":1,"key":0,"network":0}})
+        );
+        // Rolling counts reach behind the window start and end at the bucket end, so
+        // the final bucket reports exactly the headline totals.
+        assert_eq!(points[1]["wau"], active["wau"]);
+        assert_eq!(points[1]["mau"], active["mau"]);
+        assert_eq!(active["dau"], 1);
+        for point in points {
+            assert!(point["wau"].as_u64().unwrap() >= point["users"].as_u64().unwrap());
+            assert!(point["mau"].as_u64().unwrap() >= point["wau"].as_u64().unwrap());
+        }
+        assert_eq!(
+            points
+                .iter()
+                .map(|p| p["sessions"].as_u64().unwrap())
+                .sum::<u64>(),
+            2
+        );
+        // Without session ids the series is null, never a measured zero.
+        let mut anonymous = data.clone();
+        for e in &mut anonymous.events {
+            e.session_id = None;
+        }
+        assert!(
+            anonymous.adoption(w, &Filters::default())["active"]["points"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|p| p["sessions"].is_null())
+        );
     }
     #[test]
     fn funnel_and_cohorts() {

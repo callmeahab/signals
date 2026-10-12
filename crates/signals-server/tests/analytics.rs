@@ -172,6 +172,23 @@ async fn three_day_analytics_contract_and_idempotence() {
         assert_eq!(step["eligible"], 0);
     }
     assert_eq!(adoption["funnel"]["steps"][4]["dropoff_pct"], Value::Null);
+    // Each bucket carries the three trend series the tiles draw their sparklines from.
+    let points = adoption["active"]["points"].as_array().unwrap();
+    assert_eq!(points.len(), 3);
+    assert_eq!(
+        points
+            .iter()
+            .map(|p| p["sessions"].as_u64().unwrap())
+            .sum::<u64>(),
+        overview["tiles"]["sessions"]["value"].as_u64().unwrap()
+    );
+    for point in points {
+        assert_eq!(point["sessions"], 2, "{point}");
+        assert!(point["wau"].as_u64().unwrap() >= point["users"].as_u64().unwrap());
+        assert!(point["mau"].as_u64().unwrap() >= point["wau"].as_u64().unwrap());
+    }
+    assert_eq!(points.last().unwrap()["wau"], 2);
+    assert_eq!(points.last().unwrap()["mau"], 2);
     assert_eq!(adoption["clients"].as_array().unwrap().len(), 2);
     assert_eq!(adoption["transports"][0]["sessions"], 6);
     let (_, tools) = call(&app, "GET", &get("tools"), &key, Value::Null).await;

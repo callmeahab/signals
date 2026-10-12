@@ -1,5 +1,5 @@
 import { bucketForRange, bucketMilliseconds } from '@mcpramen/signals-ui';
-import type { AnalyticsRoutes, AnalyticsMeta, AnalyticsQuery, AnalyticsTool, AlertRule, TimelineAnalytics, AnalyticsSettings } from '@mcpramen/signals-ui';
+import type { AnalyticsRoutes, AnalyticsMeta, AnalyticsQuery, AnalyticsTool, AlertRule, FunnelStep, TimelineAnalytics, AnalyticsSettings } from '@mcpramen/signals-ui';
 const end = Date.UTC(2026,9,12);
 const iso = (t:number) => new Date(t).toISOString();
 export const defaultRules:AlertRule[] = [
@@ -15,8 +15,8 @@ export function setAnalyticsSettings(next:Partial<AnalyticsSettings>){settings={
 
 export let rules = structuredClone(defaultRules);
 export function setRules(next:AlertRule[]){rules=structuredClone(next);cache.clear();}
-export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:AnalyticsQuery, complete=true):AnalyticsRoutes[K] {
- const cacheKey=JSON.stringify([query,complete]);const cached=cache.get(cacheKey);if(cached)return structuredClone(cached[route]);
+export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:AnalyticsQuery, complete=true, fresh=false):AnalyticsRoutes[K] {
+ const cacheKey=JSON.stringify([query,complete,fresh]);const cached=cache.get(cacheKey);if(cached)return structuredClone(cached[route]);
  const days = query.range==='24h'?1:query.range==='30d'?30:query.range==='90d'?90:7;
  const to=query.to?Date.parse(query.to):end, from=query.from?Date.parse(query.from):to-days*86400000;
  const bucket=bucketForRange(query.range), step=bucketMilliseconds[bucket];
@@ -45,7 +45,10 @@ export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:An
  const sessionCount=scale(6480), active=scale(1094),newUsers=scale(312);
  const quality={strong:Math.round(active*.75),key:Math.round(active*.174),network:active-Math.round(active*.75)-Math.round(active*.174)};
  const steps=[['connected',312],['listed_tools',274],['first_call',190],['five_calls',137],['returned_day_7',84]] as const;
- const funnel=steps.map(([step,count],i)=>({step,count:scale(count),dropoff_pct:i?Math.round((1-count/steps[i-1][1])*1000)/10:0}));
+ const funnel:FunnelStep[]=steps.map(([step,count],i)=>({step,count:scale(count),dropoff_pct:i?Math.round((1-count/steps[i-1][1])*1000)/10:0}));
+ // A project whose first identities are younger than a week cannot measure day-7
+ // return yet: that step is a null step with no eligible identities behind it.
+ if(fresh)funnel[funnel.length-1]={step:'returned_day_7',count:null,dropoff_pct:null,eligible:0};
  const cohorts=[0,1,2,3].map(i=>({cohort_start:iso(from-(4-i)*604800000).slice(0,10),size:120+i*18,retained_pct:[100,41+i*3,33+i*2,29+i,27].map((n,j)=>j>4-i?null:n)}));
  const byClient=clients.map((name,i)=>({name,version:['0.1.0','1.7.2','1.2026.280'][i],calls:i===2?calls-Math.round(calls*.46)-Math.round(calls*.34):Math.round(calls*[.46,.34][i]),sessions:i===2?sessionCount-Math.round(sessionCount*.46)-Math.round(sessionCount*.34):Math.round(sessionCount*[.46,.34][i]),pct:[46,34,20][i],capabilities:i===0?['sampling','roots']:i===1?['roots','elicitation']:['roots']}));
  if(query.client){const selected=byClient.find(c=>c.name===query.client)!;byClient.splice(0,byClient.length,{...selected,calls,sessions:sessionCount,pct:100});}
@@ -56,7 +59,7 @@ export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:An
  overview.attention.sort((a,b)=>statusOrder[a.status]-statusOrder[b.status]||b.calls-a.calls);
  const histogram=(parts:number[])=>parts.map((n,i)=>i===parts.length-1?calls-parts.slice(0,-1).reduce((s,n)=>s+Math.round(calls*n),0):Math.round(calls*n));
  const data:AnalyticsRoutes={overview,
- adoption:{...meta,active:{bucket,dau:scale(410),wau:active,mau:scale(2810),points:Array.from({length:count},(_,i)=>({t:iso(from+step*i),users:scale(350+i*10),sessions:split(sessionCount,i),wau:scale(Math.round(900+i*194/6)),mau:scale(2600+i*35),new:split(newUsers,i),returning:scale(350+i*10)-split(newUsers,i),by_kind:{strong:scale(260+i*8),key:scale(60+i),network:scale(350+i*10)-scale(260+i*8)-scale(60+i)}}))},clients:byClient,protocol_versions:[{version:'2025-11-25',sessions:sessionCount-scale(280)},{version:'2025-03-26',sessions:scale(280)}],transports:[{transport:'streamable-http',sessions:sessionCount-scale(280)},{transport:'stdio',sessions:scale(280)}],retention:{daily:{d1:38.2,d7:27.5,d30:18.1},weekly:cohorts},funnel:{steps:funnel},identity_quality:quality},
+ adoption:{...meta,active:{bucket,dau:scale(410),wau:active,mau:scale(2810),points:Array.from({length:count},(_,i)=>({t:iso(from+step*i),users:scale(350+i*10),sessions:split(sessionCount,i),wau:scale(Math.round(900+i*194/6)),mau:scale(2600+i*35),new:split(newUsers,i),returning:scale(350+i*10)-split(newUsers,i),by_kind:{strong:scale(260+i*8),key:scale(60+i),network:scale(350+i*10)-scale(260+i*8)-scale(60+i)}}))},clients:byClient,protocol_versions:[{version:'2025-11-25',sessions:sessionCount-scale(280)},{version:'2025-03-26',sessions:scale(280)}],transports:[{transport:'streamable-http',sessions:sessionCount-scale(280)},{transport:'stdio',sessions:scale(280)}],retention:{daily:{d1:38.2,d7:fresh?null:27.5,d30:fresh?null:18.1},weekly:cohorts},funnel:{steps:funnel},identity_quality:quality},
  tools:{...meta,catalog:{advertised:15,used:tools.length,dead:complete?dead:null,known:true,complete,catalog_hash:'demo-catalog-v2',updated_at:iso(from)},tools,paths:[{sequence:['search_products','get_product','add_to_cart'],count:scale(812),pct:12.5},{sequence:['get_customer','list_orders'],count:scale(621),pct:9.6},{sequence:['search_products','book_flight'],count:scale(408),pct:6.3}]},
  reliability:{...meta,latency_over_time:{method:'histogram',bucket:bucket==='hour'?'hour':'day',points:latencyHistory},slo:(['read','mutate'] as const).map(c=>{const group=tools.filter(t=>t.slo_class===c),n=group.reduce((s,t)=>s+t.calls,0),e=group.reduce((s,t)=>s+(t.errors.tool??0),0),target=settings.slo_targets?.[c]??(c==='read'?99.5:98);return {class:c,target,success_rate:n?Math.round((1-e/n)*1000)/10:null,error_budget_pct:n?Math.max(0,Math.round((1-e/(n*(1-target/100)))*1000)/10):null,burn_rate_1h:c==='read'?.4:1.7,burn_rate_6h:c==='read'?.6:1.6};}),handshake:{attempts:sessionCount,success_rate:null,p95:null},timeouts:{count:null,pct:null},cancellations:{count:scale(31),pct:.1},error_codes:[],hallucinated_tools:{count:null,names:[]},sessions_with_errors:{count:scale(210),pct:3.2},silent_failures:{count:scale(4)},auth_failures:[],availability:null},
  cost:{...meta,total_tokens_est:totalTokens,per_call:calls?Math.round(totalTokens/calls):null,estimated:true,by_tool:tools.map(t=>({tool:t.tool,calls:t.calls,tokens:t.calls*(t.output_tokens_est??0),pct:Math.round(t.calls*(t.output_tokens_est??0)/Math.max(1,totalTokens)*1000)/10})).sort((a,b)=>b.tokens-a.tokens),by_tenant:tenants,payload_hist:{buckets:['<1K','1–4K','4–16K','16–64K','>64K'],input:histogram([.25,.62,.1,.02,.01]),output:histogram([.17,.41,.31,.08,.03])},billing_periods:tenants.map(t=>({period:'2026-10',caller:t.caller,calls:t.calls,tokens:t.tokens}))},

@@ -92,6 +92,38 @@ try {
         const size = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
         check(size[0] <= size[1], `${screen} ${width}/${theme}: overflow ${size}`);
       }
+      // A project whose identities are all younger than a week cannot measure day-7
+      // return. The funnel must still paint the four steps it did measure and keep
+      // day 7 as a null step inside the chart.
+      await page.getByLabel('Select project').selectOption('demo-fresh');
+      await page.goto(`${base}/#overview`);
+      await page.waitForTimeout(150);
+      await page.getByRole('heading', {name:'Activation funnel',exact:true}).waitFor();
+      await settleCharts(page);
+      const funnelCard=page.locator('.card').filter({has:page.getByRole('heading',{name:'Activation funnel',exact:true})});
+      check(await funnelCard.locator('.emptychart').count()===0,`${width}/${theme}: null day-7 step does not blank the funnel`);
+      check(await funnelCard.locator('.chart-funnel svg.growx').count()===4,`${width}/${theme}: four painted funnel steps`);
+      check(await funnelCard.locator('.chart-funnel rect.nullstep').count()===1,`${width}/${theme}: one null funnel step`);
+      check((await funnelCard.locator('.chart-funnel svg[role=img] text').allTextContents()).includes('Waiting · 0 eligible'),`${width}/${theme}: null step waiting caption and eligible note`);
+      check(JSON.stringify(await funnelCard.locator('.chart-funnel table.sr-only tbody tr').last().locator('td').allTextContents())===JSON.stringify(['returned_day_7','—','—']),`${width}/${theme}: null step table twin`);
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(500);
+      await scanSurface(page,`funnel-null/${width}/${theme}`);
+      await page.screenshot({path:`artifacts/v3/funnel-null-overview-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await page.goto(`${base}/#adoption`);
+      await page.waitForTimeout(150);
+      await page.getByRole('heading', {name:'Conversion',exact:true}).waitFor();
+      await settleCharts(page);
+      const curve=page.locator('.chart-line');
+      check(await curve.locator('svg[role=img] circle').count()===4,`${width}/${theme}: conversion curve ends at the last counted step`);
+      check(!(await curve.locator('svg[role=img]').textContent()).includes('returned day 7'),`${width}/${theme}: conversion curve plots no null step`);
+      check(JSON.stringify(await curve.locator('table.sr-only tbody tr').last().locator('td').allTextContents())===JSON.stringify(['returned_day_7','—','—']),`${width}/${theme}: conversion table twin`);
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(500);
+      await scanSurface(page,`conversion-null/${width}/${theme}`);
+      await page.screenshot({path:`artifacts/v3/funnel-null-adoption-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await page.getByLabel('Select project').selectOption('demo');
+      await page.getByRole('heading', {name:'Conversion',exact:true}).waitFor();
       await page.goto(`${base}/#setup`);
       await page.getByRole('button', {name:'Python',exact:true}).click();
       check((await page.locator('.copy-block').last().innerText()).includes('signals.asgi(mcp.streamable_http_app())'), 'Python SDK snippet');
@@ -202,4 +234,4 @@ try {
   await context.close();
 } finally { await browser.close(); }
 if(failures.length) { console.error(failures.join('\n')); process.exit(1); }
-console.log('Visual QA passed: v3 chart SVG/table twins and both drawer captures; 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.');
+console.log('Visual QA passed: v3 chart SVG/table twins, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.');
