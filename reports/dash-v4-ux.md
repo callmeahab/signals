@@ -439,3 +439,287 @@ run B exit 0
   Live mount".
 - The optional secondary line on the selected project card (its tool-call count) is not
   shipped, for the reason given under "Divergences".
+
+## Round 1 fixes
+
+Review `reviews/dash-v4-ux-r1.md` filed four blockers and four should-fixes against
+`ca43c95`. All eight are closed. The collector and `docs/analytics.md` are treated as the
+source of truth for copy throughout.
+
+### Blocker 1 · Bucket copy described a granularity the collector does not serve
+
+I checked the contract in the collector rather than in the dashboard's own helper.
+`crates/signals-store/src/analytics.rs` writes `"buckets":"day"` and `"bucket":"day"` as
+literals, and a tool's trend is keyed by `date_naive()`, so calls by client, adoption
+actives and tool trends sit on the UTC-day grid at every range. Latency is the one series
+that follows the window: `latency_over_time.bucket` is `hour` while the window is 48 hours
+or less and `day` after that.
+
+- `web/packages/ui/src/time.ts` — `bucketForRange` (hour / day / week by range) is gone.
+  In its place `SERIES_BUCKET = 'day'`, `latencyBucket(range)` and `bucketMilliseconds`,
+  with the contract written out in a comment above them.
+- `web/apps/dashboard/src/demo-analytics.ts` — the demo now generates one point per UTC
+  day for calls by client, adoption actives and every tool trend on all four ranges, and
+  only the latency series switches: 24 hourly points at 24 hours, daily otherwise, with
+  `latency_over_time.bucket` set to match. A 24-hour window is one column and a 90-day
+  window is ninety, exactly as the collector answers.
+- `web/packages/ui/src/copy/explanations.ts` — the four popovers that stated the old rule
+  now state the collector's: `overview.card.calls-by-client`, `adoption.card.active-identities`,
+  `tool.card.calls-errors` and `overview.tile.p95-latency` (which is where the window-following
+  behaviour belongs, "hourly up to 48 hours, daily after"). Card subtitles follow the same
+  wording, so the 24-hour Calls-by-client subtitle reads `Daily tool calls · UTC`.
+- Demo QA — `scripts/analytics-shapes.mjs` validates shapes and types only (`bucket` is
+  checked as a string), so the bucket contract is asserted where it can be: both review
+  probes. `web/test/review-r2/probe.mjs` now carries the collector's table — day buckets
+  with 1 / 7 / 30 / 90 points, latency `hour` with 24 points at 24 hours and `day`
+  elsewhere — plus the grid-gap, sparkline-equals-p95 and per-tool trend checks.
+  `web/test/review-r1/probe.mjs` carried the same stale mapping and now carries this one.
+
+Against the live collector, `backend-qa.mjs` asserts `latency_over_time.bucket` is `hour`
+on `?range=24h` and `day` on the default seven days, so the one window-following series is
+pinned from the API side too.
+
+### Blocker 2 · Saved SLO targets now move every number that quotes them
+
+`web/packages/ui/src/analytics-v3.tsx` reads the targets the collector serves
+(`reliability.slo[].target`) through one `sloTargets()` helper, and one `targetsText()`
+renders them. The Tools "Below SLO" tile, its meta line, the ribbon markers, the Overview
+attention statuses, the Tool-health subtitle and the Tools-needing-attention subtitle all
+read that single source, so the tile can no longer disagree with the error budget.
+
+On the demo, saving 80 / 80 takes the Tools tile from `6` to `0`, its meta to
+`read 80% · mutate 80%`, and the Overview caption to `0 tools below SLO`.
+
+Against the live collector, `backend-qa.mjs` now saves 80 / 80 in Settings, waits for the
+`PATCH`, and asserts `slo_targets` in the response, then the tile reading `0`, the meta
+reading `read 80% · mutate 80%`, the Tool-health and Tools-needing-attention subtitles,
+the Overview caption `0 tools below SLO`, and `tools_below_slo === 0` from
+`analytics/overview`. `visual-qa.mjs` carries the demo-side equivalent.
+
+### Blocker 3 · Every sparkline carries its own series' timestamps
+
+`Sparkline` in `web/packages/ui/src/charts/index.tsx` no longer takes `values` with
+optional `labels`. It takes `points: SparkPoint[]`, where `SparkPoint` is `{t, value}`.
+The brief asked for labels required and the same length as the values; TypeScript cannot
+express "these two arrays are the same length", so one array of pairs is the guarantee that
+actually holds at the type level — a point cannot exist without its timestamp. Each tile
+passes its own series, and the p95 tile passes
+`reliability.latency_over_time.points[].t`, which is why the 24-hour readout is an hour
+with a unit:
+
+```
+p95 readout: "Date: 01:00 p95 latency: 612 ms"
+```
+
+Fixing the plumbing surfaced a real bug in the Overview derived series: tool success and
+context tokens were summed as `t.trend[i]` across tools, by index. The collector's
+per-tool trends are sparse — a day with no calls is simply absent — so index `i` was a
+different day for different tools. Those series are now keyed by date (`trendDays` and
+`dayTotal`), which is also what makes the timestamps meaningful.
+
+`visual-qa.mjs` walks every `.v3-chart` on the 24-hour overview and asserts no table twin
+has a `Bucket` or `Value` column, and that the p95 readout matches
+`/^Date: \d\d:\d\d p95 latency: [\d,]+ ms$/`. `backend-qa.mjs` asserts the same against the
+live collector, where the review found the defect.
+
+### Blocker 4 · Captures are byte-identical across four serial runs
+
+The freshness badge was one source of variance: `apps/dashboard/src/main.tsx` now returns
+a frozen `updated just now` and skips both the one-second repaint and the dot pulse under
+`__SIGNALS_VISUAL_QA__`. It was not the cause of the three drawer captures the review
+caught.
+
+I measured before assuming. Across five runs the drawer's DOM, computed styles and
+sub-pixel geometry were identical (`909.000, 93.531, 158.328, 124.594` every time,
+`transform: none`, zero running animations, same `scrollHeight`), yet the captures flipped
+between three states, and an image diff put all 70–79 differing pixels on the tiles'
+rounded corners, with a maximum channel delta of 2. That is antialiasing, not layout.
+Isolating it by launch flag over six and then ten runs:
+
+```
+--disable-partial-raster                     1 variant
+--disable-lcd-text                           3 variants
+--deterministic-mode                         2 variants
+--disable-gpu                                3 variants
+```
+
+The cause is Chromium's partial raster: it reuses previously rastered tiles, and whether a
+tile was reused decides how a corner on a fractional pixel boundary is resolved.
+`visual-qa.mjs` now launches with `--disable-partial-raster`, so a capture depends only on
+what is on the page.
+
+The rest of the wall-clock audit: `sinceText` in `activity.ts` is the only clock-derived
+text in the shell and now frozen; `activity.ts`'s `updatedAt` and the two skeleton timers
+in `dashboard.tsx` are state, not text; the Setup screen's sample timestamp and snippet id
+(`dashboard.tsx:300`, `snippet-id.ts`) come from `Date.now()`, which `visual-qa` already
+pins with `page.clock.setFixedTime('2026-10-12T00:00:00Z')`.
+
+Four serial runs against one demo server, hashing every `artifacts/v3/*.png` after each:
+
+```
+run 1 exit 0
+run 2 exit 0
+run 3 exit 0
+run 4 exit 0
+=== files hashed ===
+116
+run 1 vs run 2: identical
+run 1 vs run 3: identical
+run 1 vs run 4: identical
+```
+
+The four manifests of 116 files hash to one digest, `62ab6c8112bd636c…`. The three files
+the review listed, and the two drawer captures that moved during the investigation:
+
+```
+59f87fc12721cdb75197ff274d8815ced2c73846d7dd6a030eae14a1423a07e2  adoption-390-light.png
+e665bbb6b4c828e2794de2a60e47597102b09e072ef19d14ee8097f3c0c7ac1e  tool-drawer-1280-light.png
+0d690fd89a60216cac6c472dc10ffce09ac57b18b71040058d0cf256d566164c  tools-390-light.png
+6b5663ddfd40a09481c0ebea638f5a172616968973b2de0ecce9534596cd89d4  tool-drawer-1440-dark.png
+b4315fd20b59a61c20a11f372dbabffc5409bd66e1de5a7bf542f02d17694f7a  tool-drawer-390-dark.png
+```
+
+### Should-fix · The stacked-area crosshair is now really checked
+
+The `||true` is gone. The check scopes to the first `.chart-stacked-area`, scrolls it into
+view (its painting is gated on an IntersectionObserver, which is why an unscrolled
+`waitFor` on the svg timed out when I first tightened this), hovers the plot and asserts
+exactly one `.tip` and one `.xh` inside that chart.
+
+### Should-fix · Project-card rows are measured
+
+`visual-qa.mjs` now measures `flex-direction` and counts rows by distinct `offsetTop`:
+one row with `row` at 1280 and 1440, one row per card with `column` at 390.
+
+### Should-fix · The skeleton test measures the 200 ms gate and the 400 ms hold
+
+The old test delayed every analytics route, which is why a broken hold was invisible. Only
+`analytics/overview` is delayed now, `.loading-state` is sampled every 20 ms from the
+navigation, and the answer's real arrival time is measured rather than assumed. Observed on
+the live collector:
+
+```
+delay   first content   skeleton on   skeleton off
+0 ms        175 ms          never          never
+150 ms      727 ms          320 ms        727 ms      (407 ms hold)
+300 ms      721 ms          303 ms        721 ms      (418 ms hold)
+```
+
+The committed test uses the unthrottled run for the no-skeleton case and 300 ms for the
+hold. The brief asked for 150 ms as the fast case; the measurements above are why it is
+not: the 200 ms gate is counted from when the query starts, about 100 ms into the load, and
+the two routes behind the delayed one still have to run, so 150 ms sits on the boundary —
+it showed the skeleton in one run and not in the next. The unthrottled answer lands at
+175 ms with no `.loading-state` sample at all, which is the same claim with margin. The
+asserted properties are: nothing appears when the answer beats the gate; the skeleton never
+appears before 200 ms; it lasts at least 400 ms; and the content and the skeleton swap in
+one paint.
+
+### Should-fix · The error-budget tick follows the saved burn threshold
+
+`renderers.js` scales the gauge by the `burn` alert rule's threshold instead of a fixed 6,
+and prints that threshold next to the red tick, so the change is visible and measurable.
+`Gauge` takes `alert`, `Reliability` reads `project.alerts.find(r => r.id === 'burn').threshold`,
+and `reliability.card.error-budget` says the tick is the burn the alert rule fires on, as
+saved in Settings. Rescaling alone would not have shown up in the review's measurement —
+the tick *angles* mark 0, ⅙, ½ and 1 of the threshold either way — which is why the label
+is there: saving 3 takes `6×` to `3×`, and `visual-qa.mjs` asserts it.
+
+### Three defects in the new assertions, found by running them
+
+The new backend assertions failed the first four times I ran `ci-conformance.py`, each time
+for a real reason in the test rather than in the product:
+
+1. `visit()` navigated with `page.goto(base + '#screen')`. A goto that only changes the
+   fragment never leaves the document, so re-entering the screen the page already showed
+   fetched nothing and the helper waited 30 s for a request that was never made. It now
+   reloads in that case, comparing only the screen in front of the fragment's query
+   (`#settings?project=…`), so every visit really does exercise the route it names.
+2. The 24-hour assertion called `analytics/reliability` with no range. The route defaults
+   to seven days, so it was asserting `bucket === 'hour'` against a daily answer. It now
+   names the window, and also asserts the seven-day default is `day`.
+3. The SLO block drove whatever project the page was left on — the suite ends its project
+   switch on the bootstrap project — so it saved targets on one project and asserted them
+   on another. It selects the test project first.
+
+The helper also reports the project and the screen it entered from when a route is never
+requested, instead of a bare Playwright timeout.
+
+### Round 1 commands, and what they printed
+
+Run from `web/` unless noted, with `PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH` and
+`PLAYWRIGHT_CHANNEL=chromium`. Google Chrome is not installed on this host and three of
+these scripts default to `channel: 'chrome'`, so the channel has to be named; that is the
+host, not a change in this pass.
+
+```
+bun run check                                                  # exit 0
+bun run test                                                   # exit 0
+bun run test:next                                              # exit 0
+BASE_URL=http://127.0.0.1:23460 PERFORMANCE_REPEATS=15 \
+  bun scripts/performance-qa.mjs                               # exit 0
+BASE_URL=http://127.0.0.1:23460 bun scripts/performance-qa.mjs --walk   # exit 0
+bun /tmp/.../info2.mjs                                         # contrast and clip
+four serial BASE_URL=http://127.0.0.1:23340 bun scripts/visual-qa.mjs   # byte identity
+python3 scripts/ci-conformance.py                              # from the repo root, exit 0
+```
+
+`bun run test`, the demo suite:
+
+```
+Snippet UUID QA passed      Spec fixture QA passed      Demo contract shapes passed
+Truncated catalogue QA passed    Analytics QA passed    Client share QA passed
+review-r1 probe passed      review-r2 probe passed
+Visual QA passed: v3 chart SVG/table twins, painted funnel with a null day-7 step …
+Live QA passed: 60000 ms refresh observed on the active screen, skeleton held 200/400 ms …
+Reload series passed: no Connecting or Reading text screen, no login card …
+```
+
+`bun run test:next`:
+
+```
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.
+```
+
+Performance, single, 15 repeats of `overview → adoption`: every run under the 50 ms
+longest-task budget, 31.44–40.67 ms. The walk, ten transitions × 3 runs: 30 of 30 rows
+under budget, 14.97–47.19 ms, with the pre-existing Live mount at
+
+```
+Run 1 protocol → live: longest task 45.02 ms (budget < 50 ms)
+Run 2 protocol → live: longest task 47.19 ms (budget < 50 ms)
+Run 3 protocol → live: longest task 42.03 ms (budget < 50 ms)
+```
+
+which is the same marginal step recorded under "Pre-existing: Live mount" — accepted by
+the coordinator, 45–47 ms here against 50.9–58.7 ms at the branch point, and under budget
+in all three runs this time. Nothing else crossed either: the highest non-Live transition
+was 46.77 ms (`reliability → sessions`, run 3), against the 44.9 ms high recorded before the
+review on this host. Both are inside the budget and the spread between runs of the same
+step is larger than that difference.
+
+Contrast and clip, 1440 × 900, both themes, with an explanation open and inside the tool
+drawer:
+
+```
+light contrast failures [] clipped []    light drawer popover 1 {"onTop":true,"inViewport":true}
+dark  contrast failures [] clipped []    dark  drawer popover 1 {"onTop":true,"inViewport":true}
+```
+
+`python3 scripts/ci-conformance.py`, with `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:25480/signals`,
+`ANALYTICS_PG_CONTAINER=dash-v4-ux-pg`, `SIGNALS_URL=http://127.0.0.1:25450`,
+`ANALYTICS_REVIEW_URL=http://127.0.0.1:25448`, `ANALYTICS_REVIEW_PROBE_PORT=25449`,
+`SIGNALS_PROBE_LATENCY_BUDGET_MS=900` and `TMPDIR` on a temporary directory under
+`/var/tmp`, after `bun run build` (it serves whatever is in `web/dist` and never rebuilds
+it):
+
+```
+identity: 52/52 valid fixtures matched, 54/54 invalid fixtures matched
+gzip: 52/52 valid fixtures matched, 54/54 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case,
+replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Backend browser QA passed: … persisted settings that carry saved SLO targets into the
+Tools tile and the overview caption, hour-stamped sparkline readouts on a 24-hour window …
+FINDINGS 0 MISMATCHES 0
+CI EXIT 0
+```

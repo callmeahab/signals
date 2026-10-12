@@ -30,9 +30,22 @@ try {
  // Tiles are addressed by their exact label so "MAU" does not also match the DAU / MAU chip.
  const tileFor=label=>page.locator('.tile').filter({has:page.getByText(label,{exact:true})});
  const visit=async (screen,api)=>{
-  const response=api?page.waitForResponse(r=>r.url().includes(`/projects/${project.id}/${api}`)&&r.request().method()==='GET'):null;
-  await page.goto(`${base}/#${screen}`);
-  if(response)assert.equal((await response).status(),200,`${screen} uses live ${api}`);
+  const response=api?page.waitForResponse(r=>r.url().includes(`/projects/${project.id}/${api}`)&&r.request().method()==='GET').catch(()=>null):null;
+  // A `goto` that only changes the fragment never leaves the document, so re-entering the
+  // screen the page already shows would fetch nothing and this would wait for a request
+  // that is never made. Returning to the current screen therefore reloads, and every visit
+  // really does exercise the route it names. The fragment can carry a query, as in
+  // `#settings?project=...`, so only the screen in front of it is compared.
+  const entered=page.url();
+  const current=new URL(entered).hash.replace(/^#/,'').split('?')[0];
+  if(current===screen)await page.reload();else await page.goto(`${base}/#${screen}`);
+  if(response){
+   const landed=await response;
+   // The commonest cause is a page left on another project: the route carries the project
+   // in its path, so the request this waits for is the selected project's.
+   assert(landed,`${screen} never requested ${api} for ${project.id}; entered from ${entered}`);
+   assert.equal(landed.status(),200,`${screen} uses live ${api}`);
+  }
   await page.getByRole('heading',{name:screen==='live'?'Live':screen[0].toUpperCase()+screen.slice(1),exact:true}).waitFor();
  };
  await expect(page.locator('.tile').filter({hasText:'Tool calls'}).locator('strong')).toHaveText('0');
@@ -194,36 +207,52 @@ try {
   await expect.poll(()=>log.length,{timeout:15000}).toBeGreaterThan(0);
   await poller.close();
  }
- // The skeleton waits 200 ms before appearing, and once it is up it stays 400 ms. Only
- // ONE route is delayed: Overview's analytics calls run in sequence, so delaying all of
- // them would put the answer far past both thresholds and the test could not tell a
- // working hold from a missing one. `.loading-state` is sampled every 20 ms.
- for(const [delayMs,expectSkeleton] of [[150,false],[300,true]]) {
+ // The skeleton waits 200 ms before it appears and then stays 400 ms, so neither it nor
+ // the content it replaces can flash. Only ONE route is delayed: Overview's analytics
+ // calls run in sequence, so delaying all of them would put every answer far past both
+ // thresholds and the test could not tell a working hold from a missing one. The answer's
+ // real arrival is measured rather than assumed, sampling `.loading-state` every 20 ms.
+ const skeletonRun=async delayMs=>{
   const slow=await context.newPage();
   await slow.addInitScript(()=>{
    globalThis.__samples=[];
-   const sampler=globalThis.setInterval(()=>globalThis.__samples.push({at:Math.round(globalThis.performance.now()),on:!!document.querySelector('.loading-state')}),20);
-   globalThis.setTimeout(()=>globalThis.clearInterval(sampler),6000);
+   const started=globalThis.performance.now();
+   const sampler=globalThis.setInterval(()=>globalThis.__samples.push({at:Math.round(globalThis.performance.now()-started),skeleton:!!document.querySelector('.loading-state'),content:!!document.querySelector('.tile strong')}),20);
+   globalThis.setTimeout(()=>globalThis.clearInterval(sampler),8000);
   });
-  await slow.route(`**/v1/projects/*/analytics/overview*`,async route=>{await new Promise(resolve=>setTimeout(resolve,delayMs));await route.continue();});
+  if(delayMs)await slow.route('**/v1/projects/*/analytics/overview*',async route=>{await new Promise(resolve=>setTimeout(resolve,delayMs));await route.continue();});
   await slow.goto(`${base}/#overview?project=${project.id}`);
   await slow.getByRole('heading',{name:'Calls by client'}).waitFor();
-  await slow.waitForTimeout(1500);
+  await slow.waitForTimeout(SKELETON_DELAY_MS+SKELETON_MIN_MS+600);
   const samples=await slow.evaluate(()=>globalThis.__samples);
-  assert(samples.length>40,`the skeleton sampler collected only ${samples.length} samples`);
-  const first=samples.find(sample=>sample.on);
-  if(!expectSkeleton)assert.equal(first,undefined,`a ${delayMs} ms answer still flashed a skeleton at ${first?.at} ms`);
-  else {
-   assert(first!==undefined,`a ${delayMs} ms answer showed no skeleton: ${JSON.stringify(samples.slice(0,12))}`);
-   assert(first.at>=SKELETON_DELAY_MS,`the skeleton appeared ${first.at} ms after navigation, inside its ${SKELETON_DELAY_MS} ms delay`);
-   const cleared=samples.find(sample=>!sample.on&&sample.at>first.at);
-   assert(cleared!==undefined,`the skeleton never cleared: ${JSON.stringify(samples.slice(-12))}`);
-   assert(cleared.at-first.at>=SKELETON_MIN_MS-20,`the skeleton lasted ${cleared.at-first.at} ms, under its ${SKELETON_MIN_MS} ms minimum`);
-  }
   await slow.close();
+  assert(samples.length>40,`the skeleton sampler collected only ${samples.length} samples`);
+  const skeleton=samples.find(sample=>sample.skeleton), content=samples.find(sample=>sample.content);
+  return {samples,skeleton,content,cleared:skeleton&&samples.find(sample=>!sample.skeleton&&sample.at>skeleton.at)};
+ };
+ {
+  // Unthrottled, the three live routes answer well inside the 200 ms the skeleton waits,
+  // and nothing appears at all: the content paints at once instead of waiting out a hold.
+  const fast=await skeletonRun(0);
+  assert(fast.content!==undefined,`the unthrottled overview never painted a tile: ${JSON.stringify(fast.samples.slice(-6))}`);
+  assert.equal(fast.skeleton,undefined,`an answer in ${fast.content.at} ms still flashed a skeleton at ${fast.skeleton?.at} ms`);
+  assert(fast.content.at<SKELETON_DELAY_MS+SKELETON_MIN_MS,`the unthrottled overview took ${fast.content.at} ms to paint, long enough that it may have waited out a skeleton hold rather than beaten the ${SKELETON_DELAY_MS} ms delay`);
+  // One route delayed 300 ms pushes the query past the delay, and the skeleton then has to
+  // wait out its own minimum before the content replaces it. The delay is counted from when
+  // the query starts, roughly 100 ms into the load, not from the navigation, so 150 ms sits
+  // on the boundary and was measured falling on both sides of it: 300 ms is unambiguous.
+  const held=await skeletonRun(300);
+  assert(held.skeleton!==undefined,`a 300 ms answer showed no skeleton: ${JSON.stringify(held.samples.slice(0,12))}`);
+  assert(held.skeleton.at>=SKELETON_DELAY_MS-20,`the skeleton appeared ${held.skeleton.at} ms after navigation, inside its ${SKELETON_DELAY_MS} ms delay`);
+  assert(held.cleared!==undefined,`the skeleton never cleared: ${JSON.stringify(held.samples.slice(-12))}`);
+  assert(held.cleared.at-held.skeleton.at>=SKELETON_MIN_MS-20,`the skeleton lasted ${held.cleared.at-held.skeleton.at} ms, under its ${SKELETON_MIN_MS} ms minimum`);
+  assert(Math.abs(held.content.at-held.cleared.at)<=20,`the skeleton cleared at ${held.cleared.at} ms and the content arrived at ${held.content.at} ms; they have to swap in one paint`);
  }
  // Saved SLO targets move the Tools below-SLO tile, its meta, and the overview caption.
  {
+  // The project switch above left the page on the bootstrap project; these targets belong
+  // to the project this test filled with calls.
+  await selectProject(project.id);
   await visit('settings','analytics/alerts');
   await page.getByLabel('read SLO target (%)').fill('80');
   await page.getByLabel('mutate SLO target (%)').fill('80');
@@ -255,13 +284,15 @@ try {
   await page.keyboard.press('ArrowRight');
   const readout=(await p95Tile.locator('.chart-key-tooltip').first().textContent())??'';
   assert(/^Date: \d\d:\d\d p95 latency: ([\d,]+ ms|No data yet)\s*$/.test(readout),`the 24-hour p95 readout is ${JSON.stringify(readout)}, expected an hour timestamp`);
-  const live=await analytics('reliability');
+  // The route defaults to seven days, so the window has to be named to see the hourly bucket.
+  const live=await analytics('reliability?range=24h');
   assert.equal(live.latency_over_time.bucket,'hour','a 24-hour window serves hourly latency');
+  assert.equal((await analytics('reliability')).latency_over_time.bucket,'day','a seven-day window serves daily latency');
   await page.locator('h1').click();
   await page.getByRole('button',{name:'7 days',exact:true}).click();
  }
  await page.getByRole('button',{name:'Log out',exact:true}).click();await page.getByRole('button',{name:'Sign in',exact:true}).waitFor();
  assert.equal((await page.request.get(`${base}/v1/auth/me`)).status(),401);assert.deepEqual(failures,[]);
  await context.close();
- console.log('Backend browser QA passed: real v3 analytics, project cards that survive a reload, a 60-second refresh of the active screen alone that stops while the tab is hidden, a skeleton held back 200 ms and kept 400 ms, painted funnel with a null day-7 step, adoption session/WAU/MAU trend series, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.');
+ console.log('Backend browser QA passed: real v3 analytics, project cards that survive a reload, a 60-second refresh of the active screen alone that stops while the tab is hidden, a skeleton held back 200 ms and kept 400 ms, painted funnel with a null day-7 step, adoption session/WAU/MAU trend series, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings that carry saved SLO targets into the Tools tile and the overview caption, hour-stamped sparkline readouts on a 24-hour window, 400 message, CSRF, logout.');
 } finally {await browser.close();}
