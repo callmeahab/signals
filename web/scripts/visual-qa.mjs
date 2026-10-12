@@ -68,9 +68,10 @@ try {
       if(await charts.count()){await charts.first().focus();await page.keyboard.press('ArrowRight');check(await page.getByRole('tooltip').count()===1,`${screen}: keyboard tooltip shown`);await page.locator('h1').click();}
       for(const kind of expected[screen]??[])check(await page.locator(`[data-chart="${kind}"]`).count()>0,`${screen}: ${kind} present`);
       const tileColumns=await page.locator('.signals-ui>.tiles').evaluateAll(els=>els.map(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length));
-      check(tileColumns.every(n=>n===(width>=1024?3:1)),`${screen}/${width}: shared tile columns`);
+      const compactScreens=['tools','reliability','sessions','cost','protocol'];const expectedColumns=compactScreens.includes(screen)?(width>=1024?6:width>600?3:2):(width>=1024?3:1);
+      check(tileColumns.every(n=>n===expectedColumns),`${screen}/${width}: ${compactScreens.includes(screen)?'compact':'shared'} tile columns`);
       for(const spark of await page.locator('.tile__spark svg[role=img]').all()){
-        check(await spark.evaluate(el=>el.getBoundingClientRect().height>=96),`${screen}/${width}: sparkline plot height >= 96px`);
+        check(await spark.evaluate((el,min)=>el.getBoundingClientRect().height>=min,compactScreens.includes(screen)?30:96),`${screen}/${width}: sparkline plot height`);
         check(await spark.evaluate(el=>Math.abs(el.getBoundingClientRect().width-el.closest('.tile').clientWidth)<=2),`${screen}/${width}: full-width sparkline`);
       }
       if(width>=1024){
@@ -85,7 +86,6 @@ try {
       if(screen==='adoption'){check(await page.locator('.chart-bars').count()===2,'Adoption transport and protocol bars');check(await page.locator('.card').filter({has:page.getByRole('heading',{name:'Clients',exact:true})}).locator('table').count()===1,'Adoption client table');check(await page.locator('.chart-funnel,.chart-heatmap').count()===0,'Adoption uses conversion curve');}
       if(screen==='live')check(await page.locator('.chart-sparkline').count()===2&&await page.locator('.chart-area,.chart-donut').count()===0,'Live two sparklines and bars');
       if(screen==='protocol')check(await page.locator('.chart-dot-grid').count()===2&&await page.locator('.tile').count()===6,'Protocol two grids and six tiles');
-      if(screen==='tools'){check(await page.locator('.tile__detail').count()===5&&await page.locator('.tile__spark svg[role=img]').count()===1,'Tools tiles carry five details and one derived sparkline');check(await page.locator('.tile .dotstrip i').count()===15,'Advertised tile shows one dot per catalogue tool');check(await page.locator('.tile .minirank .r').count()>=2,'Retries and Below SLO tiles rank tools');check(await page.locator('.tile .tilechips .chip--flat').count()===3,'Never called tile lists the dead tools');}
       const tiles={adoption:['DAU','WAU','MAU','Stickiness','New users','D7 retention'],cost:['Context tokens','Per call','Heaviest tool','Tenants','Largest payload','Billing period'],protocol:['Sessions','Client capabilities','Server capabilities','Sampling','Elicitation','Tasks']};
       if(tiles[screen])check(JSON.stringify(await page.locator('.tile__label').allTextContents())===JSON.stringify(tiles[screen]),`${screen}: approved tile set`);
       if(screen==='adoption')check(await page.locator('.chart-donut').getAttribute('aria-label').then(v=>v.startsWith('Identity quality.')),'Adoption identity donut');

@@ -33,14 +33,14 @@
    equal session counts, repeated names across versions and a zero-call client.
    Existing null percentages stay unavailable when the call denominator is zero.
 
-## Tile details 2026-10-12
+## Compact tiles 2026-10-12
 
-9. A tile without a per-bucket series no longer stays empty. `TilesV3` accepts a
-   `detail` node rendered under the meta line and bottom-aligned like a sparkline.
-   Tools uses four detail kinds: a dot strip (one dot per catalogue tool, teal when
-   called, hollow when never called), a mini ranked list (top retried tools; tools
-   under their SLO with their success bar), a chip list (dead or hallucinated names,
-   "+N more" after the cap), and a note with a check mark for the healthy empty
-   state. The Used tile draws a derived sparkline: distinct tools called per bucket,
-   computed from `tools[].trend`. Null stays null ("Waiting for …"); a healthy zero
-   says what was checked.
+9. Only Overview and Adoption keep the large three-by-two tile grid with 108 px
+   sparklines: those are the screens whose tiles carry a trend series. Tools,
+   Reliability, Sessions, Cost and Protocol render their six tiles compact in one
+   row (six columns at ≥1024 px, three on tablet, two on phones) with a 38 px
+   sparkline when a tile has one and no trend area otherwise.
+10. Tools shows "Top tool paths" directly under the tiles, then Tool health, the
+    latency and catalogue pair, and the performance table.
+11. Tool names use the mono face everywhere (`.tool-name`): ribbons, tables, chips,
+    chart labels and the tool drawer title.

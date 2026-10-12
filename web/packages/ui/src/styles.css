@@ -736,17 +736,14 @@ td .mono{font-size:12.5px}
 @media(max-width:1279px){.client-mix .legendlist{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1023px){.signals-ui>.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.client-mix .legendlist{grid-template-columns:1fr}}
 @media(max-width:560px){.signals-ui>.tiles{grid-template-columns:1fr}.client-mix{grid-template-columns:1fr}.client-mix>.table-container{max-width:260px;width:100%;justify-self:center}}
-/* Tile details (2026-10-12): data views that fill a tile without a trend series. */
-.tile__detail{margin-top:auto;padding-top:12px;font-size:11.5px;color:var(--muted-foreground);display:grid;gap:8px;min-width:0}
-.dotstrip-wrap{display:grid;gap:7px}.dotstrip{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
-.dotstrip i{width:10px;height:10px;border-radius:50%;background:var(--chart-3);display:block}
-.dotstrip i.off{background:var(--viz-track);border:1px solid var(--border);box-sizing:border-box}.dotstrip i.bad{background:var(--chart-2)}
-.dotstrip .more,.dotstrip__legend{font:10.5px var(--mono);color:var(--muted-foreground)}
-.minirank{display:grid;gap:6px}.minirank .r{display:grid;grid-template-columns:minmax(0,1fr) minmax(48px,2fr) auto;gap:8px;align-items:center}
-.minirank code{font:11px var(--mono);color:var(--foreground);min-width:0;overflow-wrap:anywhere}
-.minirank .bar{height:6px;border-radius:99px;background:var(--viz-track);overflow:hidden;display:block}
-.minirank .bar i{display:block;height:100%;border-radius:99px;background:var(--chart-3)}.minirank .bar i.bad{background:var(--chart-2)}
-.minirank b{font:600 11px var(--mono);color:var(--foreground);font-variant-numeric:tabular-nums;white-space:nowrap}
-.tilechips{display:flex;flex-wrap:wrap;gap:5px}.tilechips .chip{white-space:normal;overflow-wrap:anywhere}
-.tilenote{display:flex;gap:7px;align-items:center;color:var(--muted-foreground);line-height:1.4}.tilenote svg{flex:none}.tilenote.ok svg{color:var(--chart-3)}
-.tile__detail+.tile__spark{margin-top:0}
+/* Compact tiles 2026-10-12: one row and no trend area on screens whose tiles carry few series. */
+.signals-ui>.tiles.tiles--compact{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.signals-ui>.tiles.tiles--compact>.tile{min-height:0;padding:12px 14px 0}
+.tiles--compact .tile__value{font-size:24px}.tiles--compact .tile--lead .tile__value{font-size:26px}
+.tiles--compact .tile__meta{margin-bottom:12px}
+.tiles--compact .tile__spark{height:38px;padding-top:0;margin-top:auto}.tiles--compact .tile__spark .spark-wait{height:38px}
+@media (max-width:1023px){.signals-ui>.tiles.tiles--compact{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:600px){.signals-ui>.tiles.tiles--compact{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Tool names use the mono face everywhere they appear. */
+.tool-name,.row-button.tool-name{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:0}
+.drawer--tool h2{font-family:var(--mono);font-weight:500;letter-spacing:0}
