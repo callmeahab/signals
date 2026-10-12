@@ -25,7 +25,7 @@
 .range-control{animation:v3-rise 520ms var(--ease-out) 140ms backwards}
 @media(prefers-reduced-motion:reduce){.workspace-strip,.range-control{animation:none}}
 /* Icons 2026-10-12: Lordicon Wired Outline via <lord-icon>; ink from the text colour, gold secondary. */
-lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-secondary:var(--chart-1)}
+lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-primary:currentColor;--lord-icon-secondary:var(--chart-1)}
 .topbar nav a{display:inline-flex;align-items:center;gap:7px}
 .topbar nav a lord-icon{opacity:.85}.topbar nav a[aria-current=page] lord-icon,.topbar nav a:hover lord-icon{opacity:1}
 .icon-button lord-icon,.button lord-icon{pointer-events:none}

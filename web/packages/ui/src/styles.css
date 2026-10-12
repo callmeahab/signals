@@ -748,7 +748,7 @@ td .mono{font-size:12.5px}
 .tool-name,.row-button.tool-name{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:0}
 .drawer--tool h2{font-family:var(--mono);font-weight:500;letter-spacing:0}
 /* Icons 2026-10-12 */
-lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-secondary:var(--chart-1)}
+lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-primary:currentColor;--lord-icon-secondary:var(--chart-1)}
 .status-pill lord-icon{width:12px;height:12px}.status-pill.dead lord-icon{opacity:.7}
 .emptychart lord-icon{opacity:.6}
 .glyph{flex:none;vertical-align:middle}

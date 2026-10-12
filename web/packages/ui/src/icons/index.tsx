@@ -3,6 +3,10 @@ import { createElement, useEffect, useRef, type CSSProperties, type ReactElement
 
 // Animated icons are Lordicon "Wired Outline" Lottie files (licensed under the
 // project's Lordicon PRO subscription) rendered by the <lord-icon> element.
+// Ink follows the text colour through `--lord-icon-primary: currentColor` in the
+// stylesheets: this element version keys its currentColor rules off a `current-color`
+// *attribute*, which would also repaint the gold secondary, so the custom property
+// (which the element's shadow palette rules read) is what carries the ink.
 // The element and each icon's data load lazily, and icon data is handed to the
 // element a few at a time per animation frame so a screen full of pills never
 // costs one long main-thread task.
@@ -10,7 +14,7 @@ import { createElement, useEffect, useRef, type CSSProperties, type ReactElement
 export type IconName =
  | 'overview' | 'adoption' | 'tools' | 'reliability' | 'sessions' | 'cost' | 'protocol' | 'live' | 'setup' | 'settings'
  | 'search' | 'copied' | 'pause' | 'play' | 'sun' | 'moon' | 'logout' | 'chevron' | 'key' | 'plus' | 'trash'
- | 'waiting' | 'healthy' | 'error' | 'dead' | 'streaming' | 'warn';
+ | 'waiting' | 'healthy' | 'error' | 'dead' | 'streaming' | 'warn' | 'info';
 
 type IconModule = { default: object };
 const loaders: Record<IconName, () => Promise<IconModule>> = {
@@ -41,6 +45,7 @@ const loaders: Record<IconName, () => Promise<IconModule>> = {
  dead: () => import('./lordicon/dead.json'),
  streaming: () => import('./lordicon/streaming.json'),
  warn: () => import('./lordicon/warn.json'),
+ info: () => import('./lordicon/info.json'),
 };
 const cache = new Map<IconName, Promise<object>>();
 function load(name: IconName): Promise<object> {
@@ -90,7 +95,7 @@ export function Icon({ name, size = 18, trigger = 'hover', target, state, stroke
  // Visual QA captures must land on the first frame; the element's reduced-motion handling
  // would otherwise seek one-shot animations to their last frame at an unpredictable moment.
  return createElement('lord-icon', {
-  ref, class: `li current-color${className ? ' ' + className : ''}`, trigger: play, target: play ? target : undefined, state, stroke, motion: visualQa() ? 'always' : undefined,
+  ref, class: `li${className ? ' ' + className : ''}`, trigger: play, target: play ? target : undefined, state, stroke, motion: visualQa() ? 'always' : undefined,
   style: { width: size, height: size, ...style }, role: label ? 'img' : undefined, 'aria-label': label, 'aria-hidden': label ? undefined : 'true',
  });
 }
