@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '../icons/index.js';
 import { useLayoutEffect, useId, useRef, useState } from 'react';
 import * as render from './renderers.js';
 import type { Cohort, FunnelStep, TimelineAnalytics } from '../analytics-types.js';
@@ -23,7 +24,7 @@ export function Chart({label,kind,draw,headers,rows,height=220}:{label:string;ki
  <table className="sr-only" id={id}><caption>{label}</caption><thead><tr>{headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{rows.map((row,i)=><tr key={i}>{row.map((value,j)=><td key={j}>{value??'No data yet'}</td>)}</tr>)}</tbody></table>
  </figure></div></div>;
 }
-export function Waiting({event='SDK events',shape='bars'}:{event?:string;shape?:'bars'|'line'|'ring'}){return <div className="emptychart"><svg width="104" height="40" aria-hidden="true">{shape==='bars'?[8,22,14,30,18,26].map((v,i)=><rect key={i} x={i*17+2} y={38-v} width="11" height={v} rx="3" fill="var(--viz-ghost)"/>):shape==='line'?<path d="M2 30 C18 30 22 12 38 14 S60 30 76 22 S94 10 102 8" fill="none" stroke="var(--viz-ghost)" strokeWidth="3"/>:<circle cx="52" cy="20" r="17" fill="none" stroke="var(--viz-ghost)" strokeWidth="7" strokeDasharray="54 20"/>}</svg><div className="emptychart__t">No data yet</div><div className="emptychart__s">Waiting for {event}</div></div>;}
+export function Waiting({event='SDK events'}:{event?:string;shape?:'bars'|'line'|'ring'}){return <div className="emptychart"><Icon name="waiting" size={44} target=".emptychart"/><div className="emptychart__t">No data yet</div><div className="emptychart__s">Waiting for {event}</div></div>;}
 export function Sparkline({values,label='Trend',color='var(--chart-1)',height=38}:{height?:number;values:(number|null|undefined)[];label?:string;color?:string}){return values.length&&values.some(v=>v!=null)?<Chart kind="sparkline" label={label} height={height} draw={render.sparkline({values:values as number[],color,h:height})} headers={['Bucket','Value']} rows={values.map((v,i)=>[i+1,v])}/>:<div className="spark-wait">Waiting for trend</div>;}
 export type Series={name:string;color:string;values:number[]};
 export function Area({labels,series,label='Calls by client',height=260}:{labels:string[];series:Series[];label?:string;height?:number}){return labels.length?<><div className="legend">{series.map(s=><span key={s.name}><i style={{background:s.color}}/>{s.name}</span>)}</div><Chart kind={series.length>1?'stacked-area':'area'} label={label} height={height} draw={render.stackedArea({labels,series,h:height})} headers={['Date',...series.map(s=>s.name)]} rows={labels.map((t,i)=>[t,...series.map(s=>s.values[i])])}/></>:<Waiting/>;}

@@ -44,3 +44,20 @@
     latency and catalogue pair, and the performance table.
 11. Tool names use the mono face everywhere (`.tool-name`): ribbons, tables, chips,
     chart labels and the tool drawer title.
+
+## Icons 2026-10-12
+
+12. Icons are Lordicon "Wired Outline" Lottie files chosen by the user under the
+    project's Lordicon PRO subscription, kept in `src/icons/lordicon/*.json` and
+    rendered by `<lord-icon>` through the `Icon` component (`src/icons/index.tsx`).
+    The element and each icon load lazily; icon data is handed to elements six per
+    animation frame so a table of pills never costs one long task. Ink follows the
+    text colour (`current-color`), the secondary colour is the gold `--chart-1`,
+    stroke `light`. Nav tabs, the theme and sign-out buttons, search, pause/play,
+    chevrons, keys, add, delete, saved/copied checks, the empty state and every
+    status pill use the set; the few controls with no icon in the set (close, menu,
+    copy, arrows, terminal, user) are static inline glyphs with the same stroke.
+    Hover triggers follow the whole control (`target`). Under reduced motion or in
+    visual QA no trigger is set, so icons rest on their first frame. The pulsing
+    dot next to the Live tab and its ring keyframes are gone; the Live tab carries
+    the broadcast icon like every other tab. lucide-react is removed.

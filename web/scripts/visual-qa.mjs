@@ -1,5 +1,6 @@
 import { contrastAndClip } from './contrast-clip.mjs';
 import { chromium } from '@playwright/test';
+const iconsReady=async page=>{await page.mouse.move(0,0);await page.waitForFunction(()=>[...document.querySelectorAll('lord-icon')].every(e=>e.shadowRoot&&e.shadowRoot.querySelector('svg')),null,{timeout:15000}).catch(()=>{});await page.waitForFunction(()=>document.getAnimations().every(a=>a.playState!=='running'),null,{timeout:5000}).catch(()=>{});};
 import { mkdirSync } from 'node:fs';
 
 async function settleCharts(page) {
@@ -53,7 +54,7 @@ try {
       await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
-      await page.screenshot({ path: `artifacts/v3/overview-${width}-${theme}.png`, fullPage: true, animations: 'disabled' });
+      await iconsReady(page);await page.screenshot({ path: `artifacts/v3/overview-${width}-${theme}.png`, fullPage: true, animations: 'disabled' });
       for (const screen of ['overview', 'adoption', 'tools', 'reliability', 'sessions', 'callers', 'cost', 'protocol', 'live', 'settings', 'setup']) {
         await page.goto(`${base}/#${screen}`);
         await page.waitForTimeout(150);
@@ -62,6 +63,7 @@ try {
         check(await page.locator('.brand svg[aria-label="mcpramen"]').count() === 1, `${screen}: wordmark present`);
         await page.evaluate(() => document.fonts.ready);
       await page.evaluate(async()=>{for(let y=0;y<document.body.scrollHeight;y+=600){globalThis.scrollTo(0,y);await new Promise(r=>setTimeout(r,40));}globalThis.scrollTo(0,0);});
+      await page.waitForFunction(()=>{const all=[...document.querySelectorAll('lord-icon')];return all.length>0&&all.every(e=>e.shadowRoot&&e.shadowRoot.querySelector('svg'));},null,{timeout:15000});check(await page.locator('.topbar nav lord-icon svg').count()===10,`${screen}/${width}: ten animated nav icons rendered`);
       const charts=page.locator('.v3-chart');
       for(const chart of await charts.all()){check(await chart.locator('svg[role=img]').count()===1,`${screen}: chart SVG`);check(await chart.locator('table.sr-only').count()===1,`${screen}: chart table twin`);check(await chart.getAttribute('tabindex')==='0',`${screen}: keyboard inspection`);}
       const expected={overview:['stacked-area','donut','funnel','heatmap','ribbon','sparkline'],adoption:['stacked-area','donut','bars','line'],tools:['ribbon','sankey','histogram'],reliability:['gauge','ribbon','band'],sessions:['gantt'],cost:['treemap','bars','sparkline'],protocol:['dot-grid'],live:['sparkline','bars']};
@@ -94,7 +96,7 @@ try {
       await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
-      await page.screenshot({path:`artifacts/v3/${screen}-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/${screen}-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
         const layout = await page.evaluate(() => ({
           krona: [...document.querySelectorAll('body *')].filter(el => getComputedStyle(el).fontFamily.includes('Krona One')).every(el => getComputedStyle(el).fontWeight === '400' && getComputedStyle(el).fontSynthesis === 'none'),
           mono: [...document.querySelectorAll('.eyebrow,.status-pill')].every(el => getComputedStyle(el).fontSize === '10.5px'),
@@ -128,7 +130,7 @@ try {
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await scanSurface(page,`many-clients/${width}/${theme}`);
-      await page.screenshot({path:`artifacts/v3/many-clients-overview-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/many-clients-overview-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       // A project whose identities are all younger than a week cannot measure day-7
       // return. The funnel must still paint the four steps it did measure and keep
       // day 7 as a null step inside the chart.
@@ -146,7 +148,7 @@ try {
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await scanSurface(page,`funnel-null/${width}/${theme}`);
-      await page.screenshot({path:`artifacts/v3/funnel-null-overview-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/funnel-null-overview-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.goto(`${base}/#adoption`);
       await page.waitForTimeout(150);
       await page.getByRole('heading', {name:'Conversion',exact:true}).waitFor();
@@ -158,7 +160,7 @@ try {
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await scanSurface(page,`conversion-null/${width}/${theme}`);
-      await page.screenshot({path:`artifacts/v3/funnel-null-adoption-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/funnel-null-adoption-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.getByLabel('Select project').selectOption('demo');
       await page.getByRole('heading', {name:'Conversion',exact:true}).waitFor();
       await page.goto(`${base}/#setup`);
@@ -168,14 +170,14 @@ try {
       await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
-      await page.screenshot({path:`artifacts/v3/setup-python-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/setup-python-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.getByRole('button', {name:'Node.js',exact:true}).click();
       check((await page.locator('.copy-block').last().innerText()).includes('app.use(signals.express())'), 'Node SDK snippet');
       await page.evaluate(() => document.fonts.ready);
       await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
-      await page.screenshot({path:`artifacts/v3/setup-node-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/setup-node-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.getByRole('button', {name:'cURL',exact:true}).click();
       const curl = await page.locator('.copy-block pre').last().innerText();
       const batch = JSON.parse(curl.match(/-d '(.+)'/)[1]);
@@ -187,7 +189,7 @@ try {
       await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
-      await page.screenshot({path:`artifacts/v3/setup-curl-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/setup-curl-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.goto(`${base}/#tools`);
       await page.getByRole('button', { name: 'search_products', exact: true }).click();
       check(await page.getByRole('dialog').isVisible(), 'tool details open');
@@ -198,7 +200,7 @@ try {
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await scanSurface(page,`tool-drawer/${width}/${theme}`);
-      await page.screenshot({path:`artifacts/v3/tool-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/tool-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled',mask:[page.locator('.topbar')]}); // the dialog backdrop blur over the top bar rasterises non-deterministically
       await page.keyboard.press('Escape');
       await page.goto(`${base}/#sessions`);
       await page.locator('.table-scroll tbody .row-button').first().click();
@@ -208,7 +210,7 @@ try {
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await scanSurface(page,`session-drawer/${width}/${theme}`);
-      await page.screenshot({path:`artifacts/v3/session-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/session-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled',mask:[page.locator('.topbar')]}); // the dialog backdrop blur over the top bar rasterises non-deterministically
       await page.keyboard.press('Escape');
       await page.goto(`${base}/#callers`);
       await page.locator('.table-scroll tbody .row-button').first().click();
@@ -252,7 +254,7 @@ try {
   for(const screen of ['overview','adoption','tools','reliability','sessions','callers','cost','protocol','live','settings','setup']) {
     await page.goto(`${base}/#${screen}`);
     await page.waitForTimeout(150);
-    check(await page.locator('.signal-dot').first().evaluate(el => getComputedStyle(el).animationName === 'none'), `${screen}: reduced motion`);
+    check(await page.locator('.topbar nav lord-icon').count()===10&&await page.locator('lord-icon[trigger]').count()===0, `${screen}: reduced motion leaves icons static`);
     check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${screen}: 320px overflow`);
     await scanSurface(page,`${screen}/320`);
     for(const label of await page.locator('.tile__label').all())check(await label.evaluate(el=>el.scrollWidth<=el.clientWidth+1&&el.scrollHeight<=el.clientHeight+1),`${screen}: 320px complete tile label`);

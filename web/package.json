@@ -18,13 +18,12 @@
     "test:next": "bun scripts/test-next-host.mjs"
   },
   "dependencies": {
-    "@mcpramen/signals-ui": "*",
-    "@fontsource/ibm-plex-mono": "^5.3.0",
-    "lucide-react": "^1.50.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
     "@fontsource-variable/urbanist": "^5.2.0",
-    "@fontsource/krona-one": "^5.2.0"
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/krona-one": "^5.2.0",
+    "@mcpramen/signals-ui": "*",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

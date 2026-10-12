@@ -1,4 +1,5 @@
 'use client';
+import { Icon, pillIcon } from './icons/index.js';
 import { Card } from './analytics-v3.js';
 import { Gantt } from './charts/index.js';
 import { TableScroll } from './table-scroll.js';
@@ -11,7 +12,7 @@ import { Sparkline } from './charts.js';
 const numberFormat=new Intl.NumberFormat('en',{maximumFractionDigits:1});
 export const format = (n:Nullable|undefined, suffix='') => n == null ? 'No data yet' : numberFormat.format(n)+suffix;
 const short = (n:Nullable|undefined) => n == null?'No data yet':new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:1}).format(n);
-export function Status({state,children}:{state:string;children?:ReactNode}){return <span className={`status-pill ${state}`}><i/>{children??state}</span>;}
+export function Status({state,children}:{state:string;children?:ReactNode}){const icon=pillIcon(state);return <span className={`status-pill ${state}`}>{icon?<Icon name={icon} size={12} trigger={icon==='streaming'?'loop':null}/>:<i/>}{children??state}</span>;}
 export function NoData({reason='Waiting for SDK events'}:{reason?:string}){return <div className="empty-state compact-empty"><svg className="bowl-mark" viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M6 30H58A26 25 0 0 1 6 30Z"/></svg><p>No data yet · {reason}</p></div>;}
 export function DataTable({headers,rows}:{headers:string[];rows:ReactNode[][]}){return <TableScroll><table><thead><tr>{headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table>{!rows.length&&<NoData reason="No observations in this window"/>}</TableScroll>;}
 export function Tiles({items}:{items:{label:string;value:ReactNode;detail:ReactNode;delta?:ReactNode}[]}){return <div className="tile-grid">{items.map(t=><div className="tile" key={t.label}><span className="eyebrow">{t.label}</span><strong>{t.value}</strong><span className="tile-detail">{t.detail}</span>{t.delta&&<span className="tile-delta">{t.delta}</span>}</div>)}</div>;}
