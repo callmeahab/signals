@@ -9,6 +9,8 @@ for(const range of ['24h','7d','30d','90d']) {
  assert.equal(sum(c.by_tenant,'tokens'),c.total_tokens_est);
  assert.equal(sum(c.by_tenant,'calls'),o.tiles.tool_calls.value);
  assert.equal(sum(a.clients,'calls'),o.tiles.tool_calls.value);
+ for(const client of a.clients)assert.equal(client.pct,Math.round(client.calls/o.tiles.tool_calls.value*1000)/10);
+ assert(Math.abs(sum(a.clients,'pct')-100)<=.1000001);
  assert.equal(sum(a.clients,'sessions'),o.tiles.sessions.value);
  assert.equal(sum(a.transports,'sessions'),o.tiles.sessions.value);
  assert.equal(c.payload_hist.input.reduce((a,b)=>a+b,0),o.tiles.tool_calls.value);

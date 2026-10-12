@@ -28,7 +28,7 @@ async function scanSurface(page,label){
 }
 try {
   for (const theme of ['light', 'dark']) {
-    for (const width of [390, 1440]) {
+    for (const width of [390, 1280, 1440]) {
       const context = await browser.newContext({ viewport: { width, height: 1000 }, colorScheme: theme, timezoneId: 'UTC', reducedMotion: 'reduce' });
       await context.addInitScript(() => {
         let seed=123456789;
@@ -67,6 +67,19 @@ try {
       const expected={overview:['stacked-area','donut','funnel','heatmap','ribbon','sparkline'],adoption:['stacked-area','donut','bars','line'],tools:['ribbon','sankey','histogram'],reliability:['gauge','ribbon','band'],sessions:['gantt'],cost:['treemap','bars','sparkline'],protocol:['dot-grid'],live:['sparkline','bars']};
       if(await charts.count()){await charts.first().focus();await page.keyboard.press('ArrowRight');check(await page.getByRole('tooltip').count()===1,`${screen}: keyboard tooltip shown`);await page.locator('h1').click();}
       for(const kind of expected[screen]??[])check(await page.locator(`[data-chart="${kind}"]`).count()>0,`${screen}: ${kind} present`);
+      const tileColumns=await page.locator('.signals-ui>.tiles').evaluateAll(els=>els.map(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length));
+      check(tileColumns.every(n=>n===(width>=1024?3:1)),`${screen}/${width}: shared tile columns`);
+      for(const spark of await page.locator('.tile__spark svg[role=img]').all()){
+        check(await spark.evaluate(el=>el.getBoundingClientRect().height>=96),`${screen}/${width}: sparkline plot height >= 96px`);
+        check(await spark.evaluate(el=>Math.abs(el.getBoundingClientRect().width-el.closest('.tile').clientWidth)<=2),`${screen}/${width}: full-width sparkline`);
+      }
+      if(width>=1024){
+        const fullWidth={overview:['Calls by client','Client mix','Tools needing attention'],adoption:['Clients','Transport and protocol'],tools:['Tool health','Tool performance','Top tool paths'],cost:['By tenant','Billing periods'],protocol:['Capability matrix'],settings:['Alert rules','Analytics settings']};
+        for(const title of fullWidth[screen]??[]){
+          const card=page.locator('.card').filter({has:page.getByRole('heading',{name:title,exact:true})});
+          check(await card.evaluate(el=>Math.abs(el.getBoundingClientRect().width-el.parentElement.getBoundingClientRect().width)<2),`${screen}/${width}: ${title} occupies a full row`);
+        }
+      }
       await scanSurface(page,`${screen}/${width}/${theme}`);
       if(screen==='tools') {const markers=await page.locator('.chart-histogram svg .popin text').allTextContents();check(markers.length===3&&markers.every((m,i)=>m.startsWith(['p50','p95','p99'][i]+' ')),'Histogram has exactly percentile markers');check(!(await page.locator('.chart-histogram svg[role=img]').textContent()).includes('NaN'),'No NaN histogram labels');}
       if(screen==='adoption'){check(await page.locator('.chart-bars').count()===2,'Adoption transport and protocol bars');check(await page.locator('.card').filter({has:page.getByRole('heading',{name:'Clients',exact:true})}).locator('table').count()===1,'Adoption client table');check(await page.locator('.chart-funnel,.chart-heatmap').count()===0,'Adoption uses conversion curve');}
@@ -92,6 +105,23 @@ try {
         const size = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
         check(size[0] <= size[1], `${screen} ${width}/${theme}: overflow ${size}`);
       }
+      await page.getByLabel('Select project').selectOption('demo-many-clients');
+      await page.goto(`${base}/#overview`);
+      await page.getByRole('heading',{name:'Client mix',exact:true}).waitFor();
+      await settleCharts(page);
+      const mix=page.locator('.client-mix');
+      check(await mix.locator('.legendlist .r').count()===27,`${width}/${theme}: 27 client legend entries`);
+      check(await mix.locator('.chart-donut .stroke-draw').count()===26,`${width}/${theme}: zero-call client has no arc`);
+      const values=await mix.locator('table.sr-only tbody tr').evaluateAll(rows=>rows.map(row=>Number(row.lastElementChild.textContent)));
+      check(values.length===27&&values.at(-1)===0&&values[0]>values[25]&&values[0]>100,`${width}/${theme}: donut values are raw uneven call counts`);
+      if(width>=1024){
+        check(await mix.locator('.legendlist').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length>=2),`${width}/${theme}: multi-column 27-client legend`);
+        check(await mix.evaluate(el=>{const card=el.closest('.card'),box=card.getBoundingClientRect();return Math.abs(box.width-card.parentElement.getBoundingClientRect().width)<2&&[...card.parentElement.children].filter(c=>c!==card).every(c=>{const b=c.getBoundingClientRect();return b.bottom<=box.top||b.top>=box.bottom;});}),`${width}/${theme}: no card beside client mix`);
+      }
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(500);
+      await scanSurface(page,`many-clients/${width}/${theme}`);
+      await page.screenshot({path:`artifacts/v3/many-clients-overview-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       // A project whose identities are all younger than a week cannot measure day-7
       // return. The funnel must still paint the four steps it did measure and keep
       // day 7 as a null step inside the chart.

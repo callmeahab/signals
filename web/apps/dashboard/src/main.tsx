@@ -9,7 +9,7 @@ import '@fontsource/ibm-plex-mono/500.css';
 import '../../../packages/ui/src/styles.css';
 import './shell.css';
 import { auth, client } from './client';
-import { demoClient, demoProject, freshDemoProject, truncatedDemoProject } from './demo';
+import { demoClient, demoProject, freshDemoProject, manyClientsDemoProject, truncatedDemoProject } from './demo';
 
 const isDemo = import.meta.env.VITE_DEMO === '1';
 const nav: {id:Screen;label:string;description:string}[] = [
@@ -34,7 +34,7 @@ function App(){
   const [range,setRange]=useState<Range>('7d');
   const [dark,setDark]=useState(()=>localStorage.getItem('signals-theme')==='dark'||(!localStorage.getItem('signals-theme')&&matchMedia('(prefers-color-scheme: dark)').matches));
   const [mobile,setMobile]=useState(false);
-  const [account,setAccount]=useState<{user:User;projects:Project[]}|null>(isDemo?{user:{id:'demo',email:'you@northwind.dev',role:'owner'},projects:[demoProject,truncatedDemoProject,freshDemoProject]}:null);
+  const [account,setAccount]=useState<{user:User;projects:Project[]}|null>(isDemo?{user:{id:'demo',email:'you@northwind.dev',role:'owner'},projects:[demoProject,truncatedDemoProject,freshDemoProject,manyClientsDemoProject]}:null);
   useEffect(()=>{const nav=navRef.current;if(!nav)return;let frame=0;let disposed=false;const measure=()=>{if(disposed)return;cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{const active=nav.querySelector<HTMLElement>('[aria-current=page]');const thumb=nav.querySelector<HTMLElement>('.nav-thumb');if(active&&thumb){const left=active.offsetLeft,width=active.offsetWidth;thumb.style.transform=`translateX(${left}px) scaleX(${width})`;}});};const observer=new ResizeObserver(measure);observer.observe(nav);void document.fonts.ready.then(measure);measure();return()=>{disposed=true;cancelAnimationFrame(frame);observer.disconnect();};},[screen,account]);
   const [projectId,setProjectId]=useState('');
   const [ready,setReady]=useState(isDemo);

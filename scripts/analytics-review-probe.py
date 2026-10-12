@@ -1119,12 +1119,24 @@ def compare_route(name, body, events, settings, filters):
     elif name == "adoption":
         diff("adoption", expect_adoption(events, window, filters), {k: body[k] for k in REQUIRED["adoption"] if k not in ("range", "generated_at") and k in body})
         adoption_trend(body)
+        client_shares(body)
     elif name == "cost":
         diff("cost", expect_cost(events, window, filters, settings), {k: body.get(k) for k in ("total_tokens_est", "per_call", "estimated", "by_tool", "by_tenant", "payload_hist", "billing_periods")})
     elif name == "protocol":
         diff("protocol", expect_protocol(events, window, filters), {k: body.get(k) for k in ("capabilities", "sampling", "elicitation", "tasks", "progress")})
     elif name == "digest":
         diff("digest", expect_digest(events, window, filters, settings), {k: body.get(k) for k in ("tools", "top_error_kinds", "new", "returning", "dead_tools", "changes")})
+
+
+def client_shares(body):
+    clients = body["clients"]
+    total = sum(client["calls"] for client in clients)
+    for client in clients:
+        expected = rate(client["calls"], total)
+        if client.get("pct") != expected:
+            finding("blocker", "client-call-share", f"{client['name']}: {client.get('pct')} != {expected}")
+    if total and abs(sum(client.get("pct") or 0 for client in clients) - 100) > 0.1000001:
+        finding("blocker", "client-share-total", f"Shares do not sum to 100 ± 0.1: {clients}")
 
 
 def adoption_trend(body):
@@ -1180,7 +1192,7 @@ def expect_adoption(all_events, window, filters):
     clients = {}
     protocols = defaultdict(set)
     transports = defaultdict(set)
-    all_sessions = {e["session_id"] for e in events if e["session_id"]}
+    total_calls = len(calls_of(events))
     for event in events:
         key = (event["client_name"], event["client_version"])
         row = clients.setdefault(key, [set(), 0, set()])
@@ -1204,7 +1216,7 @@ def expect_adoption(all_events, window, filters):
     return {
         "active": {"bucket": "day", "points": points, "dau": active(1), "wau": active(7), "mau": active(30)},
         "clients": sorted([
-            {"name": name, "version": version, "sessions": len(sessions), "calls": calls, "pct": rate(len(sessions), len(all_sessions)), "capabilities": sorted(caps)}
+            {"name": name, "version": version, "sessions": len(sessions), "calls": calls, "pct": rate(calls, total_calls), "capabilities": sorted(caps)}
             for (name, version), (sessions, calls, caps) in clients.items()
         ], key=lambda row: ((row["name"] or ""), (row["version"] or ""))),
         "protocol_versions": sorted([{"version": version, "sessions": len(sessions)} for version, sessions in protocols.items()], key=lambda row: row["version"]),

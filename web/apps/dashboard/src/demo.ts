@@ -2,6 +2,7 @@ import { demoAnalytics, demoTimeline, setRules, setAnalyticsSettings } from './d
 import type { Caller, EventAttrs, EventType, Key, Overview, Point, Project, Range, Session, SignalEvent, SignalsClient, Tool, User } from '@mcpramen/signals-ui';
 export const demoProject: Project = { id:'demo',name:'Northwind MCP',slug:'northwind',retention_days:30,rate_events_per_min:600,rate_bytes_per_min:5242880 };
 export const truncatedDemoProject:Project={...demoProject,id:'demo-truncated',name:'Northwind MCP · truncated catalogue',slug:'northwind-truncated'};
+export const manyClientsDemoProject:Project={...demoProject,id:'demo-many-clients',name:'Northwind MCP · 27 clients',slug:'northwind-many-clients'};
 export const freshDemoProject:Project={...demoProject,id:'demo-fresh',name:'Northwind MCP · first week',slug:'northwind-fresh'};
 const tools = ['search_documents','get_customer','list_orders','get_inventory','create_ticket','fetch_document'];
 const clients = ['Claude','ChatGPT','Cursor','Other'];
@@ -33,7 +34,7 @@ function event(i:number):SignalEvent {
 let keys:Key[] = [{id:'demo-key',key_id:'7f23ac10',label:'Production',scopes:['ingest'],created_at:ts(24*5),last_used_at:ts(.1),revoked_at:null}];
 let demoUsers:User[]=[{id:'demo-owner',email:'you@northwind.dev',role:'owner'}];
 export const demoClient:SignalsClient = {
-  async analytics(project,route,query){return demoAnalytics(route,query,project!=='demo-truncated',project==='demo-fresh');},
+  async analytics(project,route,query){return demoAnalytics(route,query,project!=='demo-truncated',project==='demo-fresh',project==='demo-many-clients');},
   async timeline(_p,id){return demoTimeline(id);},
   async saveAlerts(_p,rules){setRules(rules);},
   ingestUrl: 'http://localhost:8300/v1/events',

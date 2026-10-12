@@ -320,3 +320,13 @@ The rolling counts are computed from the same in-memory analytics facts as the r
 the route: one pass over the widest span any bucket needs, then a two-pointer slide, so
 a 90-bucket series costs no more database work than a 7-bucket one and the read adds no
 query of its own.
+
+### Client share (2026-10-12)
+
+`adoption.clients[].pct` measures share of tool calls, calculated as
+`calls / total calls * 100` and rounded to one decimal. Session counts remain
+independent. A client with no calls has 0% when other clients have calls; shares
+are null when there are no calls in the window. The Overview donut uses raw call
+counts for proportional arcs and omits zero-call arcs. The Adoption table labels
+this measure “Share of calls”. The review probe checks every share and a total of
+100 ± 0.1; independent rounding can exceed that total tolerance for large lists.

@@ -196,7 +196,7 @@ function donut({ items, h = 212, centre, centreSub }) {
     const cx = w / 2, cy = h / 2 + 2, R = Math.min(w, h) / 2 - 16, ring = Math.max(16, R * 0.34);
     const total = items.reduce((s, d) => s + d.value, 0) || 1;
     let a = -Math.PI / 2;
-    const segs = items.map((d, i) => {
+    const segs = items.filter(d => d.value > 0).map((d, i) => {
       const sweep = d.value / total * Math.PI * 2, gap = Math.min(0.045, sweep * 0.12);
       const p = arcPath(cx, cy, R - ring / 2, a + gap / 2, a + sweep - gap / 2);
       a += sweep;

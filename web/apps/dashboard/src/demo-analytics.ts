@@ -15,8 +15,8 @@ export function setAnalyticsSettings(next:Partial<AnalyticsSettings>){settings={
 
 export let rules = structuredClone(defaultRules);
 export function setRules(next:AlertRule[]){rules=structuredClone(next);cache.clear();}
-export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:AnalyticsQuery, complete=true, fresh=false):AnalyticsRoutes[K] {
- const cacheKey=JSON.stringify([query,complete,fresh]);const cached=cache.get(cacheKey);if(cached)return structuredClone(cached[route]);
+export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:AnalyticsQuery, complete=true, fresh=false, manyClients=false):AnalyticsRoutes[K] {
+ const cacheKey=JSON.stringify([query,complete,fresh,manyClients]);const cached=cache.get(cacheKey);if(cached)return structuredClone(cached[route]);
  const days = query.range==='24h'?1:query.range==='30d'?30:query.range==='90d'?90:7;
  const to=query.to?Date.parse(query.to):end, from=query.from?Date.parse(query.from):to-days*86400000;
  const bucket=bucketForRange(query.range), step=bucketMilliseconds[bucket];
@@ -50,7 +50,15 @@ export function demoAnalytics<K extends keyof AnalyticsRoutes>(route:K, query:An
  // return yet: that step is a null step with no eligible identities behind it.
  if(fresh)funnel[funnel.length-1]={step:'returned_day_7',count:null,dropoff_pct:null,eligible:0};
  const cohorts=[0,1,2,3].map(i=>({cohort_start:iso(from-(4-i)*604800000).slice(0,10),size:120+i*18,retained_pct:[100,41+i*3,33+i*2,29+i,27].map((n,j)=>j>4-i?null:n)}));
- const byClient=clients.map((name,i)=>({name,version:['0.1.0','1.7.2','1.2026.280'][i],calls:i===2?calls-Math.round(calls*.46)-Math.round(calls*.34):Math.round(calls*[.46,.34][i]),sessions:i===2?sessionCount-Math.round(sessionCount*.46)-Math.round(sessionCount*.34):Math.round(sessionCount*[.46,.34][i]),pct:[46,34,20][i],capabilities:i===0?['sampling','roots']:i===1?['roots','elicitation']:['roots']}));
+ let byClient=clients.map((name,i)=>({name,version:['0.1.0','1.7.2','1.2026.280'][i],calls:i===2?calls-Math.round(calls*.46)-Math.round(calls*.34):Math.round(calls*[.46,.34][i]),sessions:i===2?sessionCount-Math.round(sessionCount*.46)-Math.round(sessionCount*.34):Math.round(sessionCount*[.46,.34][i]),pct:[46,34,20][i],capabilities:i===0?['sampling','roots']:i===1?['roots','elicitation']:['roots']}));
+ // More clients than fit in one legend column; equal sessions, uneven calls,
+ // repeated names with different versions, and a connected client with zero calls.
+ if(manyClients&&!query.client){
+  const weights=Array.from({length:27},(_,i)=>i===26?0:27-i),total=weights.reduce((a,b)=>a+b,0);
+  const allocations=weights.map(w=>Math.floor(calls*w/total));allocations[0]+=calls-allocations.reduce((a,b)=>a+b,0);
+  byClient=weights.map((_,i)=>({name:`Client ${String(Math.floor(i/2)+1).padStart(2,'0')}`,version:`${i%2+1}.0.0`,calls:allocations[i],sessions:1,pct:0,capabilities:['roots']}));
+ }
+ byClient=byClient.map(c=>({...c,pct:calls?Math.round(c.calls/calls*1000)/10:0}));
  if(query.client){const selected=byClient.find(c=>c.name===query.client)!;byClient.splice(0,byClient.length,{...selected,calls,sessions:sessionCount,pct:100});}
  const tenants=['user:avery','key:production','network:a18c72'].map((caller,i)=>({caller,identity_kind:(['strong','key','network'] as const)[i],calls:i===2?calls-Math.round(calls*.5)-Math.round(calls*.35):Math.round(calls*[.5,.35][i]),tokens:i===2?totalTokens-Math.round(totalTokens*.5)-Math.round(totalTokens*.35):Math.round(totalTokens*[.5,.35][i])}));
  if(query.caller){const selected=tenants.find(t=>t.caller===query.caller)!;tenants.splice(0,tenants.length,{...selected,calls,tokens:totalTokens});}

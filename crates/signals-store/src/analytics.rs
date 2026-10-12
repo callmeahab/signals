@@ -793,10 +793,7 @@ impl Data {
             );
         let mut protocols = BTreeMap::<&str, BTreeSet<&str>>::new();
         let mut transports = BTreeMap::<&str, BTreeSet<&str>>::new();
-        let all_sessions: BTreeSet<_> = events
-            .iter()
-            .filter_map(|e| e.session_id.as_deref())
-            .collect();
+        let total_calls = events.iter().filter(|e| e.call()).count();
         for e in &events {
             let group = clients
                 .entry((e.client_name.as_deref(), e.client_version.as_deref()))
@@ -860,7 +857,7 @@ impl Data {
             )));
             previous = count;
         }
-        json!({"active":{"bucket":"day","points":points,"dau":active(1),"wau":active(7),"mau":active(30)},"clients":clients.into_iter().map(|((name,version),(sessions,calls,capabilities))|json!({"name":name,"version":version,"sessions":sessions.len(),"calls":calls,"pct":rate(sessions.len(),all_sessions.len()),"capabilities":capabilities})).collect::<Vec<_>>(),"protocol_versions":protocols.into_iter().map(|(version,sessions)|json!({"version":version,"sessions":sessions.len()})).collect::<Vec<_>>(),"transports":transports.into_iter().map(|(transport,sessions)|json!({"transport":transport,"sessions":sessions.len()})).collect::<Vec<_>>(),"retention":{"daily":{"d1":retention(1),"d7":retention(7),"d30":retention(30)},"weekly":self.cohorts(w,f)},"funnel":{"steps":funnel},"identity_quality":self.by_kind(&events)})
+        json!({"active":{"bucket":"day","points":points,"dau":active(1),"wau":active(7),"mau":active(30)},"clients":clients.into_iter().map(|((name,version),(sessions,calls,capabilities))|json!({"name":name,"version":version,"sessions":sessions.len(),"calls":calls,"pct":rate(calls,total_calls),"capabilities":capabilities})).collect::<Vec<_>>(),"protocol_versions":protocols.into_iter().map(|(version,sessions)|json!({"version":version,"sessions":sessions.len()})).collect::<Vec<_>>(),"transports":transports.into_iter().map(|(transport,sessions)|json!({"transport":transport,"sessions":sessions.len()})).collect::<Vec<_>>(),"retention":{"daily":{"d1":retention(1),"d7":retention(7),"d30":retention(30)},"weekly":self.cohorts(w,f)},"funnel":{"steps":funnel},"identity_quality":self.by_kind(&events)})
     }
     pub fn reliability(&self, w: Window, f: &Filters) -> Value {
         let events = self.selected(w, f);
@@ -1167,6 +1164,71 @@ mod tests {
             caller: Some(json!({"subject":"a"})),
         }
     }
+    #[test]
+    fn client_share_measures_calls_not_sessions() {
+        let now = Utc::now();
+        let mut events = Vec::new();
+        for (client, calls) in [("A", 3), ("B", 1), ("Idle", 0)] {
+            for i in 0..=calls {
+                events.push(Fact {
+                    client_name: Some(client.into()),
+                    client_version: Some("1".into()),
+                    session_id: Some(client.into()),
+                    ..fact(
+                        now,
+                        if i == 0 {
+                            "session.started"
+                        } else {
+                            "tool.called"
+                        },
+                        "a",
+                        false,
+                    )
+                });
+            }
+        }
+        let mut data = Data {
+            events,
+            first: BTreeMap::new(),
+            settings: json!({}),
+            catalog: BTreeMap::new(),
+            catalog_info: json!({}),
+        };
+        let window = Window {
+            from: now - Duration::hours(1),
+            to: now + Duration::seconds(1),
+        };
+        let adoption = data.adoption(window, &Filters::default());
+        let clients = adoption["clients"].as_array().unwrap();
+        assert_eq!(
+            clients
+                .iter()
+                .map(|c| c["sessions"].as_u64().unwrap())
+                .collect::<Vec<_>>(),
+            vec![1, 1, 1]
+        );
+        assert_eq!(
+            clients
+                .iter()
+                .map(|c| c["calls"].as_u64().unwrap())
+                .collect::<Vec<_>>(),
+            vec![3, 1, 0]
+        );
+        assert_eq!(
+            clients
+                .iter()
+                .map(|c| c["pct"].as_f64().unwrap())
+                .collect::<Vec<_>>(),
+            vec![75.0, 25.0, 0.0]
+        );
+        data.events.retain(|e| !e.call());
+        assert!(data.adoption(window, &Filters::default())["clients"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|c| c["pct"].is_null()));
+    }
+
     #[test]
     fn latency_histogram_edges_merge_and_overflow() {
         let a = histogram([0, 1, 2, 600000, i32::MAX]);

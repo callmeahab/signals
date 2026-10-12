@@ -454,7 +454,10 @@ fn analytics_document(api: &mut utoipa::openapi::OpenApi) {
                 ("version", string.clone()),
                 ("sessions", int.clone()),
                 ("calls", int.clone()),
-                ("pct", number.clone()),
+                (
+                    "pct",
+                    json!({"type":"number","nullable":true,"description":"Share of tool calls in the window: calls / total calls * 100, rounded to one decimal; null when there are no tool calls. Independent rounding may accumulate across many clients."}),
+                ),
                 ("capabilities", strings.clone()),
             ])),
         ),
