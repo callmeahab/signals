@@ -1,0 +1,27 @@
+{
+  "pngs": 64,
+  "runs": [
+    {
+      "name": "visual-qa serial 1",
+      "exit": 0,
+      "changed_vs_head": []
+    },
+    {
+      "name": "visual-qa serial 2",
+      "exit": 0,
+      "changed_vs_head": ["overview-390-light.png"],
+      "diff_pixels": 6630,
+      "bbox": [19, 420, 372, 454],
+      "note": "Spark area-fill band on the 390px overview. Four later isolated recaptures of that screen matched HEAD, and serial run 3 matched HEAD."
+    },
+    {
+      "name": "visual-qa serial 3",
+      "exit": 0,
+      "changed_vs_head": []
+    }
+  ],
+  "isolated_overview_390_light": {
+    "n": 4,
+    "matched_head": 4
+  }
+}
