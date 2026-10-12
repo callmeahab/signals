@@ -21,6 +21,11 @@ mkdirSync('artifacts/v3', { recursive: true });
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? 'chrome' });
 const failures = [];
 const check = (ok, message) => { if (!ok) failures.push(message); };
+async function scanSurface(page,label){
+ const scan=await contrastAndClip(page,label);
+ for(const f of scan.failures)check(false,`Contrast ${JSON.stringify(f)}`);
+ for(const f of scan.clipped)check(false,`Clip ${JSON.stringify(f)}`);
+}
 try {
   for (const theme of ['light', 'dark']) {
     for (const width of [390, 1440]) {
@@ -62,9 +67,7 @@ try {
       const expected={overview:['stacked-area','donut','funnel','heatmap','ribbon','sparkline'],adoption:['stacked-area','donut','bars','line'],tools:['ribbon','sankey','histogram'],reliability:['gauge','ribbon','band'],sessions:['gantt'],cost:['treemap','bars','sparkline'],protocol:['dot-grid'],live:['sparkline','bars']};
       if(await charts.count()){await charts.first().focus();await page.keyboard.press('ArrowRight');check(await page.getByRole('tooltip').count()===1,`${screen}: keyboard tooltip shown`);await page.locator('h1').click();}
       for(const kind of expected[screen]??[])check(await page.locator(`[data-chart="${kind}"]`).count()>0,`${screen}: ${kind} present`);
-      const scan=await contrastAndClip(page,`${screen}/${width}/${theme}`);
-      for(const f of scan.failures)check(false,`Contrast ${JSON.stringify(f)}`);
-      for(const f of scan.clipped)check(false,`Clip ${JSON.stringify(f)}`);
+      await scanSurface(page,`${screen}/${width}/${theme}`);
       if(screen==='tools') {const markers=await page.locator('.chart-histogram svg .popin text').allTextContents();check(markers.length===3&&markers.every((m,i)=>m.startsWith(['p50','p95','p99'][i]+' ')),'Histogram has exactly percentile markers');check(!(await page.locator('.chart-histogram svg').textContent()).includes('NaN'),'No NaN histogram labels');}
       if(screen==='adoption'){check(await page.locator('.chart-bars').count()===2,'Adoption transport and protocol bars');check(await page.locator('.card').filter({has:page.getByRole('heading',{name:'Clients',exact:true})}).locator('table').count()===1,'Adoption client table');check(await page.locator('.chart-funnel,.chart-heatmap').count()===0,'Adoption uses conversion curve');}
       if(screen==='live')check(await page.locator('.chart-sparkline').count()===2&&await page.locator('.chart-area,.chart-donut').count()===0,'Live two sparklines and bars');
@@ -125,6 +128,7 @@ try {
       await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
+      await scanSurface(page,`tool-drawer/${width}/${theme}`);
       await page.screenshot({path:`artifacts/v3/tool-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.keyboard.press('Escape');
       await page.goto(`${base}/#sessions`);
@@ -134,6 +138,7 @@ try {
       await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
+      await scanSurface(page,`session-drawer/${width}/${theme}`);
       await page.screenshot({path:`artifacts/v3/session-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.keyboard.press('Escape');
       await page.goto(`${base}/#callers`);
@@ -180,6 +185,8 @@ try {
     await page.waitForTimeout(150);
     check(await page.locator('.signal-dot').first().evaluate(el => getComputedStyle(el).animationName === 'none'), `${screen}: reduced motion`);
     check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${screen}: 320px overflow`);
+    await scanSurface(page,`${screen}/320`);
+    for(const label of await page.locator('.tile__label').all())check(await label.evaluate(el=>el.scrollWidth<=el.clientWidth+1&&el.scrollHeight<=el.clientHeight+1),`${screen}: 320px complete tile label`);
   }
   await page.getByLabel('Select project').selectOption('demo-truncated');
   for(const screen of ['overview','tools','settings']) {

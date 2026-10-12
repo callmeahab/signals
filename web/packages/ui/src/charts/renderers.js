@@ -136,7 +136,9 @@ function stackedArea({ labels, series, h = 260, yfmt = f.compact, unit = '' }) {
         tip.style.top = '6px';
       };
       svg.addEventListener('pointermove', move);
-      svg.addEventListener('pointerleave', () => { xh.style.opacity = '0'; tip.classList.remove('on'); });
+      const leave = () => { xh.style.opacity = '0'; tip.classList.remove('on'); };
+      svg.addEventListener('pointerleave', leave);
+      return () => { svg.removeEventListener('pointermove', move); svg.removeEventListener('pointerleave', leave); };
     };
     return { html, after };
   };

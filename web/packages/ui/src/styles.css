@@ -707,3 +707,17 @@ td .mono{font-size:12.5px}
 @media(max-width:560px){.ribrow>.table-container{grid-area:r}}
 
 .signals-ui>.grid>.card:not(.card--entered){animation:none}
+
+:root{--ok-ink:var(--chart-3)}
+.dark{--ok-ink:oklch(.76 .10 186)}
+.status-pill.ok{color:var(--ok-ink)}
+@media(max-width:360px){.tile__label{white-space:normal;overflow:visible;text-overflow:clip;min-height:2.6em}}
+
+/* Entry is owned by the React component, with explicit compositor endpoints. */
+.signals-ui>.tiles .tile,.signals-ui>.grid>.card{animation:none}
+
+/* Bound the repeated style/paint work during entry, including nested SVG layers. */
+.tile__spark{animation-duration:240ms}
+.chart-stacked-area>div:first-child,.chart-donut>div:first-child{animation-duration:320ms}
+.chart-histogram>div:first-child,.plot.on,.growx.on,.growy.on{animation-duration:240ms}
+.stroke-draw.on{animation-duration:320ms}
