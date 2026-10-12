@@ -149,8 +149,8 @@ tint, the same text would be 5.129, so it is the tint that pushes it under. Scre
 
 My own independent scan, written from scratch rather than imported
 (`reports/review-r2/variants.mjs`, 1280 and 320 px, both themes, all eleven screens plus both
-drawers), found exactly the same eight pairs and nothing else. The tool drawer is clean; the light
-theme is clean.
+drawers), flags the same four pills at both of its widths — eight rows, and nothing else anywhere
+on any screen. The tool drawer is clean; the light theme is clean.
 
 Expected: fix brief blocker 7, "every visible text colour on every surface level ≥ 4.5:1 in both
 themes … until the reviewer's `contrastAndClip` probe reports zero pairs under 4.5". The drawer is
@@ -277,7 +277,7 @@ Under `reports/review-r2/`. All are read-only against a served demo build.
 - `perf-retention.mjs` / `perf-retention.json` — the counter growth and the forced-GC control.
 - `geometry.mjs` / `geometry.json` — drawn geometry against the sr-only table twin for the charts
   the fix pass added or rewired.
-- `fidelity-r2.json` / `fidelity-r2.log` — my run of the round-1 `reports/review-r1/fidelity.mjs`.
+- `fidelity-r2.json` / `fidelity-r2-console.txt` — my run of the round-1 `reports/review-r1/fidelity.mjs`.
   The round-1 probe writes in place, so `reports/review-r1/` was restored with `git checkout`
   afterwards and is unchanged from `c70f530`.
 - `shots/` — the five 390 px screens from the variants probe, the 320 px tile-label strips, and the
