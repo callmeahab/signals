@@ -13,7 +13,7 @@ mkdirSync('artifacts/v3',{recursive:true});
 try {
  for(let run=1;run<=repeats;run++){
  const page=await browser.newPage({viewport:{width:1440,height:1000},colorScheme:theme});
- await page.addInitScript(theme=>{globalThis.__SIGNALS_VISUAL_QA__=true;localStorage.setItem('signals-theme',theme);},theme);
+ await page.addInitScript(theme=>{globalThis.__SIGNALS_VISUAL_QA__=true;globalThis.localStorage.setItem('signals-theme',theme);},theme);
  await page.goto(process.env.BASE_URL??'http://127.0.0.1:23331');
  await page.locator('.chart-stacked-area svg').waitFor();
  await page.evaluate(()=>document.fonts.ready);
