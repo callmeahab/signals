@@ -121,7 +121,11 @@ try {
         return JSON.stringify(dots)===JSON.stringify(arcs);
       });
       check(colorsMatch,`${width}/${theme}: legend colors match client arcs`);
-      const values=await mix.locator('table.sr-only tbody tr').evaluateAll(rows=>rows.map(row=>Number(row.lastElementChild.textContent)));
+      // The twin now carries the unit with the value ("22,178 calls"), which is what the
+      // keyboard readout and the pointer tooltip read, so parse the number back out.
+      const cells=await mix.locator('table.sr-only tbody tr').evaluateAll(rows=>rows.map(row=>row.lastElementChild.textContent));
+      const values=cells.map(text=>Number(text.replace(/[^0-9.]/g,'')));
+      check(cells.every(text=>/ calls$/.test(text)),`${width}/${theme}: donut twin carries the call unit`);
       check(values.length===27&&values.at(-1)===0&&values[0]>values[25]&&values[0]>100,`${width}/${theme}: donut values are raw uneven call counts`);
       if(width>=1024){
         check(await mix.locator('.legendlist').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length>=2),`${width}/${theme}: multi-column 27-client legend`);

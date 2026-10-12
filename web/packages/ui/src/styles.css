@@ -769,3 +769,9 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
 .tiles--compact .info-button{width:17px;height:17px;border-radius:5px}
 .ribrow .info-button,.legendlist .info-button{display:none}
 @media(max-width:560px){.info-pop{max-width:calc(100vw - 16px)}}
+
+/* Chart readouts 2026-10-12: one component for the keyboard readout and the pointer
+   hover. The keyboard readout spans the plot; the pointer copy follows the cursor,
+   clamped inside the plot box, with no animation. */
+.chart-tip-layer{position:absolute;left:0;top:0;z-index:6;pointer-events:none}
+.chart-key-tooltip--pointer{position:static;width:max-content;max-width:min(300px,100%);animation:none;transition:none}

@@ -75,7 +75,7 @@ function sparkline({ values, color = 'var(--chart-1)', h = 38, fill = true }) {
       ${fill && valid.length===values.length ? `<path d="${area}" fill="url(#${id})"/>` : ''}
       <path d="${line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
       <circle cx="${px(last[0])}" cy="${px(last[1])}" r="2.6" fill="${color}"/>
-      </g></svg>`;
+      </g>${values.map((_, i) => `<rect class="hit" data-row="${i}" x="${px(i * w / values.length)}" y="0" width="${px(w / values.length)}" height="${h}" fill="transparent"/>`).join('')}</svg>`;
   };
 }
 
@@ -197,11 +197,11 @@ function donut({ items, h = 212, centre, centreSub }) {
     const cx = w / 2, cy = h / 2 + 2, R = Math.min(w, h) / 2 - 16, ring = Math.max(16, R * 0.34);
     const total = items.reduce((s, d) => s + d.value, 0) || 1;
     let a = -Math.PI / 2;
-    const segs = items.filter(d => d.value > 0).map((d, i) => {
+    const segs = items.map((d, row) => ({ ...d, row })).filter(d => d.value > 0).map((d, i) => {
       const sweep = d.value / total * Math.PI * 2, gap = Math.min(0.045, sweep * 0.12);
       const p = arcPath(cx, cy, R - ring / 2, a + gap / 2, a + sweep - gap / 2);
       a += sweep;
-      return `<path class="stroke-draw" style="--pd:${i * 70}ms" d="${p}" fill="none" stroke="${d.color}" stroke-width="${px(ring)}" stroke-linecap="butt"/>`;
+      return `<path class="stroke-draw" data-row="${d.row}" style="--pd:${i * 70}ms" d="${p}" fill="none" stroke="${d.color}" stroke-width="${px(ring)}" stroke-linecap="butt"/>`;
     }).join('');
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img">
       <circle cx="${px(cx)}" cy="${px(cy)}" r="${px(R - ring / 2)}" fill="none" stroke="var(--viz-track)" stroke-width="${px(ring)}"/>
@@ -249,6 +249,8 @@ function latencyHist({ buckets, markers, h = 228 }) {
       <line class="axline" x1="${pad.l}" y1="${px(pad.t + ih)}" x2="${px(pad.l + iw)}" y2="${px(pad.t + ih)}"/>
       ${xt.map((v) => `<text class="ax ax--dim" x="${px(lx(Math.log(v)))}" y="${h - 7}" text-anchor="middle">${v >= 1000 ? (v / 1000) + 's' : v}</text>`).join('')}
       ${mk}
+      ${buckets.map((b, i) => { const x0 = lx(Math.log(b.lo)), x1 = lx(Math.log(b.hi));
+        return `<rect class="hit" data-row="${i}" x="${px(x0)}" y="${px(pad.t)}" width="${px(Math.max(1, x1 - x0))}" height="${px(ih)}" fill="transparent"/>`; }).join('')}
     </svg>`;
   };
 }
@@ -292,10 +294,11 @@ function funnel({ steps, h = 252 }) {
         <text x="${px(pad.l + iw - 52)}" y="${px(mid)}" text-anchor="end" style="font:700 14px var(--sans);font-variant-numeric:tabular-nums;fill:var(--foreground)">${f.int(s.count)}</text>
         ${i && s.dropoff_pct != null ? `<text x="${px(pad.l + iw)}" y="${px(mid)}" text-anchor="end" class="ax" style="fill:var(--destructive)">−${s.dropoff_pct}%</text>` : ''}`;
     });
+    const hits = steps.map((s, i) => `<rect class="hit" data-row="${i}" x="${px(pad.l)}" y="${px(pad.t + i * (rowH + 10))}" width="${px(iw)}" height="${px(rowH)}" fill="transparent"/>`).join('');
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img">
       <defs><linearGradient id="fnl" x1="0" y1="0" x2="1" y2="0">
         <stop offset="0%" stop-color="var(--chart-1)"/><stop offset="100%" stop-color="var(--chart-4)"/></linearGradient></defs>
-      ${out}</svg>`;
+      ${out}${hits}</svg>`;
   };
 }
 
@@ -343,7 +346,7 @@ function sankey({ paths, h = 250 }) {
       const k = c + '|' + name;
       if (!nodes.has(k)) nodes.set(k, { k, c, name, v: 0, in: 0, out: 0 });
       nodes.get(k).v += p.count;
-      if (c) links.push({ a: (c - 1) + '|' + p.sequence[c - 1], b: k, v: p.count });
+      if (c) links.push({ a: (c - 1) + '|' + p.sequence[c - 1], b: k, v: p.count, row: paths.indexOf(p) });
     }));
     const byCol = [...Array(cols)].map((_, c) => [...nodes.values()].filter((n) => n.c === c).sort((a, b) => b.v - a.v));
     const totalMax = Math.max(...byCol.map((col) => col.reduce((s, n) => s + n.v, 0)));
@@ -364,7 +367,7 @@ function sankey({ paths, h = 250 }) {
       const x0 = a.x + nodeW, x1 = b.x, mx = (x0 + x1) / 2;
       return `<path class="plot" style="--pd:${120 + i * 70}ms" d="M${px(x0)},${px(y0)} C${px(mx)},${px(y0)} ${px(mx)},${px(y1)} ${px(x1)},${px(y1)}
         L${px(x1)},${px(y1 + thb)} C${px(mx)},${px(y1 + thb)} ${px(mx)},${px(y0 + th)} ${px(x0)},${px(y0 + th)} Z"
-        fill="url(#skg${i})" fill-opacity=".55"/>
+        fill="url(#skg${i})" fill-opacity=".55" data-row="${l.row}"/>
         <linearGradient id="skg${i}" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
         <stop offset="0%" stop-color="${COLS[a.c % 3]}"/><stop offset="100%" stop-color="${COLS[b.c % 3]}"/></linearGradient>`;
     }).join('');
@@ -411,7 +414,7 @@ function treemap({ items, h = 320, fmt = f.compact }) {
       const k = c.value / max;
       const fill = `color-mix(in oklch, var(--chart-1) ${Math.round(54 + k * 42)}%, var(--surface-sunken))`;
       const big = c.w > 104 && c.h > 62, mid = c.w > Math.max(72, c.name.length * 6.6 + 22) && c.h > 30;
-      return `<g class="popin" style="--pd:${i * 45}ms;transform-origin:${px(c.x + c.w / 2)}px ${px(c.y + c.h / 2)}px">
+      return `<g class="popin" data-row="${c.row ?? i}" style="--pd:${i * 45}ms;transform-origin:${px(c.x + c.w / 2)}px ${px(c.y + c.h / 2)}px">
         <rect x="${px(c.x + 1.5)}" y="${px(c.y + 1.5)}" width="${px(Math.max(0, c.w - 3))}" height="${px(Math.max(0, c.h - 3))}" rx="8" fill="${fill}" stroke="var(--border)"/>
         ${mid ? `<text x="${px(c.x + 11)}" y="${px(c.y + 22)}" style="font-family:var(--mono);font-size:11.5px;fill:var(--primary-foreground)">${esc(c.name)}</text>` : ''}
         ${big ? `<text x="${px(c.x + 11)}" y="${px(c.y + 42)}" style="font:700 15px var(--sans);font-variant-numeric:tabular-nums;fill:var(--primary-foreground)">${fmt(c.value)}</text>
@@ -421,7 +424,7 @@ function treemap({ items, h = 320, fmt = f.compact }) {
 }
 
 /* --------------------------------------------------------- grouped bars --- */
-function groupedBars({ labels, series, h = 220, yfmt = f.compact }) {
+function groupedBars({ labels, series, h = 220, yfmt = f.compact, xTitle }) {
   return (w) => {
     const pad = { t: 12, r: 10, b: 38, l: 42 };
     const iw = Math.max(40, w - pad.l - pad.r), ih = h - pad.t - pad.b;
@@ -439,7 +442,8 @@ function groupedBars({ labels, series, h = 220, yfmt = f.compact }) {
       }).join('')).join('')}
       <line class="axline" x1="${pad.l}" y1="${px(pad.t + ih)}" x2="${px(pad.l + iw)}" y2="${px(pad.t + ih)}"/>
       ${labels.map((lb, i) => `<text class="ax ax--dim" x="${px(pad.l + i * gw + gw / 2)}" y="${h - 20}" text-anchor="middle">${esc(lb)}</text>`).join('')}
-      <text class="ax ax--dim" x="${px(pad.l + iw / 2)}" y="${h - 5}" text-anchor="middle">payload size</text>
+      ${xTitle ? `<text class="ax ax--dim" x="${px(pad.l + iw / 2)}" y="${h - 5}" text-anchor="middle">${esc(xTitle)}</text>` : ''}
+      ${labels.map((lb, i) => `<rect class="hit" data-row="${i}" x="${px(pad.l + i * gw)}" y="${px(pad.t)}" width="${px(gw)}" height="${px(ih)}" fill="transparent"/>`).join('')}
     </svg>`;
   };
 }
@@ -492,4 +496,4 @@ function swimlane({ rows, total, rowH = 24 }) {
   };
 }
 
-export { sparkline, stackedArea, bandChart, donut, latencyHist, funnel, gauge, sankey, treemap, groupedBars, swimlane };
+export { sparkline, stackedArea, bandChart, donut, latencyHist, funnel, gauge, sankey, treemap, groupedBars, swimlane, axisDate };
