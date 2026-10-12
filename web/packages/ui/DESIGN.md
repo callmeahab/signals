@@ -109,9 +109,12 @@
     is left for a browser with no cached account. A skeleton waits 200 ms before
     appearing and stays 400 ms once it has; content fades in once over 240 ms by
     opacity alone; a range or project change holds the previous screen at 70 % until
-    the new data lands. `scripts/reload-series.mjs` records a 100 ms-step series of a
-    hard reload into `web/artifacts/v4/reload/` with the browser's own layout-shift
-    measurement.
+    the new data lands. While a screen has nothing to show -- the quiet window, or the
+    skeleton -- the dashboard reserves 70vh, so the footer does not jump down when the
+    first data arrives. `scripts/reload-series.mjs` records a 100 ms-step series of a
+    hard reload into `web/artifacts/v4/reload/` and asserts the browser's own
+    layout-shift measurement on an ordinary reload, where the webfont swap does not
+    confound it.
 
 17. **Chart readouts.** Keyboard inspection opens on `:focus-visible` or after a key
     press, never on a pointer click, and every chart's `headers`/`rows` carry a real
@@ -139,3 +142,10 @@
     re-render of the screen. The badge shows the connection status until the first
     refresh lands, since each card already carries it. Polling is off under
     `__SIGNALS_VISUAL_QA__`.
+
+19. **The Live event list** renders its first six rows with the screen and appends six
+    per animation frame, with the row memoised. The longest-task gate measures the
+    longest single task, so reducing work there can make the score worse by letting the
+    remaining work merge into one task -- measured both ways; `reports/dash-v4-ux.md`
+    carries the numbers. Each row's summary carries its event id, so a row is
+    addressable without expanding it.

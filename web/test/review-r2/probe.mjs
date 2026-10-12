@@ -348,7 +348,9 @@ try {
     check(cells['Input schema failures'] === (tool.schema_failures.input === null ? 'No data yet' : String(tool.schema_failures.input)), `tools drawer: input schema failures show "${cells['Input schema failures']}"`);
     check(cells['Output schema failures'] === (tool.schema_failures.output === null ? 'No data yet' : String(tool.schema_failures.output)), `tools drawer: output schema failures show "${cells['Output schema failures']}"`);
     check(cells['Output tokens'] === `≈ ${tool.output_tokens_est.toLocaleString('en')}`, `tools drawer: output tokens show "${cells['Output tokens']}", data says ${tool.output_tokens_est}`);
-    check(await dialog.locator('.sparkline,svg[role="img"]').count() > 0, 'tools drawer: no trend chart');
+    // The drawer's charts paint when the viewport observer fires, so wait for the first
+    // one rather than sampling once: the assertion is that a trend chart exists.
+    check(await dialog.locator('.sparkline,svg[role="img"]').first().waitFor({ timeout: 10000 }).then(() => true, () => false), 'tools drawer: no trend chart');
     check(!/\b0 ms\b/.test(text) || tool.latency.p50 === 0, 'tools drawer: a null latency rendered as 0 ms');
     note(`tools drawer text: ${text.replace(/\n+/g, ' | ')}`);
     await page.keyboard.press('Escape');
