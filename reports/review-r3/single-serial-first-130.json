@@ -1,0 +1,337 @@
+{
+  "median": 104.189,
+  "maximum": 118.066,
+  "failures": 0,
+  "runs": [
+    {
+      "run": 1,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 101.397,
+            "longestTaskMs": 10.838,
+            "recalcStyleMs": 24.388,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 2,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 118.066,
+            "longestTaskMs": 12.536,
+            "recalcStyleMs": 28.589,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 3,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 102.101,
+            "longestTaskMs": 10.949,
+            "recalcStyleMs": 25.447,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 4,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 93.207,
+            "longestTaskMs": 11.44,
+            "recalcStyleMs": 21.876,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 5,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 104.189,
+            "longestTaskMs": 10.639,
+            "recalcStyleMs": 25.55,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 6,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 111.043,
+            "longestTaskMs": 9.545,
+            "recalcStyleMs": 26.119999999999997,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 7,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 103.27699999999999,
+            "longestTaskMs": 10.144,
+            "recalcStyleMs": 24.316000000000003,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 8,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 108.645,
+            "longestTaskMs": 13.649,
+            "recalcStyleMs": 25.287,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 9,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 103.794,
+            "longestTaskMs": 9.936,
+            "recalcStyleMs": 25.09,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 10,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 104.455,
+            "longestTaskMs": 11.564,
+            "recalcStyleMs": 25.358,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 11,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 104.12599999999999,
+            "longestTaskMs": 9.42,
+            "recalcStyleMs": 25.636,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 12,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 105.66000000000001,
+            "longestTaskMs": 9.549,
+            "recalcStyleMs": 26.386,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 13,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 110.457,
+            "longestTaskMs": 10.148,
+            "recalcStyleMs": 27.333000000000002,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 14,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 102.601,
+            "longestTaskMs": 9.315,
+            "recalcStyleMs": 25.039,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    },
+    {
+      "run": 15,
+      "exit": 0,
+      "result": {
+        "theme": "light",
+        "repeats": 1,
+        "budgetMs": 130,
+        "runs": [
+          {
+            "run": 1,
+            "step": 1,
+            "transition": "overview \u2192 adoption",
+            "mainThreadMs": 108.283,
+            "longestTaskMs": 14.912,
+            "recalcStyleMs": 24.031,
+            "nodes": 2283,
+            "listeners": 193,
+            "budgetMs": 130
+          }
+        ]
+      }
+    }
+  ]
+}

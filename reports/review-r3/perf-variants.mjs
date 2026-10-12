@@ -4,10 +4,11 @@
 // 750 ms settle, 250 ms gap, __SIGNALS_VISUAL_QA__, 1440×1000, no tracing.
 // Also records Nodes, LayoutObjects and JSEventListeners after every step.
 //
-// Default (no args) runs three scenarios against PRODUCT_URL:
+// Default (no args) runs four scenarios against PRODUCT_URL:
 //   order  — a different 10-step order, 3 repeats, light
 //   walk20 — a 20-step walk, 2 repeats, light
 //   dark   — the round-2 order, 3 repeats, dark
+//   ten    — the round-2 order, 1 repeat, light
 //
 //   bun ../reports/review-r3/perf-variants.mjs
 //   bun ../reports/review-r3/perf-variants.mjs --only ten --repeats 1 --out perf-restored.json

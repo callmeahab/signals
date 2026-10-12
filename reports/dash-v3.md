@@ -481,3 +481,160 @@ FINDINGS 0 MISMATCHES 0
 ```
 
 The dedicated container was stopped and removed with `docker stop dash-v3-fix-r2-pg && docker rm dash-v3-fix-r2-pg`; both commands printed its name. The owned static HTTP server was terminated, and Python `shutil.rmtree` removed this worktree's `target/`, `t-r2/`, and temporary static demo directory. No other worker's services, data, or pre-existing dependency caches were removed. No requested fix remains; the evidence limitations and motion timing difference are stated above. Final `git diff --check` and clean status are checked after committing this report; nothing is pushed.
+
+## Round 3 fixes
+
+This pass started at `fb7c415`; `git merge main` reported `Already up to date.` The coordinator rejected the shortened round-2 motion. Entrances now last 520 ms with `cubic-bezier(.2,.8,.3,1)`, tiles use 130 + i×55 ms, cards use 300 + i×85 ms, and context / page heading / range use 40 / 90 / 140 ms. Counts start at zero after each tile delay and progress for 640 ms, retaining Text-node reuse, monotonic cubic easing and tabular numerals. Sparks/areas draw for 560 ms, donut layers/strokes for 620 ms, and each histogram/bar grows for 520 ms with its original individual delay. Hover, crosshair, nav spring and lamp rings retain their prior behavior. The legacy clip-path transition was removed.
+
+### Profile and coordinator ruling
+
+The initial fully restored animation walk measured Live → Overview at 145.34 ms. Its step-specific trace attributed 67.728 ms to style recalculation, 16.776 ms to layout and 17.262 ms to painting; the CPU profile sampled removeChild at approximately 1 ms. These measurements point to repeated entrance rendering rather than expensive Live-unmount JavaScript. They do not establish a permanent detached-DOM leak.
+
+A shared count frame scheduler, delayed registration and suppression of identical formatted text writes measured 146.928 ms on that transition; it alone did not solve the problem. Explicit cancellation of descendant chart animations before unmount, plus the existing 620 ms composited donut layer, measured 141.461 ms. Moving each staggered bar into its own positioned SVG root reduced the measured transition to 121.968 ms (51.502 ms style). That exploratory ten-step walk still had four steps above the original 100 ms threshold. The raw experiments are `reports/review-r3/perf-{baseline,count,layer,bars}-r3.json`; these are measurements, not passing acceptance runs.
+
+On 2026-10-12 the coordinator replied to escalation `msg_8541665aa671` with ruling `msg_70662886a78a`: “the approved motion wins” and “The performance budget changes to 130 ms per switch for both the single-switch mode and the ten-step walk (three repeats), measured by the unchanged instrument with the 750 ms settle.” The ruling requires the cheapest bar-layer implementation, informational longest-task measurements, and all other acceptance checks. No durations were shortened to meet this new threshold. An HTML-wrapper experiment and explicit end-keyframes did not reduce the measured cost; the final implementation returns to the cheaper measured SVG-root bar layers, as the coordinator required. The attempted explicit chart-animation cancellation was removed after its neutral result; existing owned WAAPI/observer/frame/handler cleanup remains.
+
+### Final performance ruling
+
+The interim 130 ms aggregate gate did not hold on repeated quiet runs: the first walk had nine over-budget steps, aggregate maximum 160.829 ms; its 15 separate single switches had aggregate median 104.189 ms and maximum 118.066 ms. Returning to SVG-root bars with lighter `toplevel` tracing still measured aggregate maximum 167.868 ms, seven steps above 130 ms, and a longest individual task of 20.288 ms. These failed aggregate-gate results are preserved in `single-serial-first-130.json`, `performance-walk-first-130.json`, and `performance-walk-svg-130.json` under `reports/review-r3`.
+
+The coordinator then issued final ruling `msg_5abc9f5f86e0` in reply to escalation `msg_9906ed0d3c2f`: “assert the longest single main-thread task per switch is under 50 ms ... in both single mode (15 serial invocations) and the ten-step walk (three repeats); record the aggregate mainThreadMs, recalcStyleMs and the first-switch median as information in the JSON with no assertion.” This supersedes the 100/130 ms aggregate gates and the original 85 ms median margin. It does not change any approved motion timing. Final acceptance results below use this longest-task gate and disclose aggregate costs beside it. The untraced variant probe retains the same measurement window and records aggregate results as informational, including counts above the previous thresholds.
+
+### Changes by file
+
+- `web/packages/ui/src/analytics-v3.tsx`: restored individual entrance timing and count duration/delay; one cancellable count frame clock; no layout measurement in card entrance indexing.
+- `web/packages/ui/src/charts/index.tsx`: decorative positioned SVG bar roots preserve the original geometry, per-bar delay and transform; a separate background SVG keeps grid lines behind bars and the accessible SVG keeps labels above them; existing chart/table accessibility and cleanup remain.
+- `web/packages/ui/src/styles.css` and `web/apps/dashboard/src/shell.css`: approved durations/delays, bar layer positioning beneath labels, removed clip-path transition, preserved reduced-motion overrides and previous contrast/wrapping fixes.
+- `web/scripts/performance-qa.mjs`: final coordinator-approved longest-task gate of 50 ms; same click/750 ms settle/250 ms gap; optional step-8 trace output, aggregate metrics and first-switch median retained as information. The lightweight `toplevel` category supplies renderer RunTask durations; aggregate TaskDuration measurement is unchanged.
+- `web/scripts/visual-qa.mjs`: identifies the single accessible chart SVG separately from decorative bar SVG roots. `reports/review-r2/variants.mjs` counts bars in either representation, retaining its 60-bin check.
+- `reports/review-r3/motion.mjs`: records SVG class names correctly, verifies histogram duration and all 60 stagger delays, tile/shell timing and reduced-motion behavior.
+
+An initial browser-suite run failed because its strict `svg` selector found decorative bar roots as well as the chart SVG. The selector now targets `svg[role=img]`; bars stay behind the chart labels. The subsequent `bun run check`, `bun run build`, and `SIGNALS_TEST_UI_PORT=26551 R2_PORT=26552 PLAYWRIGHT_CHANNEL=chromium bun run test` all exited 0. Last browser-suite line: `Visual QA passed: v3 chart SVG/table twins and both drawer captures; 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.` Further acceptance results follow below.
+
+### Verified motion
+
+`PRODUCT_URL=http://127.0.0.1:26531 bun reports/review-r3/motion.mjs` exited 0. The probe now asserts the shell/tile timings, all histogram staggers, the fifth card's delayed visible-only entrance, and no running animations under reduced motion. Its final output includes the mock's fifth card `delay: "0.64s", duration: "0.52s"`; product observations are saved in `reports/review-r3/motion.json`.
+
+| Element | Duration | Delays measured / specified |
+|---|---:|---|
+| Six tiles | 520 ms | 130, 185, 240, 295, 350, 405 ms |
+| Five cards, including fifth after scrolling | 520 ms | 300, 385, 470, 555, 640 ms |
+| Context, heading, range | 520 ms | 40, 90, 140 ms |
+| Count-up | 640 ms source tween | Starts after the corresponding tile delay; sampled first changes 127, 180, 235, 287, 340, 397 ms |
+| Spark / stacked area layer | 560 ms | 0 |
+| Donut layer / stroke rule | 620 ms | Existing stroke-specific stagger retained |
+| Histogram, 60 individual bars | 520 ms | 0 through 708 ms, increments of 12 ms |
+| Funnel bars | 520 ms | 0, 80, 160, 240, 320 ms |
+| Nav thumb | 420 ms | Unchanged spring |
+| Lamp rings | 2400 ms | 0 and 1200 ms |
+
+Formatted counts sometimes reach their final rounded display before the tween ends; the sampled change windows are therefore not exact duration measurements. The sampled starts are all zero and the final values are `48.2K`, `1,094`, `6.5K`, `99.1%`, `640 ms`, `≈ 25.2M`. Reduced-motion probe result: `[]` running animations. The instrumented motion recorder polls every frame and is not a performance-budget instrument.
+
+`PRODUCT_URL=http://127.0.0.1:26531 bun reports/review-r2/drawer-contrast.mjs` exited 0: `failures: 0 clipped: 0`; its result is copied to `reports/review-r3/drawer-contrast.json`. The previous round's JSON was restored after copying.
+
+
+### Suites, harness and static captures
+
+Commands ran from `web/` with `$HOME/.bun/bin` on PATH:
+
+```sh
+bun run check
+bun run build
+SIGNALS_TEST_UI_PORT=26551 R2_PORT=26552 PLAYWRIGHT_CHANNEL=chromium bun run test
+SIGNALS_NEXT_PORT=26553 PLAYWRIGHT_CHANNEL=chromium bun run test:next
+VITE_DEMO=1 bun --bun vite build --config apps/dashboard/vite.config.ts --outDir ../../artifacts/v3-demo
+BASE_URL=http://127.0.0.1:26531 PLAYWRIGHT_CHANNEL=chromium bun scripts/visual-qa.mjs
+```
+
+All exited 0. Check ended after `tsc --noEmit` and `eslint`; build ended with Vite's successful bundle output. Browser-suite tail: `Visual QA passed: v3 chart SVG/table twins and both drawer captures; 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.` Next tail: `Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.` The final grid-line stacking correction was checked with another check/build and two complete static visual-QA runs.
+
+Each static run produced 64 top-level PNGs. The first set was copied into the owned temporary directory before the second overwrote captures; SHA-256 comparison printed `PNGs 64 changed []`. Both before-grid and final-grid pairs matched; final evidence is `reports/review-r3/determinism.json`, with the earlier pair retained in `determinism-before-grid.json`. The final screenshot set preserves grid lines behind bars and labels above them.
+
+Harness setup and command, from the repository root:
+
+```sh
+docker run -d --name dash-v3-fix-r3-pg --shm-size=1g \
+  -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals \
+  -p 127.0.0.1:26541:5432 postgres:18.6-bookworm
+PATH="$HOME/.cargo/bin:$HOME/.bun/bin:$PATH" cargo build --locked --bin signals
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:26541/signals target/debug/signals migrate
+PATH="$PWD/target/r3-bin:$HOME/.cargo/bin:$HOME/.bun/bin:$PATH" \
+TMPDIR="$PWD/t-r3" \
+DATABASE_URL=postgres://postgres:signals@127.0.0.1:26541/signals \
+ANALYTICS_PG_CONTAINER=dash-v3-fix-r3-pg \
+SIGNALS_URL=http://127.0.0.1:26542 \
+ANALYTICS_REVIEW_URL=http://127.0.0.1:26543 \
+ANALYTICS_REVIEW_PROBE_PORT=26544 \
+SIGNALS_PROBE_LATENCY_BUDGET_MS=900 PLAYWRIGHT_CHANNEL=chromium \
+python3 scripts/ci-conformance.py
+```
+
+The executable `target/r3-bin/psql` strips a leading DATABASE_URL argument and forwards to `docker exec -i dash-v3-fix-r3-pg psql -U postgres -d signals`. The initial harness run stopped at backend QA's old `histogram svg` count (61 decorative-plus-accessible roots versus expected 1); `web/scripts/backend-qa.mjs` now selects the accessible `svg[role=img]`. The next complete harness run exited 0. Build/migration also exited 0; debug build took 49.43 seconds, the final incremental build 0.11 seconds, and the harness release build 1 minute 39 seconds.
+
+Harness output:
+
+```text
+identity: 52/52 valid fixtures matched
+identity: 54/54 invalid fixtures matched
+gzip: 52/52 valid fixtures matched
+gzip: 54/54 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Backend browser QA passed: real v3 analytics, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+subject_kind breakdown {'key': 1, 'network': 1, 'strong': 0} status 200
+FINDINGS 0 MISMATCHES 0
+```
+
+`PRODUCT_URL=http://127.0.0.1:26531 bun reports/review-r2/variants.mjs` also exited 0 on the final SVG-root implementation. Its JSON has 0 contrast findings, 0 clipped elements, 0 overflow findings, and all six inspected tool drawers have 60 bars, 60 bins and no NaN labels. A numeric pass over every recorded Overview/Adoption count-up series found no negative values or decreases. Raw evidence is `reports/review-r3/variants.json`; the prior round's generated JSON and shots were restored after copying. The final drawer-contrast rerun again printed `failures: 0 clipped: 0`.
+
+### Final performance results
+
+The final gate is longest renderer task < 50 ms, per the final coordinator ruling above. No aggregate or median assertion remains. The 750 ms settle and 250 ms gap, CDP-dispatched click, viewport and route order are unchanged. No other browser tests or compilation overlapped these final measurements; the independent API analytics harness was still finishing.
+
+| Sample | Aggregate median | Aggregate maximum | Longest-task maximum | Gate failures |
+|---|---:|---:|---:|---:|
+| 15 separate single-switch invocations | 102.440 ms | 110.778 ms | 13.536 ms | 0 / 15 |
+| Three ten-step walks | 120.611 ms | 166.176 ms | 19.844 ms | 0 / 30 |
+
+Walk longest-task median: 10.454 ms. First-switch aggregate median across the three walk repeats: 102.825 ms. These aggregate numbers do not meet the superseded 85 ms median/100–130 ms sum targets; they are reported honestly as informational values.
+
+The Python serial runner launched the following single command in 15 separate Bun processes and retained every exit/result in `reports/review-r3/single-serial.json`; all exited 0. The walk also exited 0, with raw results copied to `reports/review-r3/performance-walk.json`.
+
+```sh
+cd web
+BASE_URL=http://127.0.0.1:26531 PLAYWRIGHT_CHANNEL=chromium bun scripts/performance-qa.mjs
+BASE_URL=http://127.0.0.1:26531 PERFORMANCE_TRACE_STEP=8 PLAYWRIGHT_CHANNEL=chromium bun scripts/performance-qa.mjs --walk
+```
+
+Each walk cell below is **aggregate / longest task**, in milliseconds.
+
+| Transition | Run 1 | Run 2 | Run 3 |
+|---|---:|---:|---:|
+| overview → adoption | 102.83 / 10.58 | 100.79 / 13.13 | 104.44 / 10.33 |
+| adoption → tools | 140.54 / 18.46 | 144.08 / 15.29 | 143.24 / 19.42 |
+| tools → reliability | 92.60 / 4.59 | 120.82 / 8.58 | 119.29 / 10.05 |
+| reliability → sessions | 120.56 / 19.84 | 128.68 / 17.19 | 108.26 / 12.54 |
+| sessions → cost | 120.66 / 9.30 | 131.76 / 9.27 | 140.10 / 14.18 |
+| cost → protocol | 96.01 / 5.35 | 120.28 / 6.38 | 117.31 / 5.55 |
+| protocol → live | 55.86 / 15.17 | 64.73 / 19.84 | 54.82 / 14.64 |
+| live → overview | 148.70 / 8.43 | 166.18 / 8.51 | 158.36 / 10.57 |
+| overview → adoption | 122.37 / 7.54 | 124.13 / 14.38 | 127.65 / 9.02 |
+| adoption → reliability | 98.57 / 3.71 | 108.20 / 6.21 | 125.54 / 13.97 |
+
+The step-specific final trace is `reports/review-r3/live-overview-trace.json.gz`; its event attribution is in `profile-summary.json`. Event totals overlap and are not additive. The earlier restored-motion CPU sample is preserved as `restored-baseline.cpuprofile.gz`.
+
+`PRODUCT_URL=http://127.0.0.1:26531 bun reports/review-r3/perf-variants.mjs` completed all four scenarios, 110 switches, exit 0. This independent probe remains untraced and reports aggregate work only; per the final ruling it does not treat the old aggregate threshold as a responsiveness failure. Its tail was `above previous aggregate budget (informational): 18 of 110`.
+
+| Scenario | Switches | Aggregate median | Aggregate maximum | Above former 130 ms sum |
+|---|---:|---:|---:|---:|
+| order (light) | 30 | 113.177 ms | 163.046 ms | 6 |
+| walk20 (light) | 40 | 97.039 ms | 146.654 ms | 5 |
+| dark (dark) | 30 | 109.268 ms | 175.420 ms | 5 |
+| ten (light) | 10 | 118.854 ms | 152.203 ms | 2 |
+
+A fresh full conformance run against the selected final SVG-root implementation also exited 0, again ending in `FINDINGS 0 MISMATCHES 0`; its incremental release build took 36.42 seconds. Check/build, both browser suites, motion, drawer contrast, independent variants, 15 separate single invocations, the three-repeat walk and two final static capture runs are all complete. The final SVG-root pair is `determinism.json`; earlier exploratory matching pairs are preserved separately in `determinism-before-grid.json` and `determinism-html.json`. No runtime code changed after that final pair.
+
+### Cleanup
+
+`docker stop dash-v3-fix-r3-pg && docker rm dash-v3-fix-r3-pg` printed the owned container name twice. The owned static server was identified as PID 304209 and terminated with `kill 304209`. Python `shutil.rmtree` removed the owned `target/`, `t-r3/` and `web/artifacts/v3-demo/` directories. A final container-name lookup and listener check on ports 26531, 26541–26544 and 26551–26553 returned no matches. Other workers' services and pre-existing dependency caches were left intact.
+
+All required work is complete under the coordinator's final performance ruling. The aggregate-time divergence is explicitly accepted and recorded above; no motion timing was shortened. The final commit/status check follows this report update; nothing is pushed.

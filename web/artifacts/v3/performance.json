@@ -1,17 +1,20 @@
 {
   "theme": "light",
   "repeats": 1,
-  "budgetMs": 100,
+  "longestTaskBudgetMs": 50,
+  "aggregateInformational": true,
+  "firstSwitchMedianMs": 110.77799999999999,
   "runs": [
     {
       "run": 1,
       "step": 1,
       "transition": "overview → adoption",
-      "mainThreadMs": 62.907999999999994,
-      "recalcStyleMs": 8.744,
-      "nodes": 2285,
+      "mainThreadMs": 110.77799999999999,
+      "longestTaskMs": 10.433,
+      "recalcStyleMs": 27.466,
+      "nodes": 2278,
       "listeners": 193,
-      "budgetMs": 100
+      "longestTaskBudgetMs": 50
     }
   ]
 }
