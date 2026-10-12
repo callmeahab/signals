@@ -112,6 +112,12 @@ try {
       const mix=page.locator('.client-mix');
       check(await mix.locator('.legendlist .r').count()===27,`${width}/${theme}: 27 client legend entries`);
       check(await mix.locator('.chart-donut .stroke-draw').count()===26,`${width}/${theme}: zero-call client has no arc`);
+      const colorsMatch=await mix.evaluate(el=>{
+        const dots=[...el.querySelectorAll('.legendlist i')].slice(0,-1).map(dot=>getComputedStyle(dot).backgroundColor);
+        const arcs=[...el.querySelectorAll('.stroke-draw')].map(arc=>getComputedStyle(arc).stroke);
+        return JSON.stringify(dots)===JSON.stringify(arcs);
+      });
+      check(colorsMatch,`${width}/${theme}: legend colors match client arcs`);
       const values=await mix.locator('table.sr-only tbody tr').evaluateAll(rows=>rows.map(row=>Number(row.lastElementChild.textContent)));
       check(values.length===27&&values.at(-1)===0&&values[0]>values[25]&&values[0]>100,`${width}/${theme}: donut values are raw uneven call counts`);
       if(width>=1024){
@@ -264,4 +270,4 @@ try {
   await context.close();
 } finally { await browser.close(); }
 if(failures.length) { console.error(failures.join('\n')); process.exit(1); }
-console.log('Visual QA passed: v3 chart SVG/table twins, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, mobile/desktop, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.');
+console.log('Visual QA passed: v3 chart SVG/table twins, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, 390/1280/1440 widths, three-column tiles, 108px sparklines, full-row entity lists, 27-client legend, zero-call arcs, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.');

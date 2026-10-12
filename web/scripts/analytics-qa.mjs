@@ -34,3 +34,14 @@ const after=await demoClient.analytics('demo','cost',{});assert.equal(after.tota
 await demoClient.updateProject('demo',{...demoProject,token_divisor:4});
 const alerts=await demoClient.analytics('demo','alerts',{});assert.equal(alerts.rules.length,5);const updated=alerts.rules.map(r=>({...r,enabled:false}));await demoClient.saveAlerts('demo',updated);assert((await demoClient.analytics('demo','alerts',{})).rules.every(r=>!r.enabled));await demoClient.saveAlerts('demo',alerts.rules);
 console.log('Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.');
+
+const many=await demoClient.analytics('demo-many-clients','adoption',{range:'7d'});
+const manyOverview=await demoClient.analytics('demo-many-clients','overview',{range:'7d'});
+assert.equal(many.clients.length,27);
+assert.equal(sum(many.clients,'sessions'),manyOverview.tiles.sessions.value);
+assert.equal(sum(many.clients,'calls'),manyOverview.tiles.tool_calls.value);
+assert.equal(manyOverview.calls_by_client.points.reduce((sum,p)=>sum+Object.values(p.by_client).reduce((a,b)=>a+b,0),0),manyOverview.tiles.tool_calls.value);
+for(const c of many.clients)assert.equal(c.pct,Math.round(c.calls/manyOverview.tiles.tool_calls.value*1000)/10);
+const zero=await demoClient.analytics('demo','adoption',{range:'24h',from:'2026-10-11T00:00:00Z',to:'2026-10-11T00:00:01Z'});
+assert(zero.clients.every(c=>c.calls===0&&c.pct===null));
+console.log('Client share QA passed: 27 clients, repeated versions, coherent calls/sessions and null shares without calls.');

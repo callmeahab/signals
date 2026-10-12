@@ -735,4 +735,4 @@ td .mono{font-size:12.5px}
 .catalogue-tools{max-height:96px;overflow:auto}
 @media(max-width:1279px){.client-mix .legendlist{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1023px){.signals-ui>.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.client-mix .legendlist{grid-template-columns:1fr}}
-@media(max-width:560px){.signals-ui>.tiles{grid-template-columns:1fr}.client-mix{grid-template-columns:1fr}.client-mix>.chart-donut{max-width:260px;width:100%;justify-self:center}}
+@media(max-width:560px){.signals-ui>.tiles{grid-template-columns:1fr}.client-mix{grid-template-columns:1fr}.client-mix>.table-container{max-width:260px;width:100%;justify-self:center}}
