@@ -381,7 +381,7 @@ body{font-weight:500;font-size:14px}h1,h2,h3,h4,.metric-value{font-weight:400!im
 
 /* draw-in */
 .plot{clip-path:inset(0 100% 0 0)}
-:root.ready .plot.on{clip-path:inset(0 0 0 0);transition:clip-path .58s var(--ease-out) var(--pd,0ms)}
+:root.ready .plot.on{clip-path:none}
 :root:not(.ready) .plot{clip-path:none}
 .plot.nt{transition:none !important;clip-path:inset(0 0 0 0)}
 .stroke-draw{stroke-dasharray:var(--len);stroke-dashoffset:var(--len)}
@@ -694,14 +694,15 @@ td .mono{font-size:12.5px}
 .chart-stacked-area .plot.on,.chart-stacked-area .stroke-draw.on{animation:none}
 @media(prefers-reduced-motion:reduce){.chart-stacked-area>div:first-child{animation:none}}
 
-.chart-donut>div:first-child{animation:v3-rise 620ms var(--ease-out) backwards}.chart-donut .stroke-draw.on{animation:none}
+.chart-donut>div:first-child{animation:v3-rise 620ms var(--ease-out) backwards}
+.chart-donut .stroke-draw.on{animation:none}
 @media(prefers-reduced-motion:reduce){.chart-donut>div:first-child{animation:none}}
 
 .signals-ui .table-scroll{overflow-x:auto}.signals-ui .table-scroll-hint{display:block}
 
 :root{--error-ink:oklch(.46 .2 34)}.dark{--error-ink:oklch(.8 .13 34)}.error-text,.has-error .event-type{color:var(--error-ink)}
 
-.chart-histogram>div:first-child{animation:v3-rise 520ms var(--ease-out) backwards}.chart-histogram .growy.on{animation:none}
+.chart-histogram>div:first-child{animation:none}
 @media(prefers-reduced-motion:reduce){.chart-histogram>div:first-child{animation:none}}
 
 @media(max-width:560px){.ribrow>.table-container{grid-area:r}}
@@ -716,8 +717,9 @@ td .mono{font-size:12.5px}
 /* Entry is owned by the React component, with explicit compositor endpoints. */
 .signals-ui>.tiles .tile,.signals-ui>.grid>.card{animation:none}
 
-/* Bound the repeated style/paint work during entry, including nested SVG layers. */
-.tile__spark{animation-duration:240ms}
-.chart-stacked-area>div:first-child,.chart-donut>div:first-child{animation-duration:320ms}
-.chart-histogram>div:first-child,.plot.on,.growx.on,.growy.on{animation-duration:240ms}
-.stroke-draw.on{animation-duration:320ms}
+
+.plot.on,.stroke-draw.on,.growx.on,.growy.on{animation-delay:var(--pd,0ms)}
+
+.chartbox>div:first-child{position:relative}
+
+.chartbox>div:first-child>svg[role="img"]{position:relative;z-index:1}

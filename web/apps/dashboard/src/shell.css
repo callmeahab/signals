@@ -22,3 +22,8 @@
 .signal-dot::before,.signal-dot::after{content:"";position:absolute;inset:-3px;border:1px solid var(--chart-3);border-radius:50%;animation:ring 2.4s var(--ease-out) infinite}
 .signal-dot::after{animation-delay:1.2s}
 @media(prefers-reduced-motion:reduce){.signal-dot::before,.signal-dot::after{animation:none}}
+
+.workspace-strip{animation:v3-rise 520ms var(--ease-out) 40ms backwards}
+.page-heading{animation-delay:90ms}
+.range-control{animation:v3-rise 520ms var(--ease-out) 140ms backwards}
+@media(prefers-reduced-motion:reduce){.workspace-strip,.range-control{animation:none}}
