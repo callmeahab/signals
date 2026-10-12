@@ -10,7 +10,7 @@ const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL 
 const failures = [];
 const check = (ok, message) => { if (!ok) failures.push(message); };
 const activity = page => page.evaluate(() => globalThis.__SIGNALS_ACTIVITY__ ?? null);
-const hide = (page, hidden) => page.evaluate(value => { Object.defineProperty(document, 'hidden', { value, configurable: true }); Object.defineProperty(document, 'visibilityState', { value: value ? 'hidden' : 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); }, hidden);
+const hide = (page, hidden) => page.evaluate(value => { Object.defineProperty(document, 'hidden', { value, configurable: true }); Object.defineProperty(document, 'visibilityState', { value: value ? 'hidden' : 'visible', configurable: true }); document.dispatchEvent(new globalThis.Event('visibilitychange')); }, hidden);
 
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', timezoneId: 'UTC' });
@@ -45,7 +45,7 @@ try {
 
   // 3. The strip ticks and says how long ago.
   const stamp = await page.locator('.updated-ago').textContent();
-  check(/^ · updated \d+ s ago$/.test(stamp ?? ''), `freshness stamp reads ${JSON.stringify(stamp)}`);
+  check(/^updated \d+ s ago$/.test(stamp ?? ''), `freshness stamp reads ${JSON.stringify(stamp)}`);
   await page.clock.fastForward(12000);
   await page.waitForTimeout(120);
   check(/updated 1[0-9] s ago/.test(await page.locator('.updated-ago').textContent() ?? ''), 'the freshness stamp did not tick');
@@ -80,7 +80,7 @@ try {
   await page.evaluate(() => {
     globalThis.__stale = [];
     const el = document.querySelector('.signals-ui');
-    new MutationObserver(() => globalThis.__stale.push(el.hasAttribute('data-stale'))).observe(el, { attributes: true, attributeFilter: ['data-stale'] });
+    new globalThis.MutationObserver(() => globalThis.__stale.push(el.hasAttribute('data-stale'))).observe(el, { attributes: true, attributeFilter: ['data-stale'] });
   });
   await page.clock.fastForward(POLL_INTERVAL_MS + 1000);
   await page.waitForTimeout(250);
@@ -111,7 +111,7 @@ try {
     const name = getComputedStyle(el).animationName, duration = getComputedStyle(el).animationDuration;
     el.classList.remove('signals-ui--enter');
     const frames = [...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch { return []; } })
-      .filter(rule => rule.type === CSSRule.KEYFRAMES_RULE && rule.name === 'v4-content-in')
+      .filter(rule => rule.type === globalThis.CSSRule.KEYFRAMES_RULE && rule.name === 'v4-content-in')
       .flatMap(rule => [...rule.cssRules].map(frame => ({ at: frame.keyText, css: frame.style.cssText })));
     return { stale, duration, name, frames, fade };
   }, CONTENT_FADE_MS);

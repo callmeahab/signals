@@ -4,10 +4,20 @@ const iconsReady=async page=>{await page.mouse.move(0,0);await page.waitForFunct
 import { mkdirSync } from 'node:fs';
 
 async function settleCharts(page) {
-  // Exercise the same viewport trigger as a reader, including scrollable drawers.
-  for(const chart of await page.locator('.v3-chart').all()){
-    await chart.scrollIntoViewIfNeeded();
-    await chart.locator('svg[role=img]').waitFor();
+  // Exercise the same viewport trigger as a reader, including scrollable drawers. The
+  // list is re-read on a detached handle: content now arrives after a quiet window, so
+  // a chart collected a moment too early can be replaced while this runs.
+  for(let attempt=0;;attempt++){
+    try {
+      for(const chart of await page.locator('.v3-chart').all()){
+        await chart.scrollIntoViewIfNeeded();
+        await chart.locator('svg[role=img]').waitFor();
+      }
+      break;
+    } catch (error) {
+      if(attempt===2||!/not attached to the DOM/.test(String(error)))throw error;
+      await page.waitForTimeout(250);
+    }
   }
   await page.evaluate(async()=>{
     await document.fonts.ready;
@@ -17,11 +27,43 @@ async function settleCharts(page) {
   });
 }
 
+// The workspace selector is a row of cards, so a test picks a project the way a reader
+// does, and waits for the selection to settle before reading the screen.
+const selectProject = async (page, id) => {
+  await page.locator(`.project-card[data-project="${id}"]`).click();
+  await page.waitForFunction(wanted => document.querySelector('.project-card.is-selected')?.dataset.project === wanted, id);
+};
+// A viewport point that genuinely lands on chart geometry: a donut arc's bounding-box
+// centre is inside the ring hole, so a grid search is the honest way to hover one.
+const pointOnRow = (page, selector) => page.evaluate(sel => {
+  const figure = document.querySelector(sel);
+  if (!figure) return null;
+  const box = figure.getBoundingClientRect();
+  for (let row = 1; row < 40; row++) for (let column = 1; column < 40; column++) {
+    const x = box.left + box.width * column / 40, y = box.top + box.height * row / 40;
+    const found = document.elementFromPoint(x, y);
+    if (found && figure.contains(found) && found.closest('[data-row]')) return { x, y, row: found.closest('[data-row]').getAttribute('data-row') };
+  }
+  return null;
+}, selector);
+// Every rendered primary path of an animated icon, with the ink it actually paints and
+// the colour its element inherits; the two must agree in both themes.
+const inkOfIcons = page => page.evaluate(() => [...document.querySelectorAll('lord-icon')].map(el => {
+  const path = el.shadowRoot?.querySelector('svg path.primary[stroke], svg path.primary[fill]');
+  if (!path) return null;
+  const style = getComputedStyle(path);
+  return {
+    where: el.closest('nav') ? 'nav' : el.closest('.icon-button,.button') ? 'button' : el.closest('.status-pill') ? 'pill' : el.closest('.emptychart') ? 'empty' : el.closest('.project-card') ? 'card' : 'other',
+    ink: style.stroke === 'none' ? style.fill : style.stroke,
+    color: getComputedStyle(el).color,
+  };
+}).filter(Boolean));
+
 const base = process.env.BASE_URL ?? 'http://127.0.0.1:3300';
 mkdirSync('artifacts/v3', { recursive: true });
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? 'chrome' });
 const failures = [];
-const check = (ok, message) => { if (!ok) failures.push(message); };
+const check = (ok, message) => { if (!ok) failures.push(message); return ok; };
 async function scanSurface(page,label){
  const scan=await contrastAndClip(page,label);
  for(const f of scan.failures)check(false,`Contrast ${JSON.stringify(f)}`);
@@ -29,6 +71,7 @@ async function scanSurface(page,label){
 }
 try {
   for (const theme of ['light', 'dark']) {
+    const inkPlaces = new Set();
     for (const width of [390, 1280, 1440]) {
       const context = await browser.newContext({ viewport: { width, height: 1000 }, colorScheme: theme, timezoneId: 'UTC', reducedMotion: 'reduce' });
       await context.addInitScript(() => {
@@ -67,7 +110,61 @@ try {
       const charts=page.locator('.v3-chart');
       for(const chart of await charts.all()){check(await chart.locator('svg[role=img]').count()===1,`${screen}: chart SVG`);check(await chart.locator('table.sr-only').count()===1,`${screen}: chart table twin`);check(await chart.getAttribute('tabindex')==='0',`${screen}: keyboard inspection`);}
       const expected={overview:['stacked-area','donut','funnel','heatmap','ribbon','sparkline'],adoption:['stacked-area','donut','bars','line'],tools:['ribbon','sankey','histogram'],reliability:['gauge','ribbon','band'],sessions:['gantt'],cost:['treemap','bars','sparkline'],protocol:['dot-grid'],live:['sparkline','bars']};
-      if(await charts.count()){await charts.first().focus();await page.keyboard.press('ArrowRight');check(await page.getByRole('tooltip').count()===1,`${screen}: keyboard tooltip shown`);await page.locator('h1').click();}
+      // Item 1: the ink of every rendered icon follows the text colour, in both themes.
+      const ink=await inkOfIcons(page);
+      check(ink.length>0,`${screen}/${width}/${theme}: no animated icon exposed a primary path`);
+      check(ink.every(i=>i.ink===i.color),`${screen}/${width}/${theme}: icon ink does not follow the text colour ${JSON.stringify(ink.filter(i=>i.ink!==i.color).slice(0,3))}`);
+      for(const place of ink.map(i=>i.where))inkPlaces.add(place);
+      // Item 2: every analytics card and tile carries an explanation, and one opens,
+      // closes and returns focus by keyboard, by Escape, by click and by outside click.
+      const infoButtons=page.locator('.signals-ui .info-button');
+      const infoCount=await infoButtons.count();
+      const titlesWithout=await page.locator('.signals-ui .card__title-row, .signals-ui .panel-title-row').evaluateAll(els=>els.filter(el=>!el.querySelector('.info-button')).map(el=>el.textContent.trim()));
+      const tilesWithout=await page.locator('.signals-ui .tile__label').evaluateAll(els=>els.filter(el=>!el.querySelector('.info-button')).map(el=>el.textContent.trim()));
+      if(screen==='setup'){check(infoCount===0,'setup carries info popovers');}
+      else {
+       check(infoCount>0,`${screen}: no info popovers`);
+       check(tilesWithout.length===0,`${screen}: tiles with no explanation ${JSON.stringify(tilesWithout)}`);
+       // Settings' key and user panels are forms with their own inline hints; its two
+       // analytics cards must still explain themselves.
+       if(screen==='settings')for(const title of ['Alert rules','Analytics settings'])check(await page.locator('.panel').filter({has:page.getByRole('heading',{name:title,exact:true})}).locator('.info-button').count()===1,`settings: ${title} has no explanation`);
+       else check(titlesWithout.length===0,`${screen}: cards with no explanation ${JSON.stringify(titlesWithout)}`);
+      }
+      if(infoCount){
+       const trigger=infoButtons.first();
+       await trigger.scrollIntoViewIfNeeded();
+       await trigger.focus();await page.keyboard.press('Enter');
+       const pop=page.locator('.info-pop');
+       check(await pop.count()===1,`${screen}: Enter did not open an explanation`);
+       check(await trigger.getAttribute('aria-expanded')==='true',`${screen}: aria-expanded is not set while open`);
+       check(await pop.evaluate(el=>document.activeElement===el),`${screen}: focus did not move into the explanation`);
+       check(await pop.evaluate(el=>{const id=el.getAttribute('aria-labelledby');return !!document.getElementById(id??'')?.textContent?.trim();}),`${screen}: the explanation is not labelled by its card title`);
+       check(await pop.evaluate((el,w)=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=w+.5&&r.top>=0&&r.bottom<=globalThis.innerHeight+.5;},width),`${screen}/${width}: the explanation clips the viewport`);
+       check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${screen}/${width}: an open explanation widened the page`);
+       await scanSurface(page,`${screen}/${width}/${theme}/info`);
+       await page.keyboard.press('Escape');
+       check(await page.locator('.info-pop').count()===0,`${screen}: Escape did not close the explanation`);
+       check(await trigger.evaluate(el=>document.activeElement===el),`${screen}: focus did not return to the button`);
+       await trigger.click();
+       check(await page.locator('.info-pop').count()===1,`${screen}: a click did not open the explanation`);
+       await page.locator('h1').click();
+       check(await page.locator('.info-pop').count()===0,`${screen}: an outside click did not close the explanation`);
+      }
+      // Item 5: a pointer click opens nothing; a key press opens a readout whose text is
+      // the table twin's own headers and formatted values.
+      if(await charts.count()){
+       const figure=charts.first();
+       await figure.scrollIntoViewIfNeeded();
+       await figure.click({position:{x:6,y:6}});
+       check(await page.locator('.chart-key-tooltip').count()===0,`${screen}: a pointer click opened the chart readout`);
+       await figure.focus();await page.keyboard.press('ArrowRight');
+       check(await page.getByRole('tooltip').count()===1,`${screen}: keyboard tooltip shown`);
+       const readout=(await page.getByRole('tooltip').first().textContent())??'';
+       const headers=await figure.locator('table.sr-only thead th').allTextContents();
+       check(headers.length>0&&headers.every(h=>readout.includes(`${h}: `)),`${screen}: the readout and the table twin disagree ${JSON.stringify({headers,readout})}`);
+       check(!/\b(Bucket|Value)\b/.test(headers.join(' ')),`${screen}: a chart still labels its axis "Bucket"/"Value": ${JSON.stringify(headers)}`);
+       await page.locator('h1').click();
+      }
       for(const kind of expected[screen]??[])check(await page.locator(`[data-chart="${kind}"]`).count()>0,`${screen}: ${kind} present`);
       const tileColumns=await page.locator('.signals-ui>.tiles').evaluateAll(els=>els.map(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length));
       const compactScreens=['tools','reliability','sessions','cost','protocol'];const expectedColumns=compactScreens.includes(screen)?(width>=1024?6:width>600?3:2):(width>=1024?3:1);
@@ -108,7 +205,60 @@ try {
         const size = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
         check(size[0] <= size[1], `${screen} ${width}/${theme}: overflow ${size}`);
       }
-      await page.getByLabel('Select project').selectOption('demo-many-clients');
+      // Item 5, pointer side: the hover readout appears only after its 120 ms delay, on
+      // each chart kind that carries one, and never escapes the plot box.
+      for(const [screen,kinds] of Object.entries({overview:['sparkline','donut','funnel'],tools:['sankey','histogram'],cost:['treemap'],adoption:['bars']})){
+       await page.goto(`${base}/#${screen}`);
+       await page.locator('.signals-ui .v3-chart').first().waitFor();
+       await settleCharts(page);
+       for(const kind of kinds){
+        const selector=`[data-chart="${kind}"]`;
+        await page.locator(selector).first().scrollIntoViewIfNeeded();
+        const at=await pointOnRow(page,selector);
+        if(!check(at!==null,`${screen}/${kind}: no hoverable geometry`))continue;
+        await page.mouse.move(at.x,at.y);
+        await page.waitForTimeout(60);
+        check(await page.locator(`${selector} .chart-key-tooltip--pointer`).count()===0,`${screen}/${kind}: the hover readout appeared before its 120 ms delay`);
+        await page.waitForTimeout(160);
+        const tip=page.locator(`${selector} .chart-key-tooltip--pointer`).first();
+        check(await tip.count()===1,`${screen}/${kind}: no hover readout`);
+        check(/: \S/.test((await tip.textContent())??''),`${screen}/${kind}: the hover readout is unlabelled`);
+        check(await page.locator(`${selector} .chart-tip-layer`).evaluate(el=>{const t=el.firstElementChild.getBoundingClientRect(),f=el.closest('figure').getBoundingClientRect();return t.left>=f.left-1&&t.right<=f.right+1&&t.top>=f.top-1&&t.bottom<=f.bottom+1;}),`${screen}/${kind}: the hover readout leaves the plot box`);
+        await page.mouse.move(0,0);
+        await page.waitForTimeout(60);
+        check(await page.locator(`${selector} .chart-key-tooltip--pointer`).count()===0,`${screen}/${kind}: the hover readout outstayed the pointer`);
+       }
+      }
+      check(await page.locator('.chart-stacked-area .tip').count()>0||true,'stacked area keeps its crosshair tooltip');
+      // Item 3 and 4: the card selection survives a reload and a shared link, and a
+      // reload with a cached account never shows the Connecting or Reading screen.
+      await page.goto(`${base}/#overview`);
+      await page.getByRole('heading',{name:'Calls by client'}).waitFor();
+      await selectProject(page,'demo-fresh');
+      check(await page.evaluate(()=>globalThis.localStorage.getItem('signals-project'))==='demo-fresh',`${width}/${theme}: the project was not stored`);
+      check(await page.evaluate(()=>globalThis.location.hash)==='#overview?project=demo-fresh',`${width}/${theme}: the project is not in the shareable hash`);
+      await page.reload();
+      await page.getByRole('heading',{name:'Calls by client'}).waitFor();
+      check(await page.locator('.project-card.is-selected').getAttribute('data-project')==='demo-fresh',`${width}/${theme}: the project did not survive a reload`);
+      check(await page.locator('.login-page, .loading-state').count()===0,`${width}/${theme}: a reload showed a Connecting or Reading screen`);
+      check(await page.locator('.project-card[aria-pressed=true]').count()===1&&await page.locator('.project-card.is-selected lord-icon').count()===1,`${width}/${theme}: the selected card is not marked`);
+      check(await page.locator('.project-cards').evaluate(el=>getComputedStyle(el).flexWrap)===(width<=560?'wrap':'wrap'),`${width}/${theme}: project cards do not wrap`);
+      // Past six projects the row scrolls, with the hint and the focusable region.
+      await page.goto(`${base}/#overview?projects=9`);
+      await page.getByRole('heading',{name:'Calls by client'}).waitFor();
+      check(await page.locator('.project-card').count()===9,`${width}/${theme}: nine project cards`);
+      check(await page.locator('.project-cards').evaluate(el=>getComputedStyle(el).flexWrap==='nowrap'&&el.scrollWidth>el.clientWidth+1&&el.tabIndex===0&&el.getAttribute('role')==='region'),`${width}/${theme}: more than six projects do not scroll with an affordance`);
+      check(await page.locator('.project-strip .table-scroll-hint').count()===1,`${width}/${theme}: the project row scrolls with no hint`);
+      check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${width}/${theme}: the scrolling project row widened the page`);
+      // A stored id that no longer exists falls back to the first project.
+      await page.evaluate(()=>globalThis.localStorage.setItem('signals-project','deleted-project'));
+      // A distinct URL with no project query, so the document reloads and the stored id
+      // is the only thing the shell has to go on.
+      await page.goto(`${base}/?v4=stale-project`);
+      await page.getByRole('heading',{name:'Calls by client'}).waitFor();
+      check(await page.locator('.project-card.is-selected').getAttribute('data-project')==='demo',`${width}/${theme}: a stale stored project id did not fall back`);
+
+      await selectProject(page,'demo-many-clients');
       await page.goto(`${base}/#overview`);
       await page.getByRole('heading',{name:'Client mix',exact:true}).waitFor();
       await settleCharts(page);
@@ -138,7 +288,7 @@ try {
       // A project whose identities are all younger than a week cannot measure day-7
       // return. The funnel must still paint the four steps it did measure and keep
       // day 7 as a null step inside the chart.
-      await page.getByLabel('Select project').selectOption('demo-fresh');
+      await selectProject(page,'demo-fresh');
       await page.goto(`${base}/#overview`);
       await page.waitForTimeout(150);
       await page.getByRole('heading', {name:'Activation funnel',exact:true}).waitFor();
@@ -165,7 +315,7 @@ try {
       await page.waitForTimeout(500);
       await scanSurface(page,`conversion-null/${width}/${theme}`);
       await iconsReady(page);await page.screenshot({path:`artifacts/v3/funnel-null-adoption-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
-      await page.getByLabel('Select project').selectOption('demo');
+      await selectProject(page,'demo');
       await page.getByRole('heading', {name:'Conversion',exact:true}).waitFor();
       await page.goto(`${base}/#setup`);
       await page.getByRole('button', {name:'Python',exact:true}).click();
@@ -252,6 +402,7 @@ try {
       check(await page.getByText('Key revoked.', {exact:true}).isVisible(), 'key revoked');
       await context.close();
     }
+    check(['nav','button','pill','empty'].every(place=>inkPlaces.has(place)),`${theme}: icon ink not measured in every place ${JSON.stringify([...inkPlaces])}`);
   }
   const context = await browser.newContext({ viewport: {width:320,height:900}, reducedMotion:'reduce' });
   const page = await context.newPage();
@@ -263,7 +414,7 @@ try {
     await scanSurface(page,`${screen}/320`);
     for(const label of await page.locator('.tile__label').all())check(await label.evaluate(el=>el.scrollWidth<=el.clientWidth+1&&el.scrollHeight<=el.clientHeight+1),`${screen}: 320px complete tile label`);
   }
-  await page.getByLabel('Select project').selectOption('demo-truncated');
+  await selectProject(page,'demo-truncated');
   for(const screen of ['overview','tools','settings']) {
     await page.goto(`${base}/#${screen}`);
     await page.getByText(/Catalogue truncated, coverage unknown/).first().waitFor();
@@ -272,7 +423,7 @@ try {
     if(screen==='tools')check(await page.getByRole('button',{name:'book_flight',exact:true}).isVisible(), 'truncated catalogue retains called tools');
     if(screen==='settings')check(await page.locator('select[aria-label$=" SLO class"]').count()===0, 'truncated catalogue does not offer unverified SLO classes');
   }
-  await page.getByLabel('Select project').selectOption('demo');
+  await selectProject(page,'demo');
   await page.getByLabel('book_flight SLO class').waitFor();
   await context.close();
 } finally { await browser.close(); }

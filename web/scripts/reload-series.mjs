@@ -22,7 +22,7 @@ try {
   // heading's entrance) is excluded by the spec, so what is left is real shift.
   await context.addInitScript(() => {
     globalThis.__shifts = [];
-    new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) globalThis.__shifts.push({ value: entry.value, at: Math.round(entry.startTime) }); }).observe({ type: 'layout-shift', buffered: true });
+    new globalThis.PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) globalThis.__shifts.push({ value: entry.value, at: Math.round(entry.startTime) }); }).observe({ type: 'layout-shift', buffered: true });
   });
   const page = await context.newPage();
   page.on('pageerror', error => failures.push(`page error: ${error.message}`));

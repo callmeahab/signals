@@ -118,7 +118,7 @@ export const explanations: Explanations = {
  'reliability.tile.hallucinated-tools':
   'Calls to names your server does not advertise, with the names themselves. With a complete catalogue every outside name counts; with a truncated one only explicit unknown-tool errors do. The names are a reading list for your prompts and tool descriptions.',
  'reliability.card.error-budget':
-  'For each SLO class, how much of the allowed failure for the window is left, and how fast it is being spent. The arc is budget remaining, the needle is the one-hour burn rate, and the red tick is 6× — a whole window\'s budget inside an hour. Needle past the tick means act now, not at the next review.',
+  'For each SLO class, how much of the allowed failure for the window is left, and how fast it is being spent. The arc is budget remaining, the needle is the one-hour burn rate, and the red tick is 6×, the burn the alert rule fires on. Needle past the tick means act now, not at the next review.',
  'reliability.card.latency-over-time':
   'p50, p95 and p99 across all tools per bucket, hourly for windows up to 48 hours and daily beyond. Daily percentiles come from merged histograms, never from averaging hourly ones. The band widening while p50 holds means the tail is getting worse, which is what users report.',
  'reliability.card.success-by-class':

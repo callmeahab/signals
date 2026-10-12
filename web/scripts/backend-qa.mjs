@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { checkLoginStyles } from './login-styles.mjs';
+import { POLL_INTERVAL_MS, SKELETON_MIN_MS } from '../packages/ui/src/activity.js';
 
 const uuid7=()=>{const hex=Date.now().toString(16).padStart(12,'0');return `${hex.slice(0,8)}-${hex.slice(8)}-7${crypto.randomUUID().slice(15)}`;};
 const envelope=events=>({schema_version:1,source:{sdk:'browser-qa',sdk_version:'1',server_name:'qa',server_version:'1',instance_id:'qa-1'},sent_at:new Date().toISOString(),dropped:0,events});
@@ -15,12 +16,15 @@ try {
  const context=await browser.newContext({viewport:{width:1440,height:1000},colorScheme:'light'});
  const page=await context.newPage();const failures=[];page.on('pageerror',e=>failures.push(e.message));
  const json=async response=>{assert.equal(response.status(),200,await response.text());return response.json();};
+ // The workspace selector is a row of cards; a test picks a project the way a reader does.
+ const selectProject=async id=>{await page.locator(`.project-card[data-project="${id}"]`).click();await page.waitForFunction(wanted=>document.querySelector('.project-card.is-selected')?.dataset.project===wanted,id);};
+ const setHidden=(target,hidden)=>target.evaluate(value=>{Object.defineProperty(document,'hidden',{value,configurable:true});Object.defineProperty(document,'visibilityState',{value:value?'hidden':'visible',configurable:true});document.dispatchEvent(new globalThis.Event('visibilitychange'));},hidden);
  const login=async()=>{await page.getByLabel('Email',{exact:true}).fill(process.env.SIGNALS_TEST_EMAIL??'owner@signals.test');await page.getByLabel('Password',{exact:true}).fill(process.env.SIGNALS_TEST_PASSWORD??'signals-test-password');await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.getByRole('heading',{name:'Overview',exact:true}).waitFor();};
  await page.goto(base);await login();
  const account=await json(await page.request.get(`${base}/v1/auth/me`));
  const initial=account.projects[0];assert(initial,'bootstrap project');
  const project=await json(await page.request.post(`${base}/v1/admin/projects`,{headers:{Authorization:`Bearer ${process.env.SIGNALS_ADMIN_TOKEN??'ci-isolated-admin-token-32-characters'}`},data:{tenant_id:initial.tenant_id,slug:`browser-${Date.now()}`,name:'Browser integration'}}));
- await page.reload();await page.getByLabel('Select project').selectOption(project.id);
+ await page.reload();await selectProject(project.id);
  const route=path=>`${base}/v1/projects/${project.id}/${path}`;
  const analytics=async name=>json(await page.request.get(route(`analytics/${name}`)));
  // Tiles are addressed by their exact label so "MAU" does not also match the DAU / MAU chip.
@@ -129,7 +133,11 @@ try {
  assert.equal((await analytics('alerts')).rules.find(r=>r.id==='errors').threshold,9);
  assert.equal((await analytics('cost')).total_tokens_est,135); // 27 calls (including hallucination) * 40 bytes / divisor 8
  const digest=await analytics('digest');assert.equal(digest.tools.reduce((n,t)=>n+t.calls,0),26);
- await page.reload();await page.getByLabel('Select project').selectOption(project.id);
+ await page.reload();await selectProject(project.id);
+ // The project card selection survives a real reload, and the reload shows no
+ // login-style "Connecting" page and no "Reading your signals" state.
+ await expect(page.locator('.project-card.is-selected')).toHaveAttribute('data-project',project.id);
+ assert.equal(await page.locator('.login-page, .loading-state').count(),0,'a reload with a session showed a Connecting or Reading screen');
  await expect(page.getByLabel('Token divisor',{exact:true})).toHaveValue('8');await expect(page.getByLabel('Digest recipient')).toHaveValue('digest@signals.test');await expect(page.getByLabel('search_documents SLO class')).toHaveValue('mutate');await expect(page.getByLabel('Error rate (%) threshold')).toHaveValue('9');
  // A real rejected PATCH must retain the form and expose the actionable server message.
  await page.getByLabel('read SLO target (%)').fill('100');await page.getByRole('button',{name:'Save analytics settings',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'SLO targets must be between 0 and 100'})).toBeVisible();
@@ -149,15 +157,62 @@ try {
  const noCatalogTools=await json(await page.request.get(noCatalogRoute('analytics/tools')));
  assert.equal(noCatalogTools.catalog.known,false);assert.equal(noCatalogTools.catalog.complete,false);
  assert.deepEqual(noCatalogTools.tools.map(t=>t.tool).sort(),[hallucinated,'search_documents'].sort());
- await page.reload();await page.getByLabel('Select project').selectOption(noCatalog.id);await page.goto(`${base}/#tools`);
+ await page.reload();await selectProject(noCatalog.id);await page.goto(`${base}/#tools`);
  await expect(page.getByRole('button',{name:hallucinated,exact:true})).toBeVisible();
  assert.deepEqual((await page.locator('tbody button.row-button').allTextContents()).sort(),[hallucinated,'search_documents'].sort());
  await page.goto(`${base}/#settings`);await page.getByRole('heading',{name:'SLOs, alerts and digest',exact:true}).waitFor();
  await expect(page.locator('select[aria-label$=" SLO class"]')).toHaveCount(0);
  assert.equal((await page.request.delete(noCatalogRoute(`keys/${noCatalogKey.key.id}`))).status(),204);
- await page.getByLabel('Select project').selectOption(initial.id);await expect(page.getByLabel('Project name')).toHaveValue(initial.name);
+ await selectProject(initial.id);await expect(page.getByLabel('Project name')).toHaveValue(initial.name);
+ // Live stats, against the real routes: the active screen's own burst on the interval,
+ // nothing while the tab is hidden, an immediate burst on return. A fake clock drives
+ // the 60-second interval without 60 seconds of wall clock.
+ {
+  const poller=await context.newPage();
+  await poller.clock.install();
+  const log=[];
+  poller.on('request',request=>{const match=/\/v1\/projects\/[^/]+\/analytics\/([a-z]+)/.exec(request.url());if(match&&request.method()==='GET')log.push(match[1]);});
+  await poller.goto(`${base}/#overview?project=${project.id}`);
+  await poller.getByRole('heading',{name:'Calls by client'}).waitFor();
+  await poller.waitForTimeout(600);
+  const burst=[...new Set(log)].sort();log.length=0;
+  assert.deepEqual(burst,['adoption','overview','tools'],`Overview reads only its own routes: ${JSON.stringify(burst)}`);
+  await poller.clock.fastForward(POLL_INTERVAL_MS-5000);
+  await poller.waitForTimeout(400);
+  assert.deepEqual(log,[],`the screen refreshed before its interval was due: ${JSON.stringify(log)}`);
+  await poller.clock.fastForward(6000);
+  await expect.poll(()=>[...new Set(log)].sort().join(','),{timeout:15000}).toBe('adoption,overview,tools');
+  log.length=0;
+  await setHidden(poller,true);
+  await poller.clock.fastForward(POLL_INTERVAL_MS*3);
+  await poller.waitForTimeout(600);
+  assert.deepEqual(log,[],`a hidden tab kept polling: ${JSON.stringify(log)}`);
+  await setHidden(poller,false);
+  await expect.poll(()=>log.length,{timeout:15000}).toBeGreaterThan(0);
+  await poller.close();
+ }
+ // The skeleton waits 200 ms before appearing, so a quick answer shows nothing at all,
+ // and once it is up it stays 400 ms, so it cannot flash either.
+ for(const [delayMs,expectSkeleton] of [[60,false],[900,true]]) {
+  const slow=await context.newPage();
+  await slow.addInitScript(()=>{globalThis.__skeleton=[];new globalThis.MutationObserver(()=>{const on=!!document.querySelector('.loading-state');const last=globalThis.__skeleton.at(-1);if(!last||last.on!==on)globalThis.__skeleton.push({on,at:globalThis.performance.now()});}).observe(document.documentElement,{childList:true,subtree:true});});
+  await slow.route(`**/v1/projects/*/analytics/**`,async route=>{await new Promise(resolve=>setTimeout(resolve,delayMs));await route.continue();});
+  await slow.goto(`${base}/#overview?project=${project.id}`);
+  await slow.getByRole('heading',{name:'Calls by client'}).waitFor();
+  await slow.waitForTimeout(1200);
+  const marks=await slow.evaluate(()=>globalThis.__skeleton);
+  const shown=marks.filter(m=>m.on);
+  if(!expectSkeleton)assert.deepEqual(shown,[],`a ${delayMs} ms answer still flashed a skeleton: ${JSON.stringify(marks)}`);
+  else {
+   assert(shown.length>0,`a ${delayMs} ms answer showed no skeleton: ${JSON.stringify(marks)}`);
+   const start=shown[0].at, end=marks.find(m=>!m.on&&m.at>start)?.at;
+   assert(end!==undefined,`the skeleton never cleared: ${JSON.stringify(marks)}`);
+   assert(end-start>=SKELETON_MIN_MS-40,`the skeleton lasted ${Math.round(end-start)} ms, under its ${SKELETON_MIN_MS} ms minimum`);
+  }
+  await slow.close();
+ }
  await page.getByRole('button',{name:'Log out',exact:true}).click();await page.getByRole('button',{name:'Sign in',exact:true}).waitFor();
  assert.equal((await page.request.get(`${base}/v1/auth/me`)).status(),401);assert.deepEqual(failures,[]);
  await context.close();
- console.log('Backend browser QA passed: real v3 analytics, painted funnel with a null day-7 step, adoption session/WAU/MAU trend series, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.');
+ console.log('Backend browser QA passed: real v3 analytics, project cards that survive a reload, a 60-second refresh of the active screen alone that stops while the tab is hidden, a skeleton held back 200 ms and kept 400 ms, painted funnel with a null day-7 step, adoption session/WAU/MAU trend series, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.');
 } finally {await browser.close();}

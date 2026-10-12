@@ -83,11 +83,13 @@ function ProjectCards({projects,selectedId,onSelect}:{projects:Project[];selecte
 }
 
 // "updated 12 s ago" and the collector-dot pulse are written straight into the DOM: the
-// strip ticks every second and must not re-render the screen to do it.
+// strip ticks every second and must not re-render the screen to do it. Each card already
+// carries the connection status, so the badge says it only until the first refresh lands
+// -- on Setup, which loads nothing, that is the whole time.
 function FreshnessBadge() {
  const dot=useRef<HTMLElement>(null), ago=useRef<HTMLSpanElement>(null);
  useEffect(()=>{
-  const paint=()=>{const el=ago.current;if(!el)return;const at=activityState().updatedAt;el.textContent=at===null?'':` · updated ${sinceText(at)} ago`;};
+  const paint=()=>{const el=ago.current;if(!el)return;const at=activityState().updatedAt;el.textContent=at===null?(isDemo?'Demo workspace':'Collector connected'):`updated ${sinceText(at)} ago`;};
   const pulse=()=>{const el=dot.current;if(!el)return;el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');};
   let loads=activityState().loads;
   paint();
@@ -95,7 +97,7 @@ function FreshnessBadge() {
   const timer=visualQa()?0:window.setInterval(paint,1000);
   return()=>{off();clearInterval(timer);};
  },[]);
- return <span className="demo-badge"><i ref={dot} className="signal-dot"/>{isDemo?'Demo workspace':'Collector connected'}<span ref={ago} className="updated-ago"/></span>;
+ return <span className="demo-badge"><i ref={dot} className="signal-dot"/><span ref={ago} className="updated-ago">{isDemo?'Demo workspace':'Collector connected'}</span></span>;
 }
 
 function App(){
