@@ -41,7 +41,7 @@ const scenarios = [
 
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? 'chromium' });
 const all = [];
-const budgetMs = 130; // Coordinator ruling msg_70662886a78a; instrument unchanged.
+const previousAggregateBudgetMs = 130; // Final ruling msg_5abc9f5f86e0 makes aggregate work informational.
 
 for (const scenario of scenarios) {
   const repeats = repeatsOverride ? Number(repeatsOverride) : scenario.repeats;
@@ -71,13 +71,13 @@ for (const scenario of scenarios) {
       const pick = (name, scale = 1) => Math.round((after[name] - before[name]) * scale * 1000) / 1000;
       const row = {
         scenario: scenario.name, theme: scenario.theme, run: r + 1, step,
-        transition: `${from} → ${screen}`, mainThreadMs: ms, over: ms >= budgetMs, overOriginalBudget: ms >= 100,
+        transition: `${from} → ${screen}`, mainThreadMs: ms, abovePreviousBudget: ms >= previousAggregateBudgetMs, aboveOriginalBudget: ms >= 100,
         recalcStyleMs: pick('RecalcStyleDuration', 1000), layoutMs: pick('LayoutDuration', 1000),
         scriptMs: pick('ScriptDuration', 1000),
         nodes: after.Nodes, layoutObjects: after.LayoutObjects, listeners: after.JSEventListeners,
       };
       all.push(row);
-      console.log(`${scenario.name} r${r + 1} ${String(step).padStart(2)} ${from} → ${screen}: ${ms.toFixed(2)} ms  style ${row.recalcStyleMs.toFixed(2)}  nodes ${row.nodes} layout ${row.layoutObjects} listeners ${row.listeners}${row.over ? '  OVER BUDGET' : ''}`);
+      console.log(`${scenario.name} r${r + 1} ${String(step).padStart(2)} ${from} → ${screen}: ${ms.toFixed(2)} ms  style ${row.recalcStyleMs.toFixed(2)}  nodes ${row.nodes} layout ${row.layoutObjects} listeners ${row.listeners}${row.abovePreviousBudget ? '  ABOVE PREVIOUS BUDGET (informational)' : ''}`);
       from = screen;
       await page.waitForTimeout(250);
     }
@@ -92,7 +92,7 @@ const summary = scenarios.map((scenario) => {
   const styles = rows.map((x) => x.recalcStyleMs);
   return {
     name: scenario.name, theme: scenario.theme, steps: scenario.order.length,
-    n: rows.length, over: rows.filter((x) => x.over).length,
+    n: rows.length, abovePreviousBudget: rows.filter((x) => x.abovePreviousBudget).length,
     min: values[0], median: values[Math.floor(values.length / 2)], max: values.at(-1),
     maxStyle: Math.max(...styles),
     nodesStart: rows[0]?.nodes, nodesEnd: rows.at(-1)?.nodes,
@@ -100,6 +100,6 @@ const summary = scenarios.map((scenario) => {
     listenersStart: rows[0]?.listeners, listenersEnd: rows.at(-1)?.listeners,
   };
 });
-writeFileSync(resolve(outDir, outName), JSON.stringify({ product, budgetMs, summary, runs: all }, null, 2));
+writeFileSync(resolve(outDir, outName), JSON.stringify({ product, aggregateInformational: true, previousAggregateBudgetMs, summary, runs: all }, null, 2));
 console.log(JSON.stringify(summary, null, 2));
-console.log('over budget:', all.filter((x) => x.over).length, 'of', all.length);
+console.log('above previous aggregate budget (informational):', all.filter((x) => x.abovePreviousBudget).length, 'of', all.length);

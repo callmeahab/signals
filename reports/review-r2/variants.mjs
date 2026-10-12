@@ -272,7 +272,7 @@ for (const theme of ['light', 'dark']) {
       const hist = dialog.querySelector('[data-chart="histogram"]');
       const labels = [...(hist?.querySelectorAll('g.popin text') ?? [])].map((t) => t.textContent.trim());
       const rows = [...(hist?.querySelectorAll('table.sr-only tbody tr') ?? [])];
-      const bars = hist?.querySelectorAll('rect.growy,.bar-layer.growy>svg>rect').length ?? 0;
+      const bars = hist?.querySelectorAll('rect.growy,svg.growy>rect').length ?? 0;
       const counts = rows.map((tr) => Number(tr.children[2].textContent.replace(/,/g, '')));
       const tiles = [...dialog.querySelectorAll('.tile')].map((t) => t.innerText.replace(/\s+/g, ' ').trim());
       return { tool, labels, bars, bins: rows.length, binSum: counts.reduce((s, n) => s + n, 0), tiles, nan: dialog.innerText.includes('NaN') };

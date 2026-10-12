@@ -167,7 +167,7 @@ const report = { product, mock, designNotes: {
   await page.locator('.chart-histogram svg[role=img]').waitFor();
   await page.waitForTimeout(2300);
   report.productTools = summarise(await page.evaluate(() => globalThis.__motionRecords ?? []));
-  report.histogramBars = await page.locator('.chart-histogram .bar-layer.growy').evaluateAll(bars => bars.map(bar => {
+  report.histogramBars = await page.locator('.chart-histogram svg.growy').evaluateAll(bars => bars.map(bar => {
     const s = getComputedStyle(bar);
     return {durationMs: parseFloat(s.animationDuration)*1000, delayMs: parseFloat(s.animationDelay)*1000, easing:s.animationTimingFunction};
   }));
