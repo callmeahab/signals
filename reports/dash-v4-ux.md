@@ -358,3 +358,84 @@ PERFORMANCE_REPEATS=15 bun scripts/performance-qa.mjs          # single, 15 repe
 bun scripts/performance-qa.mjs --walk                          # ten transitions × 3
 python3 scripts/ci-conformance.py                              # from the repo root
 ```
+
+### Observed output
+
+```
+$ bun run check
+(no output; build:ui, tsc --noEmit and eslint all clean)
+
+$ bun run build
+dist/assets/index-D3BG_8Te.js   385.85 kB │ gzip: 119.39 kB
+✓ built in 206ms
+
+$ bun run test
+Snippet UUID QA passed: randomUUID deleted, UUIDv7 timestamp/version/variant, missing and throwing crypto fallbacks.
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+Demo contract shapes passed: 8 analytics routes × 4 ranges × 3 demo projects (complete, truncated catalogue, fresh window), all session timelines, missing/extra keys and type-drift guards.
+Truncated catalogue QA passed: nullable dead, required completeness, retained calls and safe Tools/Overview rendering.
+Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.
+Client share QA passed: 27 clients, repeated versions, coherent calls/sessions and null shares without calls.
+review-r1 probe passed
+review-r2 probe passed
+Visual QA passed: v3 chart SVG/table twins, painted funnel with a null day-7 step and a conversion
+curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, 390/1280/1440
+widths, three-column tiles, 108px sparklines, full-row entity lists, 27-client legend, zero-call arcs,
+fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+Live QA passed: 60000 ms refresh observed on the active screen, skeleton held 200/400 ms, nothing
+while the tab is hidden, an immediate refresh on return and on a range change, no dim, no replayed
+entrance, no count-up from zero, a ticking freshness stamp, and no polling under __SIGNALS_VISUAL_QA__.
+Reload series passed: no Connecting or Reading text screen, no login card, the shell and heading
+arrive with the content, the workspace strip holds its height, and an ordinary reload reports zero
+layout shift.
+
+$ bun run test:next
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.
+
+$ PERFORMANCE_REPEATS=15 bun scripts/performance-qa.mjs
+Run 1..15 overview → adoption: longest task 32.00 – 39.20 ms (budget < 50 ms)
+
+$ bun scripts/performance-qa.mjs --walk          # see "Pre-existing: Live mount" above
+30 transitions, 29 under budget; protocol → live 41.3 / 51.8 / 38.8 ms (and 46.4 / 47.1 / 58.1 ms
+in a second run), against 58.7 / 55.1 / 50.9 ms at the branch point.
+
+$ python3 scripts/ci-conformance.py              # DATABASE_URL + ANALYTICS_PG_CONTAINER=dash-v4-ux-pg
+                                                 # SIGNALS_URL=http://127.0.0.1:25450
+                                                 # SIGNALS_PROBE_LATENCY_BUDGET_MS=900, TMPDIR on /var/tmp
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v3 analytics, project cards that survive a reload, a 60-second refresh
+of the active screen alone that stops while the tab is hidden, a skeleton held back 200 ms and kept
+400 ms, painted funnel with a null day-7 step, adoption session/WAU/MAU trend series, latency histogram
+count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering,
+no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost,
+project switch, login, keys, Live, persisted settings, 400 message, CSRF, logout.
+identity: 52/52 valid fixtures matched, 54/54 invalid fixtures matched
+gzip: 52/52 valid fixtures matched, 54/54 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay,
+whoami scopes, NUL repair, source/client persistence, caller IP hashing
+FINDINGS 0 MISMATCHES 0
+ci exit 0
+```
+
+Contrast and clip scans are part of visual QA and reported zero failures on every screen,
+width and theme, including one scan per screen with an explanation open.
+
+Two serial static runs of `bun scripts/visual-qa.mjs`, with the first committed in
+between, left every file under `web/artifacts/v3` byte-identical:
+
+```
+run A exit 0
+run B exit 0
+=== files changed between serial runs ===
+(nothing)
+```
+
+## What is not done
+
+- `performance-qa.mjs --walk` still crosses the 50 ms longest-task budget on
+  `protocol → live` in one run of three on this host. It crossed it in three of three at
+  the branch point; the coordinator ruled this pre-existing failure accepted rather than
+  the budget raised. Numbers and the longest-task breakdown are under "Pre-existing:
+  Live mount".
+- The optional secondary line on the selected project card (its tool-call count) is not
+  shipped, for the reason given under "Divergences".
