@@ -236,15 +236,17 @@ try {
       }
       // The stacked area keeps its own crosshair; hovering the plot must raise exactly one.
       await page.goto(`${base}/#overview`);
-      await page.locator('.chart-stacked-area svg').first().waitFor();
-      await settleCharts(page);
-      const crosshair=page.locator('.chart-stacked-area .tip');
+      await page.getByRole('heading',{name:'Calls by client'}).waitFor();
+      const area=page.locator('.chart-stacked-area').first();
+      await area.scrollIntoViewIfNeeded();
+      await area.locator('svg[role=img]').first().waitFor();
+      const crosshair=area.locator('.tip');
       check(await crosshair.count()===1,`${width}/${theme}: the stacked area has ${await crosshair.count()} crosshair tooltips, expected 1`);
-      const plot=await page.locator('.chart-stacked-area svg rect.hit').first().boundingBox();
+      const plot=await area.locator('svg rect.hit').first().boundingBox();
       await page.mouse.move(plot.x+plot.width/2,plot.y+plot.height/2);
       await page.waitForTimeout(120);
       check(await crosshair.evaluate(el=>el.classList.contains('on')&&el.textContent.trim().length>0),`${width}/${theme}: the stacked-area crosshair did not read out on hover`);
-      check(await page.locator('.chart-stacked-area .xh').evaluate(el=>getComputedStyle(el).opacity==='1'),`${width}/${theme}: the stacked-area crosshair line stayed hidden`);
+      check(await area.locator('.xh').evaluate(el=>getComputedStyle(el).opacity==='1'),`${width}/${theme}: the stacked-area crosshair line stayed hidden`);
       await page.mouse.move(0,0);
       await page.waitForTimeout(80);
       // At 24 hours the collector serves one daily calls point and twenty-four hourly
