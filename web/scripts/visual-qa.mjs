@@ -61,7 +61,11 @@ const inkOfIcons = page => page.evaluate(() => [...document.querySelectorAll('lo
 
 const base = process.env.BASE_URL ?? 'http://127.0.0.1:3300';
 mkdirSync('artifacts/v3', { recursive: true });
-const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? 'chrome' });
+// Partial raster reuses previously rastered tiles, and whether a tile was reused decides
+// how a rounded corner on a fractional pixel boundary is antialiased: the tool-drawer
+// captures flipped between three states run to run with no DOM or geometry difference.
+// Turning it off makes a capture depend only on what is on the page.
+const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? 'chrome', args: ['--disable-partial-raster'] });
 const failures = [];
 const check = (ok, message) => { if (!ok) failures.push(message); return ok; };
 async function scanSurface(page,label){
