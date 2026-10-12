@@ -219,9 +219,10 @@ try {
         await page.mouse.move(at.x,at.y);
         await page.waitForTimeout(60);
         check(await page.locator(`${selector} .chart-key-tooltip--pointer`).count()===0,`${screen}/${kind}: the hover readout appeared before its 120 ms delay`);
-        await page.waitForTimeout(160);
         const tip=page.locator(`${selector} .chart-key-tooltip--pointer`).first();
-        check(await tip.count()===1,`${screen}/${kind}: no hover readout`);
+        // Wait rather than sample once: the delay is a floor, not a deadline, and this
+        // suite shares the box with whatever else is building.
+        if(!check(await tip.waitFor({timeout:5000}).then(()=>true,()=>false),`${screen}/${kind}: no hover readout`))continue;
         check(/: \S/.test((await tip.textContent())??''),`${screen}/${kind}: the hover readout is unlabelled`);
         check(await page.locator(`${selector} .chart-tip-layer`).evaluate(el=>{const t=el.firstElementChild.getBoundingClientRect(),f=el.closest('figure').getBoundingClientRect();return t.left>=f.left-1&&t.right<=f.right+1&&t.top>=f.top-1&&t.bottom<=f.bottom+1;}),`${screen}/${kind}: the hover readout leaves the plot box`);
         await page.mouse.move(0,0);

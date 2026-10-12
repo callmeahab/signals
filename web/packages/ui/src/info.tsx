@@ -3,8 +3,10 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
 import { Icon } from './icons/index.js';
 import { explain } from './copy/explanations.js';
 
-// One info popover is open at a time across the page; opening another closes it.
-let dismissOpen: (() => void) | null = null;
+// One info popover is open at a time across the page; opening another closes it. The
+// registration is held by identity, so a popover closing later cannot clear the one that
+// replaced it.
+let openPanel: { close: () => void } | null = null;
 
 // The copy in src/copy/explanations.ts marks field and event names with backticks so it
 // reads as prose in one file; render those spans as code rather than printing the ticks.
@@ -17,7 +19,10 @@ export type InfoSource = string | ReactNode;
 /** Resolves the `info` prop of a card or tile: an id into the copy file, or a node. */
 export function infoContent(info: InfoSource): ReactNode | null {
  if (info == null || info === false) return null;
- if (typeof info === 'string') { const copy = explain(info); return copy ? prose(copy) : prose(info); }
+ // A dotted string is a key into the copy file: an unknown one renders nothing, so the
+ // QA assertion that every card and tile carries an explanation catches the typo rather
+ // than a reader reading the key. Any other string is literal copy.
+ if (typeof info === 'string') { const copy = explain(info); return copy ? prose(copy) : info.includes('.') ? null : prose(info); }
  return info;
 }
 
@@ -37,13 +42,14 @@ export function InfoPopover({ titleId, label, size = 16, children }: { titleId: 
 
  useEffect(() => {
   if (!open) return;
-  dismissOpen?.();
-  dismissOpen = () => setOpen(false);
+  const token = { close: () => setOpen(false) };
+  openPanel?.close();
+  openPanel = token;
   const el = panel.current!, trigger = button.current!;
   // The top layer, so a tile's transform or `contain` cannot become the containing
   // block for a fixed panel, and so a popover opened inside a modal drawer still
   // paints above it.
-  el.showPopover?.();
+  try { el.showPopover?.(); } catch { /* already in the top layer */ }
   const place = () => {
    const r = trigger.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight, gap = 8, edge = 8;
    el.style.left = `${Math.round(Math.max(edge, Math.min(innerWidth - w - edge, r.left + r.width / 2 - w / 2)))}px`;
@@ -62,7 +68,7 @@ export function InfoPopover({ titleId, label, size = 16, children }: { titleId: 
   globalThis.addEventListener('resize', place);
   globalThis.addEventListener('scroll', place, true);
   return () => {
-   if (dismissOpen) dismissOpen = null;
+   if (openPanel === token) openPanel = null;
    document.removeEventListener('pointerdown', pointer, true);
    document.removeEventListener('keydown', key, true);
    el.removeEventListener('focusout', away);

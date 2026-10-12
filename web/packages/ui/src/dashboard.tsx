@@ -44,7 +44,15 @@ export function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unk
     beginLoad(kind);
     Promise.resolve().then(() => loader.current(controller.signal)).then(
       value => { if (!controller.signal.aborted) { held.current = value; setState({ value, loading: false, stale: false }); } finish(!controller.signal.aborted); },
-      error => { if (!controller.signal.aborted) setState(old => ({ value: old.value, error: error instanceof Error ? error.message : 'Could not load data.', loading: false, stale: false })); finish(false); });
+      error => {
+        // A failed background refresh must not throw away the screen; a failed range or
+        // project change must not leave the previous answer standing in for the new one.
+        if (!controller.signal.aborted) {
+          if (kind !== 'refresh') held.current = undefined;
+          setState(old => ({ value: kind === 'refresh' ? old.value : undefined, error: error instanceof Error ? error.message : 'Could not load data.', loading: false, stale: false }));
+        }
+        finish(false);
+      });
     return () => { controller.abort(); finish(false); };
   }, [dependencyVersion, refresh]);
   const reload = useCallback(() => setRefresh(n => n + 1), []);
