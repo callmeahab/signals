@@ -1,10 +1,11 @@
 // Measure product motion against the approved mock.
 // Records animation duration, delay, easing and animated properties for the
 // overview load and for one tab switch, plus the count-up length.
-// Does not grade. The coordinator rules on the timing difference.
+// Asserts the round-3 timing ruling and reduced-motion behavior; records other motion.
 //
 //   cd web && PLAYWRIGHT_CHANNEL=chromium PRODUCT_URL=http://127.0.0.1:27110 \
 //     bun ../reports/review-r3/motion.mjs
+import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const { chromium } = createRequire('/home/vuk/orca/workspaces/signals-collector/dash-v2/web/package.json')('@playwright/test');
 import { writeFileSync } from 'node:fs';
@@ -24,7 +25,7 @@ const recorder = () => {
       const effect = a.effect;
       const target = effect && effect.target;
       const timing = effect && effect.getTiming ? effect.getTiming() : {};
-      const key = [target && target.className, effect && effect.pseudoElement, a.animationName, timing.duration, timing.delay, Math.round(a.startTime || 0)].join('|');
+      const key = [target && target.getAttribute('class'), effect && effect.pseudoElement, a.animationName, timing.duration, timing.delay, Math.round(a.startTime || 0)].join('|');
       if (seen.has(key)) continue;
       seen.add(key);
       let props = [];
@@ -40,7 +41,7 @@ const recorder = () => {
         iterations: timing.iterations,
         props,
         pseudo: (effect && effect.pseudoElement) || null,
-        cls: target ? String(target.className || target.tagName).slice(0, 90) : null,
+        cls: target ? String(target.getAttribute('class') || target.tagName).slice(0, 90) : null,
       });
     }
     if (performance.now() - start < 2500) requestAnimationFrame(tick);
@@ -131,12 +132,12 @@ const report = { product, mock, designNotes: {
         const effect = a.effect;
         const target = effect && effect.target;
         const timing = effect && effect.getTiming ? effect.getTiming() : {};
-        const key = [target && target.className, a.animationName, timing.duration, timing.delay, Math.round(a.startTime || 0)].join('|');
+        const key = [target && target.getAttribute('class'), a.animationName, timing.duration, timing.delay, Math.round(a.startTime || 0)].join('|');
         if (seen.has(key)) continue;
         seen.add(key);
         let props = [];
         try { props = [...new Set(effect.getKeyframes().flatMap((k) => Object.keys(k)).filter((k) => !['offset', 'easing', 'composite', 'computedOffset'].includes(k)))]; } catch { /* ignore */ }
-        records.push({ name: a.animationName || '(generated)', type: a.constructor.name, duration: timing.duration, delay: timing.delay, easing: timing.easing, iterations: timing.iterations, props, pseudo: (effect && effect.pseudoElement) || null, cls: target ? String(target.className || target.tagName).slice(0, 90) : null });
+        records.push({ name: a.animationName || '(generated)', type: a.constructor.name, duration: timing.duration, delay: timing.delay, easing: timing.easing, iterations: timing.iterations, props, pseudo: (effect && effect.pseudoElement) || null, cls: target ? String(target.getAttribute('class') || target.tagName).slice(0, 90) : null });
       }
       if (performance.now() - start < 2000) requestAnimationFrame(tick);
     };
@@ -160,6 +161,36 @@ const report = { product, mock, designNotes: {
     scriptMs: Math.round((after.ScriptDuration - before.ScriptDuration) * 1e6) / 1e3,
     animations: summarise(await page.evaluate(() => globalThis.__motionRecords ?? [])),
   };
+  await page.waitForTimeout(1200);
+  await page.evaluate(recorder);
+  await page.locator('nav a[href="#tools"]').click();
+  await page.locator('.chart-histogram svg[role=img]').waitFor();
+  await page.waitForTimeout(2300);
+  report.productTools = summarise(await page.evaluate(() => globalThis.__motionRecords ?? []));
+  report.histogramBars = await page.locator('.chart-histogram .bar-layer.growy').evaluateAll(bars => bars.map(bar => {
+    const s = getComputedStyle(bar);
+    return {durationMs: parseFloat(s.animationDuration)*1000, delayMs: parseFloat(s.animationDelay)*1000, easing:s.animationTimingFunction};
+  }));
+  assert.equal(report.histogramBars.length, 60);
+  report.histogramBars.forEach((bar, i) => {assert.equal(bar.durationMs, 520);assert(Math.abs(bar.delayMs-i*12)<0.001);});
+  const tiles = report.productLoad.filter(a => a.cls?.startsWith('tile rv'));
+  assert(tiles.every(a => a.duration===520));
+  assert.deepEqual([...new Set(tiles.flatMap(a=>a.delays))].sort((a,b)=>a-b), [130,185,240,295,350,405]);
+  for(const [cls,delay] of [['workspace-strip',40],['page-heading',90],['range-control',140]]){
+    assert(report.productLoad.some(a=>a.cls===cls&&a.duration===520&&a.delays.includes(delay)));
+  }
+  await page.locator('nav a[href="#overview"]').click();
+  await page.waitForTimeout(1600);
+  await page.evaluate(recorder);
+  await page.locator('.grid>.card').last().scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1300);
+  report.productScrolledCard = summarise(await page.evaluate(()=>globalThis.__motionRecords??[]));
+  assert(report.productScrolledCard.some(a=>a.cls?.includes('card panel')&&a.duration===520&&a.delays.includes(640)));
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.reload();
+  await page.waitForTimeout(500);
+  report.reducedMotion = await page.evaluate(()=>document.getAnimations().map(a=>a.animationName??'WAAPI'));
+  assert.deepEqual(report.reducedMotion, []);
   await ctx.close();
 }
 

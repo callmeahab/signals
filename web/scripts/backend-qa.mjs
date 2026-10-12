@@ -77,7 +77,7 @@ try {
  await visit('tools','analytics/tools');
  await page.getByRole('button',{name:'search_documents',exact:true}).click();
  await page.getByRole('dialog').locator('.chart-histogram').scrollIntoViewIfNeeded();
- await expect(page.getByRole('dialog').locator('.chart-histogram svg')).toHaveCount(1);
+ await expect(page.getByRole('dialog').locator('.chart-histogram svg[role=img]')).toHaveCount(1);
  assert.equal(await page.getByRole('dialog').locator('.chart-histogram table tbody tr').count(),60);
  await page.getByRole('button',{name:'Close details'}).click();
  await visit('sessions','sessions');await page.locator('tbody .row-button').first().click();

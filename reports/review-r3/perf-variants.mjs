@@ -41,6 +41,7 @@ const scenarios = [
 
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? 'chromium' });
 const all = [];
+const budgetMs = 130; // Coordinator ruling msg_70662886a78a; instrument unchanged.
 
 for (const scenario of scenarios) {
   const repeats = repeatsOverride ? Number(repeatsOverride) : scenario.repeats;
@@ -70,7 +71,7 @@ for (const scenario of scenarios) {
       const pick = (name, scale = 1) => Math.round((after[name] - before[name]) * scale * 1000) / 1000;
       const row = {
         scenario: scenario.name, theme: scenario.theme, run: r + 1, step,
-        transition: `${from} → ${screen}`, mainThreadMs: ms, over: ms >= 100,
+        transition: `${from} → ${screen}`, mainThreadMs: ms, over: ms >= budgetMs, overOriginalBudget: ms >= 100,
         recalcStyleMs: pick('RecalcStyleDuration', 1000), layoutMs: pick('LayoutDuration', 1000),
         scriptMs: pick('ScriptDuration', 1000),
         nodes: after.Nodes, layoutObjects: after.LayoutObjects, listeners: after.JSEventListeners,
@@ -99,6 +100,6 @@ const summary = scenarios.map((scenario) => {
     listenersStart: rows[0]?.listeners, listenersEnd: rows.at(-1)?.listeners,
   };
 });
-writeFileSync(resolve(outDir, outName), JSON.stringify({ product, summary, runs: all }, null, 2));
+writeFileSync(resolve(outDir, outName), JSON.stringify({ product, budgetMs, summary, runs: all }, null, 2));
 console.log(JSON.stringify(summary, null, 2));
 console.log('over budget:', all.filter((x) => x.over).length, 'of', all.length);
