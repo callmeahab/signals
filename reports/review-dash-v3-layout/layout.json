@@ -1,7 +1,7 @@
 {
   "failures": [],
   "report": {
-    "product": "http://127.0.0.1:25577",
+    "product": "http://127.0.0.1:27690",
     "widths": {
       "390/light": {
         "overview": {
@@ -3906,6 +3906,1915 @@
         }
       },
       "768/light": {
+        "overview": {
+          "tiles": [
+            {
+              "columns": 2,
+              "count": 6,
+              "heights": [
+                248,
+                248,
+                244,
+                244,
+                244,
+                244
+              ],
+              "rows": [
+                [
+                  "Tool calls",
+                  "Active users"
+                ],
+                [
+                  "Sessions",
+                  "Tool success"
+                ],
+                [
+                  "p95 latency",
+                  "Context tokens"
+                ]
+              ],
+              "items": [
+                {
+                  "label": "Tool calls",
+                  "top": 240,
+                  "height": 248,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 93,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "Active users",
+                  "top": 240,
+                  "height": 248,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 95.5999984741211,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "Sessions",
+                  "top": 503,
+                  "height": 244,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 93,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "Tool success",
+                  "top": 503,
+                  "height": 244,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 93,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "p95 latency",
+                  "top": 760,
+                  "height": 244,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 93,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "Context tokens",
+                  "top": 760,
+                  "height": 244,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 93,
+                    "viewBoxHeight": 108
+                  }
+                }
+              ]
+            }
+          ],
+          "grids": [
+            {
+              "width": 720,
+              "children": [
+                {
+                  "title": "Calls by client",
+                  "top": 1046,
+                  "bottom": 1421,
+                  "width": 720,
+                  "height": 375.59375,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Client mix",
+                  "top": 1441,
+                  "bottom": 1751,
+                  "width": 720,
+                  "height": 310,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 0,
+                  "legend": 3,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Activation funnel",
+                  "top": 1771,
+                  "bottom": 2152,
+                  "width": 720,
+                  "height": 381,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Weekly retention",
+                  "top": 2172,
+                  "bottom": 2452,
+                  "width": 720,
+                  "height": 280,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Tools needing attention",
+                  "top": 2472,
+                  "bottom": 2912,
+                  "width": 720,
+                  "height": 440,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 9,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                }
+              ],
+              "rows": [
+                {
+                  "titles": [
+                    "Calls by client"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    376
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Client mix"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    310
+                  ],
+                  "covered": 720,
+                  "entities": [
+                    "Client mix"
+                  ]
+                },
+                {
+                  "titles": [
+                    "Activation funnel"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    381
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Weekly retention"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    280
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Tools needing attention"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    440
+                  ],
+                  "covered": 720,
+                  "entities": [
+                    "Tools needing attention"
+                  ]
+                }
+              ]
+            }
+          ],
+          "rootWidth": 720
+        },
+        "adoption": {
+          "tiles": [
+            {
+              "columns": 2,
+              "count": 6,
+              "heights": [
+                248,
+                248,
+                244,
+                244,
+                244,
+                244
+              ],
+              "rows": [
+                [
+                  "DAU",
+                  "WAU"
+                ],
+                [
+                  "MAU",
+                  "Stickiness"
+                ],
+                [
+                  "New users",
+                  "D7 retention"
+                ]
+              ],
+              "items": [
+                {
+                  "label": "DAU",
+                  "top": 258,
+                  "height": 248,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 95.5999984741211,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "WAU",
+                  "top": 258,
+                  "height": 248,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 95.5999984741211,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "MAU",
+                  "top": 521,
+                  "height": 244,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 95.5999984741211,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "Stickiness",
+                  "top": 521,
+                  "height": 244,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 95.5999984741211,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "New users",
+                  "top": 778,
+                  "height": 244,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 93,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "D7 retention",
+                  "top": 778,
+                  "height": 244,
+                  "width": 353,
+                  "sparkline": null
+                }
+              ]
+            }
+          ],
+          "grids": [
+            {
+              "width": 720,
+              "children": [
+                {
+                  "title": "Active identities",
+                  "top": 1064,
+                  "bottom": 1439,
+                  "width": 720,
+                  "height": 375.59375,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Identity quality",
+                  "top": 1459,
+                  "bottom": 1862,
+                  "width": 720,
+                  "height": 403,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Clients",
+                  "top": 1882,
+                  "bottom": 2121,
+                  "width": 720,
+                  "height": 239,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [
+                    {
+                      "headers": [
+                        "Client",
+                        "Share of calls",
+                        "%",
+                        "Sessions",
+                        "Calls",
+                        "Capabilities"
+                      ],
+                      "rows": 3
+                    }
+                  ],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Transport and protocol",
+                  "top": 2141,
+                  "bottom": 2431,
+                  "width": 720,
+                  "height": 290,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [
+                    {
+                      "rows": 2,
+                      "height": 100,
+                      "grows": true
+                    },
+                    {
+                      "rows": 2,
+                      "height": 100,
+                      "grows": true
+                    }
+                  ],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Conversion",
+                  "top": 2451,
+                  "bottom": 2771,
+                  "width": 720,
+                  "height": 320,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                }
+              ],
+              "rows": [
+                {
+                  "titles": [
+                    "Active identities"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    376
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Identity quality"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    403
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Clients"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    239
+                  ],
+                  "covered": 720,
+                  "entities": [
+                    "Clients"
+                  ]
+                },
+                {
+                  "titles": [
+                    "Transport and protocol"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    290
+                  ],
+                  "covered": 720,
+                  "entities": [
+                    "Transport and protocol"
+                  ]
+                },
+                {
+                  "titles": [
+                    "Conversion"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    320
+                  ],
+                  "covered": 720,
+                  "entities": []
+                }
+              ]
+            }
+          ],
+          "rootWidth": 720
+        },
+        "tools": {
+          "tiles": [
+            {
+              "columns": 2,
+              "count": 6,
+              "heights": [
+                240,
+                240,
+                240,
+                240,
+                240,
+                240
+              ],
+              "rows": [
+                [
+                  "Advertised",
+                  "Used"
+                ],
+                [
+                  "Never called",
+                  "Retries"
+                ],
+                [
+                  "Below SLO",
+                  "Hallucinated"
+                ]
+              ],
+              "items": [
+                {
+                  "label": "Advertised",
+                  "top": 240,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Used",
+                  "top": 240,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Never called",
+                  "top": 494,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Retries",
+                  "top": 494,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Below SLO",
+                  "top": 748,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Hallucinated",
+                  "top": 748,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                }
+              ]
+            }
+          ],
+          "grids": [
+            {
+              "width": 720,
+              "children": [
+                {
+                  "title": "Tool health",
+                  "top": 1030,
+                  "bottom": 1589,
+                  "width": 720,
+                  "height": 558.59375,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 12,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Latency distribution",
+                  "top": 1609,
+                  "bottom": 1927,
+                  "width": 720,
+                  "height": 318,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Catalogue",
+                  "top": 1947,
+                  "bottom": 2327,
+                  "width": 720,
+                  "height": 379.75,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [
+                    {
+                      "headers": [
+                        "Metric",
+                        "Value"
+                      ],
+                      "rows": 5
+                    }
+                  ],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Tool performance",
+                  "top": 2347,
+                  "bottom": 3039,
+                  "width": 720,
+                  "height": 692,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [
+                    {
+                      "headers": [
+                        "Tool",
+                        "Class",
+                        "Calls",
+                        "Success",
+                        "p50",
+                        "p95",
+                        "p99",
+                        "In / out avg",
+                        "Tokens",
+                        "Errors"
+                      ],
+                      "rows": 12
+                    }
+                  ],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Top tool paths",
+                  "top": 3059,
+                  "bottom": 3432,
+                  "width": 720,
+                  "height": 373,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                }
+              ],
+              "rows": [
+                {
+                  "titles": [
+                    "Tool health"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    559
+                  ],
+                  "covered": 720,
+                  "entities": [
+                    "Tool health"
+                  ]
+                },
+                {
+                  "titles": [
+                    "Latency distribution"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    318
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Catalogue"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    380
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Tool performance"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    692
+                  ],
+                  "covered": 720,
+                  "entities": [
+                    "Tool performance"
+                  ]
+                },
+                {
+                  "titles": [
+                    "Top tool paths"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    373
+                  ],
+                  "covered": 720,
+                  "entities": []
+                }
+              ]
+            }
+          ],
+          "rootWidth": 720
+        },
+        "reliability": {
+          "tiles": [
+            {
+              "columns": 2,
+              "count": 6,
+              "heights": [
+                240,
+                240,
+                240,
+                240,
+                240,
+                240
+              ],
+              "rows": [
+                [
+                  "Handshake",
+                  "Timeouts"
+                ],
+                [
+                  "Cancellations",
+                  "Sessions with errors"
+                ],
+                [
+                  "Silent failures",
+                  "Hallucinated tools"
+                ]
+              ],
+              "items": [
+                {
+                  "label": "Handshake",
+                  "top": 240,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Timeouts",
+                  "top": 240,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Cancellations",
+                  "top": 494,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Sessions with errors",
+                  "top": 494,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Silent failures",
+                  "top": 748,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Hallucinated tools",
+                  "top": 748,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                }
+              ]
+            }
+          ],
+          "grids": [
+            {
+              "width": 720,
+              "children": [
+                {
+                  "title": "Error budget",
+                  "top": 1030,
+                  "bottom": 1821,
+                  "width": 720,
+                  "height": 791.09375,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Latency over time",
+                  "top": 1841,
+                  "bottom": 2151,
+                  "width": 720,
+                  "height": 310,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Success by class",
+                  "top": 2171,
+                  "bottom": 2469,
+                  "width": 720,
+                  "height": 297.1875,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Error codes",
+                  "top": 2489,
+                  "bottom": 2699,
+                  "width": 720,
+                  "height": 210,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Authentication failures",
+                  "top": 2719,
+                  "bottom": 2939,
+                  "width": 720,
+                  "height": 220,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Availability",
+                  "top": 2959,
+                  "bottom": 3179,
+                  "width": 720,
+                  "height": 220,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                }
+              ],
+              "rows": [
+                {
+                  "titles": [
+                    "Error budget"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    791
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Latency over time"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    310
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Success by class"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    297
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Error codes"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    210
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Authentication failures"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    220
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Availability"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    220
+                  ],
+                  "covered": 720,
+                  "entities": []
+                }
+              ]
+            }
+          ],
+          "rootWidth": 720
+        },
+        "sessions": {
+          "tiles": [
+            {
+              "columns": 2,
+              "count": 6,
+              "heights": [
+                248,
+                248,
+                240,
+                240,
+                240,
+                240
+              ],
+              "rows": [
+                [
+                  "Sessions",
+                  "With errors"
+                ],
+                [
+                  "Cancelled",
+                  "streamable-http"
+                ],
+                [
+                  "stdio",
+                  "Open on this page"
+                ]
+              ],
+              "items": [
+                {
+                  "label": "Sessions",
+                  "top": 240,
+                  "height": 248,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 93,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "With errors",
+                  "top": 240,
+                  "height": 248,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Cancelled",
+                  "top": 503,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "streamable-http",
+                  "top": 503,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "stdio",
+                  "top": 757,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Open on this page",
+                  "top": 757,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                }
+              ]
+            }
+          ],
+          "grids": [
+            {
+              "width": 720,
+              "children": [
+                {
+                  "title": "The story of a connection",
+                  "top": 1377,
+                  "bottom": 2157,
+                  "width": 720,
+                  "height": 780.1875,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [
+                    {
+                      "headers": [
+                        "Client",
+                        "Caller",
+                        "Started",
+                        "Duration",
+                        "Depth",
+                        "Errors",
+                        "Outcome",
+                        "Transport",
+                        "Reason"
+                      ],
+                      "rows": 12
+                    }
+                  ],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Sessions by client",
+                  "top": 2177,
+                  "bottom": 2487,
+                  "width": 720,
+                  "height": 310,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                }
+              ],
+              "rows": [
+                {
+                  "titles": [
+                    "The story of a connection"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    780
+                  ],
+                  "covered": 720,
+                  "entities": [
+                    "The story of a connection"
+                  ]
+                },
+                {
+                  "titles": [
+                    "Sessions by client"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    310
+                  ],
+                  "covered": 720,
+                  "entities": []
+                }
+              ]
+            }
+          ],
+          "rootWidth": 720
+        },
+        "callers": {
+          "tiles": [],
+          "grids": [],
+          "rootWidth": 720
+        },
+        "cost": {
+          "tiles": [
+            {
+              "columns": 2,
+              "count": 6,
+              "heights": [
+                248,
+                248,
+                240,
+                240,
+                240,
+                240
+              ],
+              "rows": [
+                [
+                  "Context tokens",
+                  "Per call"
+                ],
+                [
+                  "Heaviest tool",
+                  "Tenants"
+                ],
+                [
+                  "Largest payload",
+                  "Billing period"
+                ]
+              ],
+              "items": [
+                {
+                  "label": "Context tokens",
+                  "top": 240,
+                  "height": 248,
+                  "width": 353,
+                  "sparkline": {
+                    "svgHeight": 108,
+                    "svgWidth": 351,
+                    "tileClientWidth": 351,
+                    "tileWidth": 353,
+                    "plotBBoxHeight": 93,
+                    "viewBoxHeight": 108
+                  }
+                },
+                {
+                  "label": "Per call",
+                  "top": 240,
+                  "height": 248,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Heaviest tool",
+                  "top": 503,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Tenants",
+                  "top": 503,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Largest payload",
+                  "top": 757,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Billing period",
+                  "top": 757,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                }
+              ]
+            }
+          ],
+          "grids": [
+            {
+              "width": 720,
+              "children": [
+                {
+                  "title": "Where the context goes",
+                  "top": 1039,
+                  "bottom": 1450,
+                  "width": 720,
+                  "height": 411.59375,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Payload sizes",
+                  "top": 1470,
+                  "bottom": 1804,
+                  "width": 720,
+                  "height": 334,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [
+                    {
+                      "rows": 5,
+                      "height": 220,
+                      "grows": false
+                    }
+                  ],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "By tenant",
+                  "top": 1824,
+                  "bottom": 2064,
+                  "width": 720,
+                  "height": 240,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [
+                    {
+                      "rows": 3,
+                      "height": 150,
+                      "grows": true
+                    }
+                  ],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Billing periods",
+                  "top": 2084,
+                  "bottom": 2360,
+                  "width": 720,
+                  "height": 275.59375,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [
+                    {
+                      "headers": [
+                        "Period",
+                        "Caller",
+                        "Calls",
+                        "Tokens",
+                        "Share"
+                      ],
+                      "rows": 3
+                    }
+                  ],
+                  "eventRows": 0,
+                  "allowedShare": false
+                }
+              ],
+              "rows": [
+                {
+                  "titles": [
+                    "Where the context goes"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    412
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Payload sizes"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    334
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "By tenant"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    240
+                  ],
+                  "covered": 720,
+                  "entities": [
+                    "By tenant"
+                  ]
+                },
+                {
+                  "titles": [
+                    "Billing periods"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    276
+                  ],
+                  "covered": 720,
+                  "entities": [
+                    "Billing periods"
+                  ]
+                }
+              ]
+            }
+          ],
+          "rootWidth": 720
+        },
+        "protocol": {
+          "tiles": [
+            {
+              "columns": 2,
+              "count": 6,
+              "heights": [
+                240,
+                240,
+                240,
+                240,
+                240,
+                240
+              ],
+              "rows": [
+                [
+                  "Sessions",
+                  "Client capabilities"
+                ],
+                [
+                  "Server capabilities",
+                  "Sampling"
+                ],
+                [
+                  "Elicitation",
+                  "Tasks"
+                ]
+              ],
+              "items": [
+                {
+                  "label": "Sessions",
+                  "top": 240,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Client capabilities",
+                  "top": 240,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Server capabilities",
+                  "top": 494,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Sampling",
+                  "top": 494,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Elicitation",
+                  "top": 748,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                },
+                {
+                  "label": "Tasks",
+                  "top": 748,
+                  "height": 240,
+                  "width": 353,
+                  "sparkline": null
+                }
+              ]
+            }
+          ],
+          "grids": [
+            {
+              "width": 720,
+              "children": [
+                {
+                  "title": "Capability matrix",
+                  "top": 1030,
+                  "bottom": 1506,
+                  "width": 720,
+                  "height": 475.59375,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [
+                    3,
+                    3
+                  ],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Sampling",
+                  "top": 1526,
+                  "bottom": 1718,
+                  "width": 720,
+                  "height": 192,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Elicitation",
+                  "top": 1738,
+                  "bottom": 1930,
+                  "width": 720,
+                  "height": 192,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Tasks",
+                  "top": 1950,
+                  "bottom": 2142,
+                  "width": 720,
+                  "height": 192,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Progress",
+                  "top": 2162,
+                  "bottom": 2354,
+                  "width": 720,
+                  "height": 192,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                }
+              ],
+              "rows": [
+                {
+                  "titles": [
+                    "Capability matrix"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    476
+                  ],
+                  "covered": 720,
+                  "entities": [
+                    "Capability matrix"
+                  ]
+                },
+                {
+                  "titles": [
+                    "Sampling"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    192
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Elicitation"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    192
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Tasks"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    192
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Progress"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    192
+                  ],
+                  "covered": 720,
+                  "entities": []
+                }
+              ]
+            }
+          ],
+          "rootWidth": 720
+        },
+        "live": {
+          "tiles": [],
+          "grids": [
+            {
+              "width": 720,
+              "children": [
+                {
+                  "title": "Events per second",
+                  "top": 240,
+                  "bottom": 424,
+                  "width": 720,
+                  "height": 184,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Event mix",
+                  "top": 444,
+                  "bottom": 1034,
+                  "width": 720,
+                  "height": 590,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [
+                    {
+                      "rows": 10,
+                      "height": 500,
+                      "grows": true
+                    }
+                  ],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": true
+                },
+                {
+                  "title": "Errors in window",
+                  "top": 1054,
+                  "bottom": 1238,
+                  "width": 720,
+                  "height": 184,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                }
+              ],
+              "rows": [
+                {
+                  "titles": [
+                    "Events per second"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    184
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Event mix"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    590
+                  ],
+                  "covered": 720,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Errors in window"
+                  ],
+                  "widths": [
+                    720
+                  ],
+                  "heights": [
+                    184
+                  ],
+                  "covered": 720,
+                  "entities": []
+                }
+              ]
+            }
+          ],
+          "rootWidth": 720
+        },
+        "settings": {
+          "tiles": [],
+          "grids": [
+            {
+              "width": 716,
+              "children": [
+                {
+                  "title": "Alert rules",
+                  "top": 269,
+                  "bottom": 821,
+                  "width": 716,
+                  "height": 551.59375,
+                  "full": true,
+                  "entity": false,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [],
+                  "eventRows": 0,
+                  "allowedShare": false
+                },
+                {
+                  "title": "Analytics settings",
+                  "top": 841,
+                  "bottom": 2037,
+                  "width": 716,
+                  "height": 1196.375,
+                  "full": true,
+                  "entity": true,
+                  "ribbons": 0,
+                  "legend": 0,
+                  "dots": [],
+                  "ranked": [],
+                  "tables": [
+                    {
+                      "headers": [
+                        "Tool",
+                        "SLO class"
+                      ],
+                      "rows": 12
+                    }
+                  ],
+                  "eventRows": 0,
+                  "allowedShare": false
+                }
+              ],
+              "rows": [
+                {
+                  "titles": [
+                    "Alert rules"
+                  ],
+                  "widths": [
+                    716
+                  ],
+                  "heights": [
+                    552
+                  ],
+                  "covered": 716,
+                  "entities": []
+                },
+                {
+                  "titles": [
+                    "Analytics settings"
+                  ],
+                  "widths": [
+                    716
+                  ],
+                  "heights": [
+                    1196
+                  ],
+                  "covered": 716,
+                  "entities": [
+                    "Analytics settings"
+                  ]
+                }
+              ]
+            }
+          ],
+          "rootWidth": 720
+        }
+      },
+      "768/dark": {
         "overview": {
           "tiles": [
             {
@@ -15568,6 +17477,40 @@
         ],
         "full": true
       },
+      "768/dark": {
+        "headers": [
+          "Client",
+          "Share of calls",
+          "%",
+          "Sessions",
+          "Calls",
+          "Capabilities"
+        ],
+        "rows": [
+          {
+            "name": "Claude 0.1.0",
+            "meter": 46,
+            "pct": "46%",
+            "sessions": "2,981",
+            "calls": "22,178"
+          },
+          {
+            "name": "Cursor 1.7.2",
+            "meter": 34,
+            "pct": "34%",
+            "sessions": "2,203",
+            "calls": "16,392"
+          },
+          {
+            "name": "ChatGPT 1.2026.280",
+            "meter": 20,
+            "pct": "20%",
+            "sessions": "1,296",
+            "calls": "9,642"
+          }
+        ],
+        "full": true
+      },
       "1280/light": {
         "headers": [
           "Client",
@@ -16287,6 +18230,66 @@
       {
         "screen": "settings",
         "key": "768/light",
+        "failures": 0,
+        "clipped": 0
+      },
+      {
+        "screen": "overview",
+        "key": "768/dark",
+        "failures": 0,
+        "clipped": 0
+      },
+      {
+        "screen": "adoption",
+        "key": "768/dark",
+        "failures": 0,
+        "clipped": 0
+      },
+      {
+        "screen": "tools",
+        "key": "768/dark",
+        "failures": 0,
+        "clipped": 0
+      },
+      {
+        "screen": "reliability",
+        "key": "768/dark",
+        "failures": 0,
+        "clipped": 0
+      },
+      {
+        "screen": "sessions",
+        "key": "768/dark",
+        "failures": 0,
+        "clipped": 0
+      },
+      {
+        "screen": "callers",
+        "key": "768/dark",
+        "failures": 0,
+        "clipped": 0
+      },
+      {
+        "screen": "cost",
+        "key": "768/dark",
+        "failures": 0,
+        "clipped": 0
+      },
+      {
+        "screen": "protocol",
+        "key": "768/dark",
+        "failures": 0,
+        "clipped": 0
+      },
+      {
+        "screen": "live",
+        "key": "768/dark",
+        "failures": 0,
+        "clipped": 0
+      },
+      {
+        "screen": "settings",
+        "key": "768/dark",
         "failures": 0,
         "clipped": 0
       },

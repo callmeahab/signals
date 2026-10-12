@@ -18,6 +18,7 @@ const product = process.env.PRODUCT_URL ?? 'http://127.0.0.1:27680';
 const outDir = resolve(import.meta.dirname);
 const screens = ['overview', 'adoption', 'tools', 'reliability', 'sessions', 'callers', 'cost', 'protocol', 'live', 'settings'];
 const widths = [390, 768, 1280, 1440];
+// Round 2 measures light and dark at every width, including 768.
 const failures = [];
 const fail = (message) => failures.push(message);
 
@@ -171,7 +172,7 @@ const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL 
 const report = { product, widths: {}, many: {}, adoption: {}, contrast: [] };
 try {
   for (const width of widths) {
-    for (const theme of width === 768 ? ['light'] : ['light', 'dark']) {
+    for (const theme of ['light', 'dark']) {
       const context = await browser.newContext({ viewport: { width, height: 1000 }, colorScheme: theme, deviceScaleFactor: 1, reducedMotion: 'reduce' });
       await context.addInitScript(() => localStorage.setItem('signals-theme', theme === 'dark' ? 'dark' : 'light'));
       const page = await context.newPage();
