@@ -1,0 +1,317 @@
+[
+  {
+    "run": 1,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 65.146,
+          "recalcStyleMs": 8.780999999999999,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 2,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 72.897,
+          "recalcStyleMs": 9.577,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 3,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 67.654,
+          "recalcStyleMs": 8.568000000000001,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 4,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 62.84,
+          "recalcStyleMs": 8.503,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 5,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 68.739,
+          "recalcStyleMs": 9.098,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 6,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 65.875,
+          "recalcStyleMs": 8.803,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 7,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 66.324,
+          "recalcStyleMs": 9.071,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 8,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 59.462,
+          "recalcStyleMs": 8.758000000000001,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 9,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 65.704,
+          "recalcStyleMs": 10.113999999999999,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 10,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 63.273999999999994,
+          "recalcStyleMs": 8.764,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 11,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 81.998,
+          "recalcStyleMs": 11.759,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 12,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 62.06300000000001,
+          "recalcStyleMs": 8.65,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 13,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 70.762,
+          "recalcStyleMs": 9.155999999999999,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 14,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 62.675999999999995,
+          "recalcStyleMs": 8.608,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  },
+  {
+    "run": 15,
+    "exit": 0,
+    "result": {
+      "theme": "light",
+      "repeats": 1,
+      "budgetMs": 100,
+      "runs": [
+        {
+          "run": 1,
+          "step": 1,
+          "transition": "overview \u2192 adoption",
+          "mainThreadMs": 62.907999999999994,
+          "recalcStyleMs": 8.744,
+          "nodes": 2285,
+          "listeners": 193,
+          "budgetMs": 100
+        }
+      ]
+    }
+  }
+]

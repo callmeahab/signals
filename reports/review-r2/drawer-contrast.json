@@ -1,71 +1,6 @@
 {
-  "product": "http://127.0.0.1:26210",
-  "failures": [
-    {
-      "tag": "session-drawer-1440-dark",
-      "sample": "session.started",
-      "ratio": 4.46,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.6619 0.1088 186.28)"
-    },
-    {
-      "tag": "session-drawer-1440-dark",
-      "sample": "mcp.initialize",
-      "ratio": 4.46,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.6619 0.1088 186.28)"
-    },
-    {
-      "tag": "session-drawer-1440-dark",
-      "sample": "mcp.request",
-      "ratio": 4.46,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.6619 0.1088 186.28)"
-    },
-    {
-      "tag": "session-drawer-1440-dark",
-      "sample": "tool.called",
-      "ratio": 4.46,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.6619 0.1088 186.28)"
-    },
-    {
-      "tag": "session-drawer-390-dark",
-      "sample": "session.started",
-      "ratio": 4.46,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.6619 0.1088 186.28)"
-    },
-    {
-      "tag": "session-drawer-390-dark",
-      "sample": "mcp.initialize",
-      "ratio": 4.46,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.6619 0.1088 186.28)"
-    },
-    {
-      "tag": "session-drawer-390-dark",
-      "sample": "mcp.request",
-      "ratio": 4.46,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.6619 0.1088 186.28)"
-    },
-    {
-      "tag": "session-drawer-390-dark",
-      "sample": "tool.called",
-      "ratio": 4.46,
-      "size": "10.5px",
-      "weight": "500",
-      "color": "oklch(0.6619 0.1088 186.28)"
-    }
-  ],
+  "product": "http://127.0.0.1:26431",
+  "failures": [],
   "clipped": [],
   "pill": {
     "1440-light": {
@@ -127,11 +62,11 @@
     "1440-dark": {
       "text": "session.started",
       "classes": "status-pill ok",
-      "color": "oklch(0.6619 0.1088 186.28)",
+      "color": "oklch(0.76 0.1 186)",
       "colorRgba": {
-        "r": 35,
-        "g": 168,
-        "b": 157,
+        "r": 91,
+        "g": 198,
+        "b": 186,
         "a": 1
       },
       "pillBackground": "oklch(0.6619 0.1088 186.28 / 0.1)",
@@ -155,11 +90,11 @@
     "390-dark": {
       "text": "session.started",
       "classes": "status-pill ok",
-      "color": "oklch(0.6619 0.1088 186.28)",
+      "color": "oklch(0.76 0.1 186)",
       "colorRgba": {
-        "r": 35,
-        "g": 168,
-        "b": 157,
+        "r": 91,
+        "g": 198,
+        "b": 186,
         "a": 1
       },
       "pillBackground": "oklch(0.6619 0.1088 186.28 / 0.1)",

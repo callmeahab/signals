@@ -1,5 +1,17 @@
 {
-  "screen": "overview → adoption",
-  "mainThreadMs": 95.88,
-  "budgetMs": 100
+  "theme": "light",
+  "repeats": 1,
+  "budgetMs": 100,
+  "runs": [
+    {
+      "run": 1,
+      "step": 1,
+      "transition": "overview → adoption",
+      "mainThreadMs": 62.907999999999994,
+      "recalcStyleMs": 8.744,
+      "nodes": 2285,
+      "listeners": 193,
+      "budgetMs": 100
+    }
+  ]
 }

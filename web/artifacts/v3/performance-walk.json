@@ -1,0 +1,307 @@
+{
+  "theme": "light",
+  "repeats": 3,
+  "budgetMs": 100,
+  "runs": [
+    {
+      "run": 1,
+      "step": 1,
+      "transition": "overview → adoption",
+      "mainThreadMs": 67.837,
+      "recalcStyleMs": 9.412,
+      "nodes": 2285,
+      "listeners": 193,
+      "budgetMs": 100
+    },
+    {
+      "run": 1,
+      "step": 2,
+      "transition": "adoption → tools",
+      "mainThreadMs": 69.38400000000001,
+      "recalcStyleMs": 12.690999999999999,
+      "nodes": 3772,
+      "listeners": 214,
+      "budgetMs": 100
+    },
+    {
+      "run": 1,
+      "step": 3,
+      "transition": "tools → reliability",
+      "mainThreadMs": 71.01599999999999,
+      "recalcStyleMs": 13.078000000000003,
+      "nodes": 4310,
+      "listeners": 220,
+      "budgetMs": 100
+    },
+    {
+      "run": 1,
+      "step": 4,
+      "transition": "reliability → sessions",
+      "mainThreadMs": 60.27500000000002,
+      "recalcStyleMs": 9.033,
+      "nodes": 5056,
+      "listeners": 240,
+      "budgetMs": 100
+    },
+    {
+      "run": 1,
+      "step": 5,
+      "transition": "sessions → cost",
+      "mainThreadMs": 64.05,
+      "recalcStyleMs": 11.443000000000001,
+      "nodes": 5689,
+      "listeners": 246,
+      "budgetMs": 100
+    },
+    {
+      "run": 1,
+      "step": 6,
+      "transition": "cost → protocol",
+      "mainThreadMs": 52.86200000000002,
+      "recalcStyleMs": 10.890000000000004,
+      "nodes": 6272,
+      "listeners": 252,
+      "budgetMs": 100
+    },
+    {
+      "run": 1,
+      "step": 7,
+      "transition": "protocol → live",
+      "mainThreadMs": 52.669999999999995,
+      "recalcStyleMs": 9.759000000000004,
+      "nodes": 7934,
+      "listeners": 298,
+      "budgetMs": 100
+    },
+    {
+      "run": 1,
+      "step": 8,
+      "transition": "live → overview",
+      "mainThreadMs": 68.80100000000006,
+      "recalcStyleMs": 12.815000000000007,
+      "nodes": 9220,
+      "listeners": 306,
+      "budgetMs": 100
+    },
+    {
+      "run": 1,
+      "step": 9,
+      "transition": "overview → adoption",
+      "mainThreadMs": 61.443000000000026,
+      "recalcStyleMs": 10.203000000000003,
+      "nodes": 10095,
+      "listeners": 316,
+      "budgetMs": 100
+    },
+    {
+      "run": 1,
+      "step": 10,
+      "transition": "adoption → reliability",
+      "mainThreadMs": 56.31699999999995,
+      "recalcStyleMs": 10.604000000000003,
+      "nodes": 10632,
+      "listeners": 324,
+      "budgetMs": 100
+    },
+    {
+      "run": 2,
+      "step": 1,
+      "transition": "overview → adoption",
+      "mainThreadMs": 61.601000000000006,
+      "recalcStyleMs": 8.96,
+      "nodes": 2285,
+      "listeners": 193,
+      "budgetMs": 100
+    },
+    {
+      "run": 2,
+      "step": 2,
+      "transition": "adoption → tools",
+      "mainThreadMs": 68.22099999999999,
+      "recalcStyleMs": 12.155000000000001,
+      "nodes": 3772,
+      "listeners": 214,
+      "budgetMs": 100
+    },
+    {
+      "run": 2,
+      "step": 3,
+      "transition": "tools → reliability",
+      "mainThreadMs": 63.42100000000001,
+      "recalcStyleMs": 10.527999999999999,
+      "nodes": 4310,
+      "listeners": 220,
+      "budgetMs": 100
+    },
+    {
+      "run": 2,
+      "step": 4,
+      "transition": "reliability → sessions",
+      "mainThreadMs": 69.09500000000001,
+      "recalcStyleMs": 10.502999999999998,
+      "nodes": 5056,
+      "listeners": 240,
+      "budgetMs": 100
+    },
+    {
+      "run": 2,
+      "step": 5,
+      "transition": "sessions → cost",
+      "mainThreadMs": 56.273999999999994,
+      "recalcStyleMs": 11.278000000000004,
+      "nodes": 5689,
+      "listeners": 246,
+      "budgetMs": 100
+    },
+    {
+      "run": 2,
+      "step": 6,
+      "transition": "cost → protocol",
+      "mainThreadMs": 56.93399999999998,
+      "recalcStyleMs": 11.24499999999999,
+      "nodes": 6272,
+      "listeners": 252,
+      "budgetMs": 100
+    },
+    {
+      "run": 2,
+      "step": 7,
+      "transition": "protocol → live",
+      "mainThreadMs": 47.491999999999976,
+      "recalcStyleMs": 9.02,
+      "nodes": 7939,
+      "listeners": 298,
+      "budgetMs": 100
+    },
+    {
+      "run": 2,
+      "step": 8,
+      "transition": "live → overview",
+      "mainThreadMs": 74.46800000000003,
+      "recalcStyleMs": 12.52700000000001,
+      "nodes": 9226,
+      "listeners": 306,
+      "budgetMs": 100
+    },
+    {
+      "run": 2,
+      "step": 9,
+      "transition": "overview → adoption",
+      "mainThreadMs": 71.27199999999989,
+      "recalcStyleMs": 11.844999999999995,
+      "nodes": 10101,
+      "listeners": 316,
+      "budgetMs": 100
+    },
+    {
+      "run": 2,
+      "step": 10,
+      "transition": "adoption → reliability",
+      "mainThreadMs": 78.2290000000001,
+      "recalcStyleMs": 14.724,
+      "nodes": 10638,
+      "listeners": 324,
+      "budgetMs": 100
+    },
+    {
+      "run": 3,
+      "step": 1,
+      "transition": "overview → adoption",
+      "mainThreadMs": 91.27799999999999,
+      "recalcStyleMs": 12.348,
+      "nodes": 2285,
+      "listeners": 193,
+      "budgetMs": 100
+    },
+    {
+      "run": 3,
+      "step": 2,
+      "transition": "adoption → tools",
+      "mainThreadMs": 74.75800000000001,
+      "recalcStyleMs": 13.737999999999998,
+      "nodes": 3772,
+      "listeners": 214,
+      "budgetMs": 100
+    },
+    {
+      "run": 3,
+      "step": 3,
+      "transition": "tools → reliability",
+      "mainThreadMs": 72.39199999999998,
+      "recalcStyleMs": 11.318999999999996,
+      "nodes": 4310,
+      "listeners": 220,
+      "budgetMs": 100
+    },
+    {
+      "run": 3,
+      "step": 4,
+      "transition": "reliability → sessions",
+      "mainThreadMs": 94.27800000000003,
+      "recalcStyleMs": 15.361999999999993,
+      "nodes": 5056,
+      "listeners": 240,
+      "budgetMs": 100
+    },
+    {
+      "run": 3,
+      "step": 5,
+      "transition": "sessions → cost",
+      "mainThreadMs": 70.33600000000001,
+      "recalcStyleMs": 13.336000000000007,
+      "nodes": 5689,
+      "listeners": 246,
+      "budgetMs": 100
+    },
+    {
+      "run": 3,
+      "step": 6,
+      "transition": "cost → protocol",
+      "mainThreadMs": 67.07800000000003,
+      "recalcStyleMs": 14.157000000000004,
+      "nodes": 6272,
+      "listeners": 252,
+      "budgetMs": 100
+    },
+    {
+      "run": 3,
+      "step": 7,
+      "transition": "protocol → live",
+      "mainThreadMs": 57.359999999999964,
+      "recalcStyleMs": 10.044999999999998,
+      "nodes": 7933,
+      "listeners": 298,
+      "budgetMs": 100
+    },
+    {
+      "run": 3,
+      "step": 8,
+      "transition": "live → overview",
+      "mainThreadMs": 74.42199999999998,
+      "recalcStyleMs": 12.157000000000002,
+      "nodes": 9218,
+      "listeners": 306,
+      "budgetMs": 100
+    },
+    {
+      "run": 3,
+      "step": 9,
+      "transition": "overview → adoption",
+      "mainThreadMs": 61.105999999999995,
+      "recalcStyleMs": 10.231000000000003,
+      "nodes": 10093,
+      "listeners": 316,
+      "budgetMs": 100
+    },
+    {
+      "run": 3,
+      "step": 10,
+      "transition": "adoption → reliability",
+      "mainThreadMs": 69.77099999999992,
+      "recalcStyleMs": 12.839999999999991,
+      "nodes": 10630,
+      "listeners": 324,
+      "budgetMs": 100
+    }
+  ]
+}
