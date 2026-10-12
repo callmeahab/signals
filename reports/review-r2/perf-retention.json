@@ -1,0 +1,138 @@
+{
+  "product": "http://127.0.0.1:26210",
+  "walk": [
+    {
+      "screen": "adoption",
+      "mainThreadMs": 91.655,
+      "recalcStyleMs": 27.585,
+      "nodes": 2375,
+      "layoutObjects": 2156,
+      "listeners": 191,
+      "liveDom": 578
+    },
+    {
+      "screen": "tools",
+      "mainThreadMs": 81.504,
+      "recalcStyleMs": 33.014,
+      "nodes": 3896,
+      "layoutObjects": 3678,
+      "listeners": 210,
+      "liveDom": 971
+    },
+    {
+      "screen": "reliability",
+      "mainThreadMs": 103.775,
+      "recalcStyleMs": 42.066,
+      "nodes": 4457,
+      "layoutObjects": 4193,
+      "listeners": 216,
+      "liveDom": 368
+    },
+    {
+      "screen": "sessions",
+      "mainThreadMs": 95.667,
+      "recalcStyleMs": 41.715,
+      "nodes": 5244,
+      "layoutObjects": 4967,
+      "listeners": 236,
+      "liveDom": 481
+    },
+    {
+      "screen": "cost",
+      "mainThreadMs": 116.325,
+      "recalcStyleMs": 56.923,
+      "nodes": 5924,
+      "layoutObjects": 5579,
+      "listeners": 242,
+      "liveDom": 411
+    },
+    {
+      "screen": "protocol",
+      "mainThreadMs": 96.28,
+      "recalcStyleMs": 56.122,
+      "nodes": 6530,
+      "layoutObjects": 6191,
+      "listeners": 248,
+      "liveDom": 537
+    },
+    {
+      "screen": "live",
+      "mainThreadMs": 58.255,
+      "recalcStyleMs": 14.869,
+      "nodes": 8198,
+      "layoutObjects": 7409,
+      "listeners": 294,
+      "liveDom": 879
+    },
+    {
+      "screen": "overview",
+      "mainThreadMs": 135.551,
+      "recalcStyleMs": 63.004,
+      "nodes": 9525,
+      "layoutObjects": 8634,
+      "listeners": 302,
+      "liveDom": 820
+    }
+  ],
+  "afterGc": {
+    "Nodes": 1359,
+    "LayoutObjects": 1253,
+    "JSEventListeners": 181,
+    "Documents": 1,
+    "liveDom": 820
+  },
+  "postGcSwitch": {
+    "screen": "adoption",
+    "mainThreadMs": 105.963,
+    "recalcStyleMs": 33.011,
+    "nodes": 2281,
+    "layoutObjects": 2094,
+    "listeners": 189,
+    "liveDom": 578
+  },
+  "secondGc": {
+    "Nodes": 973,
+    "LayoutObjects": 879,
+    "JSEventListeners": 181,
+    "liveDom": 578
+  },
+  "beforeGc": {
+    "Timestamp": 1278428.304271,
+    "AudioHandlers": 0,
+    "AudioWorkletProcessors": 0,
+    "Documents": 22,
+    "Frames": 13,
+    "JSEventListeners": 302,
+    "LayoutObjects": 8634,
+    "MediaKeySessions": 0,
+    "MediaKeys": 0,
+    "Nodes": 9525,
+    "Resources": 37,
+    "ContextLifecycleStateObservers": 115,
+    "V8PerContextDatas": 4,
+    "WorkerGlobalScopes": 0,
+    "UACSSResources": 0,
+    "RTCPeerConnections": 0,
+    "ResourceFetchers": 22,
+    "AdSubframes": 0,
+    "DetachedScriptStates": 2,
+    "ArrayBufferContents": 0,
+    "LayoutCount": 270,
+    "RecalcStyleCount": 434,
+    "LayoutDuration": 0.066502,
+    "RecalcStyleDuration": 0.336641,
+    "DevToolsCommandDuration": 0.023895,
+    "ScriptDuration": 0.078107,
+    "V8CompileDuration": 0,
+    "TaskDuration": 0.806369,
+    "TaskOtherDuration": 0.301224,
+    "ThreadTime": 0.820707,
+    "ProcessTime": 2.33,
+    "JSHeapUsedSize": 6160256,
+    "JSHeapTotalSize": 10870784,
+    "FirstMeaningfulPaint": 1278421.151888,
+    "DomContentLoaded": 1278421.077229,
+    "NavigationStart": 1278421.035855,
+    "liveDom": 820
+  }
+}
