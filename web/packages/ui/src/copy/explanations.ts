@@ -28,11 +28,11 @@ export const explanations: Explanations = {
  'overview.tile.tool-success':
   'Share of calls in the window that did not report an error. Each tool is judged against its own class target — 99.5% for read tools, 98% for anything that mutates — and the caption counts the tools currently below theirs. Anything below target is spending error budget; Reliability shows how fast.',
  'overview.tile.p95-latency':
-  'The call duration that 95% of calls in the window beat. Percentiles come from log-spaced histograms, so the figure is accurate to within about 26%; windows under six hours are exact instead. p95 far above p50 means a slow minority, which is what users actually notice.',
+  'The call duration that 95% of calls in the window beat. Percentiles come from log-spaced histograms, so the figure is accurate to within about 26%; windows under six hours are exact instead. The trend is the one series that follows the window -- hourly up to 48 hours, daily after -- and p95 far above p50 means a slow minority, which is what users actually notice.',
  'overview.tile.context-tokens':
   'Estimated tokens your tool responses added to the model context in the window. It is output characters where the SDK reports them, otherwise output bytes, divided by the project token divisor (4 by default) — an estimate, never a provider invoice. Rising tokens per call means responses are getting more expensive to read.',
  'overview.card.calls-by-client':
-  'Tool calls per bucket, stacked by MCP client name, over the window in UTC. Buckets follow the range: hourly for 24 hours, daily up to 30 days, weekly for 90. One client growing while the total is flat is a migration, not growth.',
+  'Tool calls per UTC day, stacked by MCP client name, over the window. The collector serves this series by day on every range, so a 24-hour window is one column and a 90-day window is ninety. One client growing while the total is flat is a migration, not growth.',
  'overview.card.client-mix':
   'Each client\'s share of tool calls in the window, to one decimal; session counts are independent of it. Arcs are drawn from raw call counts and a client with no calls gets no arc. Use it to see which client to test against first.',
  'overview.card.activation-funnel':
@@ -56,7 +56,7 @@ export const explanations: Explanations = {
  'adoption.tile.d7-retention':
   'Share of daily cohorts that came back exactly seven UTC days after they were first seen. Only identities old enough to have had that day are counted, so the figure never dips just because the project is young. The chip shows day 1 and day 30 next to it for shape.',
  'adoption.card.active-identities':
-  'Active identities per bucket, split into those first seen in this window and those seen before it. Buckets are UTC days unless the range is 24 hours or 90 days. A stack that is almost all new means you acquire but do not keep.',
+  'Active identities per UTC day, split into those first seen in this window and those seen before it. Buckets are UTC days on every range; only the latency series on Reliability changes with the window. A stack that is almost all new means you acquire but do not keep.',
  'adoption.card.identity-quality':
   'How confidently each active identity can be named: strong is an OAuth subject, key is a caller key, network is a hashed address. Precedence is strong, then key, then network, and kinds never merge, so the three add up to active users. The more weight in network, the less any per-user number on this screen can be trusted.',
  'adoption.card.clients':
@@ -98,7 +98,7 @@ export const explanations: Explanations = {
  'tool.tile.p95':
   'The duration 95% of this tool\'s calls beat, in milliseconds, from its own log-spaced histogram. Accuracy is within about 26% of the value; windows under six hours are computed exactly. Treat p95, not the average, as what callers feel.',
  'tool.card.calls-errors':
-  'This tool\'s successful calls and errors per bucket over the window, stacked. Buckets follow the range, in UTC. Errors arriving in a block rather than a trickle point at a dependency, not the tool.',
+  'This tool\'s successful calls and errors per UTC day over the window, stacked. A tool\'s trend is grouped by day whatever the range, and a day with no calls is simply absent. Errors arriving in a block rather than a trickle point at a dependency, not the tool.',
  'tool.card.latency':
   'This tool\'s own call durations, in log-spaced buckets about 1.26 apart, with its p50, p95 and p99 marked. Counts add up to the tool\'s measured calls in the window. A long right tail with a healthy p50 means a slow input, not a slow tool.',
  'tool.card.error-split':
@@ -118,7 +118,7 @@ export const explanations: Explanations = {
  'reliability.tile.hallucinated-tools':
   'Calls to names your server does not advertise, with the names themselves. With a complete catalogue every outside name counts; with a truncated one only explicit unknown-tool errors do. The names are a reading list for your prompts and tool descriptions.',
  'reliability.card.error-budget':
-  'For each SLO class, how much of the allowed failure for the window is left, and how fast it is being spent. The arc is budget remaining, the needle is the one-hour burn rate, and the red tick is 6×, the burn the alert rule fires on. Needle past the tick means act now, not at the next review.',
+  'For each SLO class, how much of the allowed failure for the window is left, and how fast it is being spent. The arc is budget remaining, the needle is the one-hour burn rate, and the red tick is the burn your error-budget alert rule fires on, as saved in Settings. Needle past the tick means act now, not at the next review.',
  'reliability.card.latency-over-time':
   'p50, p95 and p99 across all tools per bucket, hourly for windows up to 48 hours and daily beyond. Daily percentiles come from merged histograms, never from averaging hourly ones. The band widening while p50 holds means the tail is getting worse, which is what users report.',
  'reliability.card.success-by-class':

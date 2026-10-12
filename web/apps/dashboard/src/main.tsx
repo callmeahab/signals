@@ -86,18 +86,29 @@ function ProjectCards({projects,selectedId,onSelect}:{projects:Project[];selecte
 // strip ticks every second and must not re-render the screen to do it. Each card already
 // carries the connection status, so the badge says it only until the first refresh lands
 // -- on Setup, which loads nothing, that is the whole time.
+//
+// Under visual QA the badge is the one piece of wall-clock text on the page, and both its
+// value and the moment it replaces the status are timing-dependent, so the flag freezes
+// the text and drops the pulse: a capture must not depend on when it was taken.
+const FROZEN_FRESHNESS = 'updated just now';
+const badgeText = () => {
+ if (visualQa()) return FROZEN_FRESHNESS;
+ const at = activityState().updatedAt;
+ return at === null ? (isDemo ? 'Demo workspace' : 'Collector connected') : `updated ${sinceText(at)} ago`;
+};
 function FreshnessBadge() {
  const dot=useRef<HTMLElement>(null), ago=useRef<HTMLSpanElement>(null);
  useEffect(()=>{
-  const paint=()=>{const el=ago.current;if(!el)return;const at=activityState().updatedAt;el.textContent=at===null?(isDemo?'Demo workspace':'Collector connected'):`updated ${sinceText(at)} ago`;};
+  if(visualQa())return;
+  const paint=()=>{const el=ago.current;if(el)el.textContent=badgeText();};
   const pulse=()=>{const el=dot.current;if(!el)return;el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');};
   let loads=activityState().loads;
   paint();
   const off=onActivity(state=>{paint();if(state.loads>loads){loads=state.loads;pulse();}});
-  const timer=visualQa()?0:window.setInterval(paint,1000);
+  const timer=window.setInterval(paint,1000);
   return()=>{off();clearInterval(timer);};
  },[]);
- return <span className="demo-badge"><i ref={dot} className="signal-dot"/><span ref={ago} className="updated-ago">{isDemo?'Demo workspace':'Collector connected'}</span></span>;
+ return <span className="demo-badge"><i ref={dot} className="signal-dot"/><span ref={ago} className="updated-ago">{badgeText()}</span></span>;
 }
 
 function App(){

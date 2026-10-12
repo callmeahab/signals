@@ -303,10 +303,11 @@ function funnel({ steps, h = 252 }) {
 }
 
 /* ---------------------------------------------------------------- gauge --- */
-/* Arc = error budget remaining. Needle = 1-hour burn rate on the inner ring,
- * whose last tick is the 6x alert line (one window's budget inside the hour).
+/* Arc = error budget remaining. Needle = 1-hour burn rate on the inner ring, whose last
+ * tick is the burn the project's own alert rule fires on, so changing that threshold in
+ * Settings moves the tick and rescales the needle.
  * Readout sits in the dial's bottom gap so the needle can never cross it. */
-function gauge({ pct, burn1, h = 210 }) {
+function gauge({ pct, burn1, alert = 6, h = 210 }) {
   return (w) => {
     const ring = 14;
     const R = Math.max(54, Math.min(100, w / 2 - 11));
@@ -315,15 +316,17 @@ function gauge({ pct, burn1, h = 210 }) {
     const val = Math.max(0, Math.min(100, pct ?? 0));
     const col = val > 50 ? 'var(--chart-3)' : val > 15 ? 'var(--chart-1)' : 'var(--destructive)';
     const nr = R - ring - 7, tr = R - ring / 2 - 3;
-    const burnAng = A0 + Math.min(1, (burn1 ?? 0) / 6) * span;
-    const tick = (b) => { const a = A0 + Math.min(1, b / 6) * span, alert = b === 6;
-      return `<line x1="${px(cx + (tr - 9) * Math.cos(a))}" y1="${px(cy + (tr - 9) * Math.sin(a))}"
+    const scale = alert > 0 ? alert : 6;
+    const burnAng = A0 + Math.min(1, (burn1 ?? 0) / scale) * span;
+    const tick = (b) => { const a = A0 + Math.min(1, b / scale) * span, fires = b === scale;
+      return `<line class="${fires ? 'burn-alert' : 'burn-tick'}" x1="${px(cx + (tr - 9) * Math.cos(a))}" y1="${px(cy + (tr - 9) * Math.sin(a))}"
         x2="${px(cx + tr * Math.cos(a))}" y2="${px(cy + tr * Math.sin(a))}"
-        stroke="${alert ? 'var(--destructive)' : 'var(--viz-ink)'}" stroke-width="${alert ? 2.4 : 1.4}" stroke-linecap="round"/>`; };
+        stroke="${fires ? 'var(--destructive)' : 'var(--viz-ink)'}" stroke-width="${fires ? 2.4 : 1.4}" stroke-linecap="round"/>`; };
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img">
       <path d="${arcPath(cx, cy, R, A0, A1)}" fill="none" stroke="var(--viz-track)" stroke-width="${ring}" stroke-linecap="round"/>
       ${val > 0.4 ? `<path class="stroke-draw" d="${arcPath(cx, cy, R, A0, A0 + span * val / 100)}" fill="none" stroke="${col}" stroke-width="${ring}" stroke-linecap="round"/>` : ''}
-      ${[0, 1, 3, 6].map(tick).join('')}
+      ${[0, scale / 6, scale / 2, scale].map(tick).join('')}
+      <text class="ax burn-alert-label" x="${px(cx + (tr + 12) * Math.cos(A1))}" y="${px(cy + (tr + 12) * Math.sin(A1) + 4)}" text-anchor="middle">${f.int(scale)}×</text>
       <g class="needle" style="transform:rotate(${px(burnAng * 180 / Math.PI)}deg);transform-origin:${px(cx)}px ${px(cy)}px">
         <line x1="${px(cx - 9)}" y1="${px(cy)}" x2="${px(cx + nr)}" y2="${px(cy)}" stroke="var(--foreground)" stroke-width="2.2" stroke-linecap="round"/>
         <circle cx="${px(cx + nr)}" cy="${px(cy)}" r="3.4" fill="var(--foreground)"/>

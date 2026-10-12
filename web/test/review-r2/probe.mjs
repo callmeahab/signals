@@ -18,9 +18,16 @@ const check = (ok, message) => { if (!ok) failures.push(message); return ok; };
 const note = message => notes.push(message);
 
 const SCREENS = ['overview', 'adoption', 'tools', 'reliability', 'sessions', 'callers', 'cost', 'protocol', 'live', 'settings', 'setup'];
-// Round-1 fix brief mapping, written out literally so the probe does not inherit
-// an error from the implementation's own bucketForRange().
-const BUCKETS = { '24h': { bucket: 'hour', label: 'Hourly', hours: 1, points: 24 }, '7d': { bucket: 'day', label: 'Daily', hours: 24, points: 7 }, '30d': { bucket: 'day', label: 'Daily', hours: 24, points: 30 }, '90d': { bucket: 'week', label: 'Weekly', hours: 168, points: 13 } };
+// The collector's own mapping, written out literally so the probe does not inherit an
+// error from any dashboard helper: calls by client and adoption actives are UTC days on
+// every range (analytics.rs writes `"buckets":"day"` / `"bucket":"day"`), and latency is
+// hourly while the window is 48 hours or less.
+const BUCKETS = {
+  '24h': { bucket: 'day', label: 'Daily', hours: 24, points: 1, latency: 'hour', latencyHours: 1, latencyPoints: 24 },
+  '7d': { bucket: 'day', label: 'Daily', hours: 24, points: 7, latency: 'day', latencyHours: 24, latencyPoints: 7 },
+  '30d': { bucket: 'day', label: 'Daily', hours: 24, points: 30, latency: 'day', latencyHours: 24, latencyPoints: 30 },
+  '90d': { bucket: 'day', label: 'Daily', hours: 24, points: 90, latency: 'day', latencyHours: 24, latencyPoints: 90 },
+};
 const RANGE_BUTTON = { '24h': '24 hours', '7d': '7 days', '30d': '30 days', '90d': '90 days' };
 
 // ---------------------------------------------------------------- data checks
@@ -32,8 +39,23 @@ for (const [range, want] of Object.entries(BUCKETS)) {
     const times = series.map(p => Date.parse(p.t));
     const gaps = [...new Set(times.slice(1).map((t, i) => (t - times[i]) / 3600000))];
     check(bucketField === want.bucket, `${range} ${name}: bucket ${bucketField}, expected ${want.bucket}`);
-    check(gaps.length === 1 && gaps[0] === want.hours, `${range} ${name}: gaps ${gaps.join(',')}h, expected ${want.hours}h`);
+    check(times.length < 2 || (gaps.length === 1 && gaps[0] === want.hours), `${range} ${name}: gaps ${gaps.join(',')}h, expected ${want.hours}h`);
     check(times.length === want.points, `${range} ${name}: ${times.length} points, expected ${want.points}`);
+  }
+  // Latency is the series that follows the window, and the overview sparkline is its p95.
+  const reliability = await demoClient.analytics('demo', 'reliability', { range });
+  const latencyTimes = reliability.latency_over_time.points.map(p => Date.parse(p.t));
+  const latencyGaps = [...new Set(latencyTimes.slice(1).map((t, i) => (t - latencyTimes[i]) / 3600000))];
+  check(reliability.latency_over_time.bucket === want.latency, `${range} latency: bucket ${reliability.latency_over_time.bucket}, expected ${want.latency}`);
+  check(latencyTimes.length < 2 || (latencyGaps.length === 1 && latencyGaps[0] === want.latencyHours), `${range} latency: gaps ${latencyGaps.join(',')}h, expected ${want.latencyHours}h`);
+  check(latencyTimes.length === want.latencyPoints, `${range} latency: ${latencyTimes.length} points, expected ${want.latencyPoints}`);
+  check(JSON.stringify(overview.tiles.latency.sparkline) === JSON.stringify(reliability.latency_over_time.points.map(p => p.p95)), `${range}: the overview sparkline is the latency series' p95`);
+  // A tool's trend is grouped by day whatever the range.
+  const trendTools = await demoClient.analytics('demo', 'tools', { range });
+  for (const tool of trendTools.tools) {
+    const trendTimes = tool.trend.map(p => Date.parse(p.t));
+    const trendGaps = [...new Set(trendTimes.slice(1).map((t, i) => (t - trendTimes[i]) / 3600000))];
+    check(trendTimes.length < 2 || (trendGaps.length === 1 && trendGaps[0] === 24), `${range} ${tool.tool} trend: gaps ${trendGaps.join(',')}h, expected 24h`);
   }
   // Totals must survive the split into buckets (tiles versus charts).
   const perClient = {};

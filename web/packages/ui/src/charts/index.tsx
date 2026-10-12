@@ -88,11 +88,16 @@ export function Chart({label,kind,draw,headers,rows,height=220}:{label:string;ki
 export function Waiting({event='SDK events'}:{event?:string;shape?:'bars'|'line'|'ring'}){return <div className="emptychart"><Icon name="waiting" size={44} target=".emptychart"/><div className="emptychart__t">No data yet</div><div className="emptychart__s">Waiting for {event}</div></div>;}
 // `labels` are the series' own bucket timestamps, so the readout names a date rather
 // than an ordinal, and `format` is the tile's own formatter, so it carries the unit.
-export function Sparkline({values,labels,series,format=plain,label='Trend',color='var(--chart-1)',height=38}:{height?:number;values:(number|null|undefined)[];labels?:string[];series?:string;format?:Fmt;label?:string;color?:string}){
- return values.length&&values.some(v=>v!=null)
-  ?<Chart kind="sparkline" label={label} height={height} draw={render.sparkline({values:values as number[],color,h:height})}
-    headers={[labels?.length?'Date':'Bucket',series??'Value']}
-    rows={values.map((v,i)=>[labels?.length?dateCell(labels,i):i+1,cell(v,format)])}/>
+// A sparkline takes its series as timestamped points, not two arrays: there is then no
+// way to hand it values without their own timestamps, which is how a readout came to say
+// "Bucket: 2" when the p95 series and the calls series had different lengths.
+export type SparkPoint = {t:string;value:number|null|undefined};
+export function Sparkline({points,series='Value',format=plain,label='Trend',color='var(--chart-1)',height=38}:{height?:number;points:SparkPoint[];series?:string;format?:Fmt;label?:string;color?:string}){
+ const labels=points.map(p=>p.t);
+ return points.length&&points.some(p=>p.value!=null)
+  ?<Chart kind="sparkline" label={label} height={height} draw={render.sparkline({values:points.map(p=>p.value) as number[],color,h:height})}
+    headers={['Date',series]}
+    rows={points.map((p,i)=>[dateCell(labels,i),cell(p.value,format)])}/>
   :<div className="spark-wait">Waiting for trend</div>;
 }
 export type Series={name:string;color:string;values:number[]};
@@ -101,7 +106,7 @@ export function Donut({items,label,centre='',sub='',columns=['Category','Value']
 // Only a funnel that cannot measure its first step is empty. A later null step is a
 // null step inside the chart; it never blanks the steps that do have counts.
 export function Funnel({steps}:{steps:FunnelStep[]}){const rows=steps.map(s=>({...s,label:s.step.replaceAll('_',' ')}));return steps.length&&steps[0].count!=null?<Chart kind="funnel" label="Activation funnel" height={252} draw={render.funnel({steps:rows})} headers={['Step','Identities','Drop-off']} rows={steps.map(s=>[s.step,s.count==null?'—':unitFormat('identities')(s.count),s.dropoff_pct==null?'—':pctFormat(s.dropoff_pct)])}/>:<Waiting event="identity activation events"/>;}
-export function Gauge({pct,burn,label}:{pct:number|null;burn:number|null;label:string}){return pct===null||burn===null?<Waiting event="SLO observations · No calls for this class" shape="ring"/>:<Chart kind="gauge" label={label} draw={render.gauge({pct,burn1:burn})} headers={['Error budget remaining','Burn rate 1 h']} rows={[[pctFormat(pct),`${round(burn)}×`]]}/>;}
+export function Gauge({pct,burn,alert=6,label}:{pct:number|null;burn:number|null;alert?:number;label:string}){return pct===null||burn===null?<Waiting event="SLO observations · No calls for this class" shape="ring"/>:<Chart kind="gauge" label={label} draw={render.gauge({pct,burn1:burn,alert})} headers={['Error budget remaining','Burn rate 1 h','Alert at']} rows={[[pctFormat(pct),`${round(burn)}×`,`${round(alert)}×`]]}/>;}
 export function Histogram({buckets,markers}:{buckets?:{edges:(number|null)[];counts:number[]}|null;markers:{p50:number|null;p95:number|null;p99:number|null}}){const bins=buckets?.counts.map((n,i)=>({lo:buckets.edges[i]??1,hi:buckets.edges[i+1]??(buckets.edges[i]??1)*1.26,n}));return bins?.length?<Chart kind="histogram" label="Latency distribution" height={228} draw={render.latencyHist({buckets:bins,markers:Object.fromEntries((['p50','p95','p99'] as const).map(k=>[k,markers[k]]).filter(([,v])=>typeof v==='number'&&Number.isFinite(v)))})} headers={['Latency band','Calls']} rows={bins.map((b,i)=>[buckets!.edges[i+1]==null?`${nf.format(round(b.lo))} ms and over`:`${nf.format(round(b.lo))} – ${nf.format(round(b.hi))} ms`,unitFormat('calls')(b.n)])}/>:<Waiting event="latency histogram buckets"/>;}
 export function Band({points}:{points:{t:string;p50?:number|null;p95?:number|null;p99?:number|null}[]}){const labels=points.map(p=>p.t);return points.length&&points.some(p=>p.p50!=null&&p.p95!=null&&p.p99!=null)?<Chart kind="band" label="Latency p50–p95–p99" draw={render.bandChart({labels,lo:points.map(p=>p.p50!),mid:points.map(p=>p.p95!),hi:points.map(p=>p.p99!)})} headers={['Date','p50','p95','p99']} rows={points.map((p,i)=>[dateCell(labels,i),cell(p.p50,msFormat),cell(p.p95,msFormat),cell(p.p99,msFormat)])}/>:<Waiting event="per-bucket latency percentiles" shape="line"/>;}
 // `count` is occurrences of the pair or triple in the window, and the share uses every

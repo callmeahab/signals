@@ -165,6 +165,10 @@ try {
        check(!/\b(Bucket|Value)\b/.test(headers.join(' ')),`${screen}: a chart still labels its axis "Bucket"/"Value": ${JSON.stringify(headers)}`);
        await page.locator('h1').click();
       }
+      // Every chart on the screen, not just the first: a sparkline handed values without
+      // their own timestamps used to fall back to "Bucket: 2".
+      const bucketColumns=await page.locator('.v3-chart table.sr-only thead th').evaluateAll(cells=>cells.map(cell=>cell.textContent?.trim()).filter(text=>text==='Bucket'||text==='Value'));
+      check(bucketColumns.length===0,`${screen}: ${bucketColumns.length} chart columns still read "Bucket"/"Value"`);
       for(const kind of expected[screen]??[])check(await page.locator(`[data-chart="${kind}"]`).count()>0,`${screen}: ${kind} present`);
       const tileColumns=await page.locator('.signals-ui>.tiles').evaluateAll(els=>els.map(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length));
       const compactScreens=['tools','reliability','sessions','cost','protocol'];const expectedColumns=compactScreens.includes(screen)?(width>=1024?6:width>600?3:2):(width>=1024?3:1);
@@ -230,7 +234,52 @@ try {
         check(await page.locator(`${selector} .chart-key-tooltip--pointer`).count()===0,`${screen}/${kind}: the hover readout outstayed the pointer`);
        }
       }
-      check(await page.locator('.chart-stacked-area .tip').count()>0||true,'stacked area keeps its crosshair tooltip');
+      // The stacked area keeps its own crosshair; hovering the plot must raise exactly one.
+      await page.goto(`${base}/#overview`);
+      await page.locator('.chart-stacked-area svg').first().waitFor();
+      await settleCharts(page);
+      const crosshair=page.locator('.chart-stacked-area .tip');
+      check(await crosshair.count()===1,`${width}/${theme}: the stacked area has ${await crosshair.count()} crosshair tooltips, expected 1`);
+      const plot=await page.locator('.chart-stacked-area svg rect.hit').first().boundingBox();
+      await page.mouse.move(plot.x+plot.width/2,plot.y+plot.height/2);
+      await page.waitForTimeout(120);
+      check(await crosshair.evaluate(el=>el.classList.contains('on')&&el.textContent.trim().length>0),`${width}/${theme}: the stacked-area crosshair did not read out on hover`);
+      check(await page.locator('.chart-stacked-area .xh').evaluate(el=>getComputedStyle(el).opacity==='1'),`${width}/${theme}: the stacked-area crosshair line stayed hidden`);
+      await page.mouse.move(0,0);
+      await page.waitForTimeout(80);
+      // At 24 hours the collector serves one daily calls point and twenty-four hourly
+      // latency points, so a sparkline that did not carry its own timestamps read out
+      // "Bucket: 2". Walk every chart's readout on that range.
+      await page.goto(`${base}/#overview`);
+      await page.getByRole('button',{name:'24 hours',exact:true}).click();
+      await page.locator('.tile__spark .chart-sparkline svg').first().waitFor();
+      await settleCharts(page);
+      for(const figure of await page.locator('.v3-chart').all()){
+       await figure.scrollIntoViewIfNeeded();
+       await figure.focus();
+       await page.keyboard.press('ArrowRight');
+       const readout=(await page.locator('.chart-key-tooltip').first().textContent())??'';
+       check(!/Bucket/.test(readout),`${width}/${theme}: a 24-hour readout says "Bucket": ${JSON.stringify(readout)}`);
+       await page.locator('h1').click();
+      }
+      const p95Tile=page.locator('.tile').filter({has:page.getByText('p95 latency',{exact:true})});
+      await p95Tile.locator('.v3-chart').scrollIntoViewIfNeeded();
+      await p95Tile.locator('.v3-chart').focus();
+      await page.keyboard.press('ArrowRight');
+      const p95Readout=(await p95Tile.locator('.chart-key-tooltip').first().textContent())??'';
+      check(/^Date: \d\d:\d\d p95 latency: [\d,]+ ms\s*$/.test(p95Readout),`${width}/${theme}: the 24-hour p95 readout is ${JSON.stringify(p95Readout)}, expected an hour timestamp and a value in ms`);
+      await page.locator('h1').click();
+      // The Below-SLO tile and its meta read the targets the collector applied.
+      await page.goto(`${base}/#tools`);
+      await page.locator('.tile').first().waitFor();
+      const belowSlo=page.locator('.tile').filter({has:page.getByText('Below SLO',{exact:true})});
+      const reliability=await page.evaluate(async()=>{const module=await import('/src/demo.ts');return module.demoClient.analytics('demo','reliability',{range:'24h'});});
+      const want=`read ${reliability.slo.find(s=>s.class==='read').target}% · mutate ${reliability.slo.find(s=>s.class==='mutate').target}%`;
+      check((await belowSlo.locator('.tile__meta').textContent())===want,`${width}/${theme}: the Below SLO meta is ${JSON.stringify(await belowSlo.locator('.tile__meta').textContent())}, expected ${JSON.stringify(want)}`);
+      await page.goto(`${base}/#overview`);
+      await page.getByRole('button',{name:'7 days',exact:true}).click();
+      await page.getByRole('heading',{name:'Calls by client'}).waitFor();
+
       // Item 3 and 4: the card selection survives a reload and a shared link, and a
       // reload with a cached account never shows the Connecting or Reading screen.
       await page.goto(`${base}/#overview`);
@@ -243,7 +292,9 @@ try {
       check(await page.locator('.project-card.is-selected').getAttribute('data-project')==='demo-fresh',`${width}/${theme}: the project did not survive a reload`);
       check(await page.locator('.login-page, .loading-state').count()===0,`${width}/${theme}: a reload showed a Connecting or Reading screen`);
       check(await page.locator('.project-card[aria-pressed=true]').count()===1&&await page.locator('.project-card.is-selected lord-icon').count()===1,`${width}/${theme}: the selected card is not marked`);
-      check(await page.locator('.project-cards').evaluate(el=>getComputedStyle(el).flexWrap)===(width<=560?'wrap':'wrap'),`${width}/${theme}: project cards do not wrap`);
+      const cardRows=await page.locator('.project-cards').evaluate(el=>({direction:getComputedStyle(el).flexDirection,wrap:getComputedStyle(el).flexWrap,rows:[...new Set([...el.children].map(card=>Math.round(card.getBoundingClientRect().top)))].length,cards:el.children.length}));
+      if(width>=1280)check(cardRows.direction==='row'&&cardRows.wrap==='wrap'&&cardRows.rows===1,`${width}/${theme}: four project cards should sit on one row, measured ${JSON.stringify(cardRows)}`);
+      else check(cardRows.direction==='column'&&cardRows.rows===cardRows.cards,`${width}/${theme}: project cards should stack one per row, measured ${JSON.stringify(cardRows)}`);
       // Past six projects the row scrolls, with the hint and the focusable region.
       await page.goto(`${base}/#overview?projects=9`);
       await page.getByRole('heading',{name:'Calls by client'}).waitFor();
@@ -393,8 +444,21 @@ try {
       await page.goto(`${base}/#settings`);
       await page.getByLabel('Digest recipient').fill('digest@example.com');
       await page.getByLabel('Token divisor', {exact:true}).fill('5');
+      await page.getByLabel('Error-budget burn threshold').fill('3');
+      await page.getByLabel('read SLO target (%)').fill('80');
       await page.getByRole('button',{name:'Save analytics settings',exact:true}).click();
       await page.getByText('Analytics settings saved.',{exact:true}).waitFor();
+      // The error-budget dial is scaled by the project's own burn alert, and the Tools
+      // tile by the project's own targets; both used to be hardcoded.
+      await page.goto(`${base}/#reliability`);
+      await page.locator('.chart-gauge svg').first().waitFor();
+      check((await page.locator('.chart-gauge svg .burn-alert-label').allTextContents()).every(text=>text==='3×'),`${width}/${theme}: the error-budget dial still marks a fixed burn: ${JSON.stringify(await page.locator('.chart-gauge svg .burn-alert-label').allTextContents())}`);
+      check((await page.locator('.card').filter({has:page.getByRole('heading',{name:'Error budget',exact:true})}).locator('.card__sub').textContent())?.includes('3× alert line'),`${width}/${theme}: the error-budget subtitle still names a fixed burn`);
+      await page.goto(`${base}/#tools`);
+      await page.locator('.tile').first().waitFor();
+      check((await page.locator('.tile').filter({has:page.getByText('Below SLO',{exact:true})}).locator('.tile__meta').textContent())==='read 80% · mutate 98%',`${width}/${theme}: the Below SLO meta did not follow the saved read target`);
+      await page.goto(`${base}/#settings`);
+      await page.getByRole('heading',{name:'SLOs, alerts and digest',exact:true}).waitFor();
       await page.getByLabel('Key label').fill('QA key');
       await page.getByRole('button', {name:'Create key', exact:true}).click();
       check(await page.getByRole('dialog').isVisible(), 'new key revealed once');

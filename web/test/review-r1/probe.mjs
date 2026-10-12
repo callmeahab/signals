@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { demoClient } from '../../apps/dashboard/src/demo.ts';
-import { bucketForRange, bucketMilliseconds, sessionDuration } from '../../packages/ui/src/time.ts';
+import { SERIES_BUCKET, bucketMilliseconds, latencyBucket, sessionDuration } from '../../packages/ui/src/time.ts';
 import { OverviewAnalyticsScreen, AdoptionScreen, ReliabilityScreen } from '../../packages/ui/src/analytics.tsx';
 
 const failures = [];
@@ -18,21 +18,31 @@ for (const range of ['24h', '7d', '30d', '90d']) {
   const overview = await demoClient.analytics('demo', 'overview', { range });
   const times = overview.calls_by_client.points.map(point => Date.parse(point.t));
   const gaps = times.slice(1).map((time, index) => (time - times[index]) / 3600000);
-  const expected=bucketForRange(range), hours=bucketMilliseconds[expected]/3600000;
-  const daily = overview.calls_by_client.buckets === expected && gaps.every(gap => gap === hours);
-  check(daily, `${range} calls_by_client buckets=${overview.calls_by_client.buckets} gaps=${gaps.map(gap => gap.toFixed(2)).join(',')}h (expected ${expected}, ${hours}h)`);
+  // The collector serves calls by client and adoption actives by UTC day on every range;
+  // latency is the one series that follows the window. Written out against the collector
+  // (crates/signals-store/src/analytics.rs) rather than against any dashboard helper.
+  const hours = bucketMilliseconds[SERIES_BUCKET] / 3600000;
+  const daily = overview.calls_by_client.buckets === SERIES_BUCKET && gaps.every(gap => gap === hours);
+  check(daily, `${range} calls_by_client buckets=${overview.calls_by_client.buckets} gaps=${gaps.map(gap => gap.toFixed(2)).join(',')}h (expected ${SERIES_BUCKET}, ${hours}h)`);
   check(times.length === Math.ceil((Date.parse(overview.range.to)-Date.parse(overview.range.from))/(hours*3600000)), `${range}: complete bucket count`);
   const overviewHtml=renderToStaticMarkup(createElement(OverviewAnalyticsScreen,{data:overview}));
-  check(overviewHtml.includes(`${expected==='hour'?'Hourly':expected==='week'?'Weekly':'Daily'} tool calls`), `${range}: subtitle follows response`);
-  check(expected!=='hour'||overviewHtml.includes('00:00'), `${range}: hourly axis includes time`);
-  check(expected!=='week'||overviewHtml.includes('Week of'), `${range}: weekly axis identifies week`);
+  check(overviewHtml.includes('Daily tool calls'), `${range}: subtitle follows response`);
   const adoption = await demoClient.analytics('demo', 'adoption', { range });
   const adoptionHtml=renderToStaticMarkup(createElement(AdoptionScreen,{data:adoption}));
-  check(adoptionHtml.includes(`${expected==='hour'?'Hourly':expected==='week'?'Weekly':'Daily'} observations`),`${range}: adoption subtitle follows response`);
+  check(adoptionHtml.includes('Daily observations'),`${range}: adoption subtitle follows response`);
   const adoptionTimes = adoption.active.points.map(point => Date.parse(point.t));
   const adoptionGaps = adoptionTimes.slice(1).map((time, index) => (time - adoptionTimes[index]) / 3600000);
-  const adoptionDaily = adoption.active.bucket === expected && adoptionGaps.every(gap => gap === hours);
+  const adoptionDaily = adoption.active.bucket === SERIES_BUCKET && adoptionGaps.every(gap => gap === hours);
   check(adoptionDaily, `${range} adoption bucket=${adoption.active.bucket} gaps=${adoptionGaps.map(gap => gap.toFixed(2)).join(',')}h`);
+  const reliability = await demoClient.analytics('demo', 'reliability', { range });
+  const wantLatency = latencyBucket(range), latencyHours = bucketMilliseconds[wantLatency] / 3600000;
+  const latencyTimes = reliability.latency_over_time.points.map(point => Date.parse(point.t));
+  const latencyGaps = latencyTimes.slice(1).map((time, index) => (time - latencyTimes[index]) / 3600000);
+  check(reliability.latency_over_time.bucket === wantLatency, `${range} latency bucket=${reliability.latency_over_time.bucket}, expected ${wantLatency}`);
+  check(latencyGaps.every(gap => gap === latencyHours), `${range} latency gaps=${[...new Set(latencyGaps)].join(',')}h, expected ${latencyHours}h`);
+  check(latencyTimes.length === Math.ceil((Date.parse(overview.range.to)-Date.parse(overview.range.from))/(latencyHours*3600000)), `${range}: complete latency bucket count`);
+  check(overview.tiles.latency.sparkline.length === latencyTimes.length, `${range}: sparkline has one value per latency bucket`);
+  check(range !== '24h' || reliability.latency_over_time.points.every(point => point.t.slice(11, 13) === String(latencyTimes.indexOf(Date.parse(point.t))).padStart(2, '0')), `${range}: hourly latency timestamps`);
 }
 
 const tools = await demoClient.analytics('demo', 'tools', { range: '7d' });

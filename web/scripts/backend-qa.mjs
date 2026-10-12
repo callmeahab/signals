@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { checkLoginStyles } from './login-styles.mjs';
-import { POLL_INTERVAL_MS, SKELETON_MIN_MS } from '../packages/ui/src/activity.js';
+import { POLL_INTERVAL_MS, SKELETON_DELAY_MS, SKELETON_MIN_MS } from '../packages/ui/src/activity.js';
 
 const uuid7=()=>{const hex=Date.now().toString(16).padStart(12,'0');return `${hex.slice(0,8)}-${hex.slice(8)}-7${crypto.randomUUID().slice(15)}`;};
 const envelope=events=>({schema_version:1,source:{sdk:'browser-qa',sdk_version:'1',server_name:'qa',server_version:'1',instance_id:'qa-1'},sent_at:new Date().toISOString(),dropped:0,events});
@@ -179,12 +179,12 @@ try {
   await poller.getByRole('heading',{name:'Calls by client'}).waitFor();
   await poller.waitForTimeout(600);
   const burst=[...new Set(log)].sort();log.length=0;
-  assert.deepEqual(burst,['adoption','overview','tools'],`Overview reads only its own routes: ${JSON.stringify(burst)}`);
+  assert.deepEqual(burst,['adoption','overview','reliability','tools'],`Overview reads only its own routes: ${JSON.stringify(burst)}`);
   await poller.clock.fastForward(POLL_INTERVAL_MS-5000);
   await poller.waitForTimeout(400);
   assert.deepEqual(log,[],`the screen refreshed before its interval was due: ${JSON.stringify(log)}`);
   await poller.clock.fastForward(6000);
-  await expect.poll(()=>[...new Set(log)].sort().join(','),{timeout:15000}).toBe('adoption,overview,tools');
+  await expect.poll(()=>[...new Set(log)].sort().join(','),{timeout:15000}).toBe('adoption,overview,reliability,tools');
   log.length=0;
   await setHidden(poller,true);
   await poller.clock.fastForward(POLL_INTERVAL_MS*3);
@@ -194,25 +194,71 @@ try {
   await expect.poll(()=>log.length,{timeout:15000}).toBeGreaterThan(0);
   await poller.close();
  }
- // The skeleton waits 200 ms before appearing, so a quick answer shows nothing at all,
- // and once it is up it stays 400 ms, so it cannot flash either.
- for(const [delayMs,expectSkeleton] of [[20,false],[900,true]]) {
+ // The skeleton waits 200 ms before appearing, and once it is up it stays 400 ms. Only
+ // ONE route is delayed: Overview's analytics calls run in sequence, so delaying all of
+ // them would put the answer far past both thresholds and the test could not tell a
+ // working hold from a missing one. `.loading-state` is sampled every 20 ms.
+ for(const [delayMs,expectSkeleton] of [[150,false],[300,true]]) {
   const slow=await context.newPage();
-  await slow.addInitScript(()=>{globalThis.__skeleton=[];new globalThis.MutationObserver(()=>{const on=!!document.querySelector('.loading-state');const last=globalThis.__skeleton.at(-1);if(!last||last.on!==on)globalThis.__skeleton.push({on,at:globalThis.performance.now()});}).observe(document,{childList:true,subtree:true});});
-  await slow.route(`**/v1/projects/*/analytics/**`,async route=>{await new Promise(resolve=>setTimeout(resolve,delayMs));await route.continue();});
+  await slow.addInitScript(()=>{
+   globalThis.__samples=[];
+   const sampler=globalThis.setInterval(()=>globalThis.__samples.push({at:Math.round(globalThis.performance.now()),on:!!document.querySelector('.loading-state')}),20);
+   globalThis.setTimeout(()=>globalThis.clearInterval(sampler),6000);
+  });
+  await slow.route(`**/v1/projects/*/analytics/overview*`,async route=>{await new Promise(resolve=>setTimeout(resolve,delayMs));await route.continue();});
   await slow.goto(`${base}/#overview?project=${project.id}`);
   await slow.getByRole('heading',{name:'Calls by client'}).waitFor();
-  await slow.waitForTimeout(1200);
-  const marks=await slow.evaluate(()=>globalThis.__skeleton);
-  const shown=marks.filter(m=>m.on);
-  if(!expectSkeleton)assert.deepEqual(shown,[],`a ${delayMs} ms answer still flashed a skeleton: ${JSON.stringify(marks)}`);
+  await slow.waitForTimeout(1500);
+  const samples=await slow.evaluate(()=>globalThis.__samples);
+  assert(samples.length>40,`the skeleton sampler collected only ${samples.length} samples`);
+  const first=samples.find(sample=>sample.on);
+  if(!expectSkeleton)assert.equal(first,undefined,`a ${delayMs} ms answer still flashed a skeleton at ${first?.at} ms`);
   else {
-   assert(shown.length>0,`a ${delayMs} ms answer showed no skeleton: ${JSON.stringify(marks)}`);
-   const start=shown[0].at, end=marks.find(m=>!m.on&&m.at>start)?.at;
-   assert(end!==undefined,`the skeleton never cleared: ${JSON.stringify(marks)}`);
-   assert(end-start>=SKELETON_MIN_MS-40,`the skeleton lasted ${Math.round(end-start)} ms, under its ${SKELETON_MIN_MS} ms minimum`);
+   assert(first!==undefined,`a ${delayMs} ms answer showed no skeleton: ${JSON.stringify(samples.slice(0,12))}`);
+   assert(first.at>=SKELETON_DELAY_MS,`the skeleton appeared ${first.at} ms after navigation, inside its ${SKELETON_DELAY_MS} ms delay`);
+   const cleared=samples.find(sample=>!sample.on&&sample.at>first.at);
+   assert(cleared!==undefined,`the skeleton never cleared: ${JSON.stringify(samples.slice(-12))}`);
+   assert(cleared.at-first.at>=SKELETON_MIN_MS-20,`the skeleton lasted ${cleared.at-first.at} ms, under its ${SKELETON_MIN_MS} ms minimum`);
   }
   await slow.close();
+ }
+ // Saved SLO targets move the Tools below-SLO tile, its meta, and the overview caption.
+ {
+  await visit('settings','analytics/alerts');
+  await page.getByLabel('read SLO target (%)').fill('80');
+  await page.getByLabel('mutate SLO target (%)').fill('80');
+  const savedTargets=page.waitForResponse(r=>r.url()===`${base}/v1/projects/${project.id}`&&r.request().method()==='PATCH');
+  await page.getByRole('button',{name:'Save analytics settings',exact:true}).click();
+  const targets=await json(await savedTargets);
+  await page.getByText('Analytics settings saved.',{exact:true}).waitFor();
+  assert.deepEqual(targets.slo_targets,{read:80,mutate:80});
+  await visit('tools','analytics/tools');
+  const belowSlo=page.locator('.tile').filter({has:page.getByText('Below SLO',{exact:true})});
+  await expect(belowSlo.locator('strong')).toHaveText('0');
+  await expect(belowSlo.locator('.tile__meta')).toHaveText('read 80% · mutate 80%');
+  await expect(page.locator('.card').filter({has:page.getByRole('heading',{name:'Tool health',exact:true})}).locator('.card__sub')).toContainText('read 80% · mutate 80%');
+  await visit('overview','analytics/overview');
+  await expect(page.locator('.tile').filter({has:page.getByText('Tool success',{exact:true})}).locator('.tile__meta')).toHaveText('0 tools below SLO');
+  await expect(page.locator('.card').filter({has:page.getByRole('heading',{name:'Tools needing attention',exact:true})}).locator('.card__sub')).toContainText('read 80% · mutate 80%');
+  assert.equal((await analytics('overview')).tiles.success_rate.tools_below_slo,0);
+ }
+ // Every sparkline carries its own series' timestamps, so no readout can say "Bucket".
+ {
+  await visit('overview','analytics/overview');
+  await page.getByRole('button',{name:'24 hours',exact:true}).click();
+  await page.locator('.tile__spark .chart-sparkline svg').first().waitFor();
+  const columns=await page.locator('.v3-chart table.sr-only thead th').evaluateAll(cells=>cells.map(cell=>cell.textContent?.trim()).filter(text=>text==='Bucket'||text==='Value'));
+  assert.deepEqual(columns,[],`chart columns still read "Bucket"/"Value": ${JSON.stringify(columns)}`);
+  const p95Tile=page.locator('.tile').filter({has:page.getByText('p95 latency',{exact:true})});
+  await p95Tile.locator('.v3-chart').scrollIntoViewIfNeeded();
+  await p95Tile.locator('.v3-chart').focus();
+  await page.keyboard.press('ArrowRight');
+  const readout=(await p95Tile.locator('.chart-key-tooltip').first().textContent())??'';
+  assert(/^Date: \d\d:\d\d p95 latency: ([\d,]+ ms|No data yet)\s*$/.test(readout),`the 24-hour p95 readout is ${JSON.stringify(readout)}, expected an hour timestamp`);
+  const live=await analytics('reliability');
+  assert.equal(live.latency_over_time.bucket,'hour','a 24-hour window serves hourly latency');
+  await page.locator('h1').click();
+  await page.getByRole('button',{name:'7 days',exact:true}).click();
  }
  await page.getByRole('button',{name:'Log out',exact:true}).click();await page.getByRole('button',{name:'Sign in',exact:true}).waitFor();
  assert.equal((await page.request.get(`${base}/v1/auth/me`)).status(),401);assert.deepEqual(failures,[]);
