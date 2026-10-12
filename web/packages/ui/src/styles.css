@@ -775,3 +775,15 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
    clamped inside the plot box, with no animation. */
 .chart-tip-layer{position:absolute;left:0;top:0;z-index:6;pointer-events:none}
 .chart-key-tooltip--pointer{position:static;width:max-content;max-width:min(300px,100%);animation:none;transition:none}
+
+/* Live refresh 2026-10-12: a poll must not re-animate anything. `nt` already cancels
+   the transition form of each entrance; cancel the animation form too, so a redrawn
+   chart lands finished. */
+.plot.nt.on,.stroke-draw.nt.on,.growx.nt.on,.growy.nt.on,.popin.nt.on{animation:none!important}
+/* A range or project change keeps the previous screen readable until the new data lands. */
+.signals-ui{transition:opacity 160ms linear}
+.signals-ui[data-stale]{opacity:.7}
+/* Content arrives once, by opacity only, so nothing shifts. */
+.signals-ui--enter{animation:v4-content-in 240ms var(--ease-out)}
+@keyframes v4-content-in{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.signals-ui{transition:none}.signals-ui--enter{animation:none}}

@@ -2,7 +2,9 @@ import type { Caller, EventFilter, Key, Overview, Page, Point, Project, Range, S
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`/v1${path}`, { credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
-  if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.message ?? body.error ?? `Request failed (${response.status})`); }
+  // The status travels with the error: only a rejected session may sign the shell out,
+  // and a network blip must not.
+  if (!response.ok) { const body = await response.json().catch(() => ({})); throw Object.assign(new Error(body.message ?? body.error ?? `Request failed (${response.status})`), { status: response.status }); }
   if (response.status === 204) return undefined as T;
   return response.json();
 }
@@ -52,4 +54,5 @@ export const auth = {
   login: (email: string, password: string) => request<{user: User; projects: Project[]}>('/auth/login', { method: 'POST', body: JSON.stringify({email,password}) }),
   logout: () => request<void>('/auth/logout', {method:'POST'}),
 };
+export const statusOf = (error: unknown): number | undefined => (error as { status?: number } | null)?.status;
 export type { Range };

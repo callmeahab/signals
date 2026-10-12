@@ -4,6 +4,10 @@ export const demoProject: Project = { id:'demo',name:'Northwind MCP',slug:'north
 export const truncatedDemoProject:Project={...demoProject,id:'demo-truncated',name:'Northwind MCP · truncated catalogue',slug:'northwind-truncated'};
 export const manyClientsDemoProject:Project={...demoProject,id:'demo-many-clients',name:'Northwind MCP · 27 clients',slug:'northwind-many-clients'};
 export const freshDemoProject:Project={...demoProject,id:'demo-fresh',name:'Northwind MCP · first week',slug:'northwind-fresh'};
+// Demo only: `#overview?projects=9` pads the workspace past the six cards the row keeps
+// on one line, so the horizontal-scroll path can be exercised without a backend. The
+// analytics client treats an unrecognised id as the ordinary demo project.
+export const paddedDemoProjects=(total:number,base:Project[]):Project[]=>[...base,...Array.from({length:Math.max(0,total-base.length)},(_,i)=>({...demoProject,id:`demo-region-${i+1}`,name:`Northwind MCP · region ${i+1}`,slug:`northwind-region-${i+1}`}))];
 const tools = ['search_documents','get_customer','list_orders','get_inventory','create_ticket','fetch_document'];
 const clients = ['Claude','ChatGPT','Cursor','Other'];
 const now = new Date(); now.setUTCMinutes(0,0,0);

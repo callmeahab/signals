@@ -30,3 +30,26 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
 .topbar nav a lord-icon{opacity:.85}.topbar nav a[aria-current=page] lord-icon,.topbar nav a:hover lord-icon{opacity:1}
 .icon-button lord-icon,.button lord-icon{pointer-events:none}
 .glyph{flex:none;vertical-align:middle}
+
+/* Project cards 2026-10-12: the workspace selector is a row of cards, so the choice and
+   its status are visible without opening anything. Names wrap rather than clip, so a
+   long project name never hides behind an ellipsis. */
+.workspace-strip{align-items:flex-start;gap:14px}
+.project-strip{min-width:0;flex:1}
+.project-cards{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;min-width:0}
+.project-strip--many .project-cards{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--ink-faint) var(--muted);padding-bottom:6px}
+.project-cards:focus-visible{outline:2px solid var(--ring);outline-offset:3px;border-radius:14px}
+.project-card{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:3px;text-align:left;flex:0 0 auto;min-width:0;max-width:240px;padding:8px 14px;border:1px solid var(--border);border-radius:14px;background:var(--card);box-shadow:var(--shadow-soft);cursor:pointer;transition:box-shadow 160ms var(--ease-out),border-color 160ms var(--ease-out)}
+.project-card:hover{box-shadow:var(--shadow-lift)}
+.project-card:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.project-card.is-selected{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary),var(--shadow-soft)}
+.project-card__name{font-size:13px;font-weight:650;line-height:1.3;overflow-wrap:anywhere;max-width:100%}
+.project-card__status{display:flex;align-items:center;gap:5px;font:10.5px var(--font-mono);color:var(--muted-foreground);overflow-wrap:anywhere}
+.project-card.is-selected .project-card__status{color:var(--primary-ink)}
+.updated-ago{white-space:nowrap}
+/* A short pulse of the collector dot each time a refresh lands. */
+.signal-dot.pulse{animation:dot-pulse 900ms var(--ease-out)}
+@keyframes dot-pulse{from{box-shadow:0 0 0 0 color-mix(in oklch,var(--chart-3) 60%,transparent)}to{box-shadow:0 0 0 8px color-mix(in oklch,var(--chart-3) 0%,transparent)}}
+.demo-badge{align-self:center;flex-shrink:0}
+@media(max-width:600px){.workspace-strip{flex-wrap:wrap}.project-cards{flex-direction:column;align-items:stretch}.project-card{max-width:none;width:100%}.project-strip--many .project-cards{flex-direction:row}.project-strip--many .project-card{width:auto;max-width:240px}.demo-badge{align-self:flex-start}}
+@media(prefers-reduced-motion:reduce){.project-card{transition:none}.signal-dot.pulse{animation:none}}

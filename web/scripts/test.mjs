@@ -11,6 +11,8 @@ const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config',
 server.stdout.on('data',data=>process.stdout.write(data));server.stderr.on('data',data=>process.stderr.write(data));
 try {
   let ready=false;for(let n=0;n<100;n++){if(server.exitCode!==null)throw new Error('Test Vite server exited');try{ready=(await globalThis.fetch(base)).ok;}catch{ready=false;}if(ready)break;await delay(100);}if(!ready)throw new Error('Test UI server did not start');
-  const test=spawn(process.execPath,['scripts/visual-qa.mjs'],{stdio:'inherit',env:{...process.env,BASE_URL:base}});
-  const status=await new Promise((resolve,reject)=>{test.on('error',reject);test.on('exit',resolve);});if(status!==0)throw new Error(`Browser checks failed (${status})`);
+  for(const script of ['scripts/visual-qa.mjs','scripts/live-qa.mjs','scripts/reload-series.mjs']){
+   const test=spawn(process.execPath,[script],{stdio:'inherit',env:{...process.env,BASE_URL:base}});
+   const status=await new Promise((resolve,reject)=>{test.on('error',reject);test.on('exit',resolve);});if(status!==0)throw new Error(`${script} failed (${status})`);
+  }
 }finally{server.kill('SIGTERM');}
