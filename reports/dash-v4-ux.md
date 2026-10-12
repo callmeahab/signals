@@ -329,6 +329,12 @@ the Live screen's cards and charts, which no item in this brief touches.
   so a 60-second refresh would overwrite a half-typed threshold.
 - **`#overview?projects=9`** pads the demo workspace so the more-than-six-projects scroll
   path can be exercised without a backend. Demo mode only.
+- **`ci-conformance.py` tests whatever is in `web/dist`.** The collector serves the
+  built dashboard, and the script does not rebuild it, so a conformance run after a
+  source change silently exercises the previous bundle. Two runs of it failed here on a
+  `data-event-id` added after the last build. `bun run build` immediately before
+  `python3 scripts/ci-conformance.py` is the order the acceptance list already gives;
+  flagged rather than changed, because the build step belongs to whoever owns CI.
 - **The cached account** in `localStorage['signals-account']` holds what
   `/v1/auth/me` returns: the user's email and role and the project documents, which the
   page already renders. It carries no secret (`probe_key` is never returned by the API),

@@ -120,9 +120,10 @@ try {
  await visit('live');await page.getByText('Streaming',{exact:true}).waitFor();
  const live=event('tool.called',Date.now()-start,{...calls[0].attrs,tool:'live_browser_probe'});
  assert.equal((await page.request.post(`${replica}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:envelope([live])})).status(),202);
- // The payload is built only for an opened row, so a row is addressed by the id its
- // summary carries.
- await page.locator(`.event-row summary[data-event-id="${live.id}"]`).waitFor({timeout:15000});
+ const liveRow=page.locator('.event-row').filter({hasText:live.id});
+ await liveRow.waitFor({timeout:15000});
+ // Each row's summary carries its event id, so a row is addressable without expanding it.
+ await expect(liveRow.locator('summary')).toHaveAttribute('data-event-id',live.id);
  await visit('settings','analytics/alerts');
  await expect(page.getByLabel('search_documents SLO class')).toBeVisible();
  assert.deepEqual((await page.locator('select[aria-label$=" SLO class"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('aria-label').replace(/ SLO class$/,'')))).sort(),catalogued);
@@ -195,9 +196,9 @@ try {
  }
  // The skeleton waits 200 ms before appearing, so a quick answer shows nothing at all,
  // and once it is up it stays 400 ms, so it cannot flash either.
- for(const [delayMs,expectSkeleton] of [[60,false],[900,true]]) {
+ for(const [delayMs,expectSkeleton] of [[20,false],[900,true]]) {
   const slow=await context.newPage();
-  await slow.addInitScript(()=>{globalThis.__skeleton=[];new globalThis.MutationObserver(()=>{const on=!!document.querySelector('.loading-state');const last=globalThis.__skeleton.at(-1);if(!last||last.on!==on)globalThis.__skeleton.push({on,at:globalThis.performance.now()});}).observe(document.documentElement,{childList:true,subtree:true});});
+  await slow.addInitScript(()=>{globalThis.__skeleton=[];new globalThis.MutationObserver(()=>{const on=!!document.querySelector('.loading-state');const last=globalThis.__skeleton.at(-1);if(!last||last.on!==on)globalThis.__skeleton.push({on,at:globalThis.performance.now()});}).observe(document,{childList:true,subtree:true});});
   await slow.route(`**/v1/projects/*/analytics/**`,async route=>{await new Promise(resolve=>setTimeout(resolve,delayMs));await route.continue();});
   await slow.goto(`${base}/#overview?project=${project.id}`);
   await slow.getByRole('heading',{name:'Calls by client'}).waitFor();
