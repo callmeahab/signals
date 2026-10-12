@@ -13,11 +13,13 @@ export function Chart({label,kind,draw,headers,rows,height=220}:{label:string;ki
  const paint=(w:number)=>{if(disposed||w<=0||w===width)return;detach?.();cancelAnimationFrame(frame);width=w;const result=draw(w);const out=typeof result==='string'?{html:result}:result;el.innerHTML=out.html;el.querySelectorAll('svg').forEach(svg=>{svg.setAttribute('role','img');svg.setAttribute('aria-label',label);svg.removeAttribute('aria-hidden');if(!svg.hasAttribute('viewBox'))svg.setAttribute('viewBox',`0 0 ${svg.getAttribute('width')} ${svg.getAttribute('height')}`);});
  el.querySelectorAll<SVGPathElement>('.stroke-draw').forEach(p=>{p.setAttribute('pathLength','1');p.style.setProperty('--len','1');});
  // Composite each staggered bar on an HTML layer; its SVG geometry stays static.
- el.querySelectorAll<SVGRectElement>('rect.growx,rect.growy').forEach(rect=>{
+ const bars=el.querySelectorAll<SVGRectElement>('rect.growx,rect.growy');
+ if(bars.length){const original=el.querySelector('svg')!;const gridlines=original.querySelectorAll('.gridline');if(gridlines.length){const grid=original.cloneNode(false) as SVGSVGElement;grid.removeAttribute('role');grid.removeAttribute('aria-label');grid.setAttribute('aria-hidden','true');grid.style.cssText='position:absolute;left:0;top:0;z-index:0';gridlines.forEach(line=>grid.append(line));el.append(grid);}}
+ bars.forEach(rect=>{
   const layer=document.createElement('div'),svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   const x=rect.getAttribute('x')??'0',y=rect.getAttribute('y')??'0',w=rect.getAttribute('width')??'0',h=rect.getAttribute('height')??'0';
   layer.className=`bar-layer ${rect.getAttribute('class')}`;layer.setAttribute('aria-hidden','true');
-  layer.style.cssText=`position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;pointer-events:none;will-change:transform;transform-origin:left ${rect.classList.contains('growy')?'bottom':'top'};--pd:${rect.style.getPropertyValue('--pd')||'0ms'}`;
+  layer.style.cssText=`position:absolute;z-index:1;left:${x}px;top:${y}px;width:${w}px;height:${h}px;pointer-events:none;will-change:transform;transform-origin:left ${rect.classList.contains('growy')?'bottom':'top'};--pd:${rect.style.getPropertyValue('--pd')||'0ms'}`;
   svg.setAttribute('width',w);svg.setAttribute('height',h);svg.setAttribute('aria-hidden','true');svg.style.cssText='display:block;overflow:visible';
   rect.removeAttribute('class');rect.removeAttribute('style');rect.setAttribute('x','0');rect.setAttribute('y','0');svg.append(rect);layer.append(svg);el.append(layer);
  });

@@ -722,4 +722,4 @@ td .mono{font-size:12.5px}
 
 .chartbox>div:first-child{position:relative}
 
-.chartbox>div:first-child>svg[role="img"]{position:relative;z-index:1}
+.chartbox>div:first-child>svg[role="img"]{position:relative;z-index:2}
