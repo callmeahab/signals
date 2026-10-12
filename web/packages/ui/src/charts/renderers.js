@@ -60,7 +60,8 @@ function sparkline({ values, color = 'var(--chart-1)', h = 38, fill = true }) {
   return (w) => {
     const valid=values.filter(v=>v!=null); const pad = 3, lo = Math.min(...valid), hi = Math.max(...valid);
     const x = scale(0, values.length - 1, pad, w - pad);
-    const y = scale(lo - (hi - lo) * 0.35 || 0, hi + (hi - lo) * 0.12 || 1, h - pad, pad + 4);
+    const span = hi - lo || Math.max(1, Math.abs(hi)); // a constant series sits inside the plot, not on its edge
+    const y = scale(lo - span * 0.35, hi + span * 0.12, h - pad, pad + 4);
     const pts = values.map((v, i) => v==null?null:[x(i), y(v)]);
     const id = nextId();
     const groups=[];for(const p of pts){if(p){if(!groups.length)groups.push([]);groups.at(-1).push(p);}else if(groups.at(-1)?.length)groups.push([]);}const line = groups.filter(g=>g.length).map(curve).join(' ');
