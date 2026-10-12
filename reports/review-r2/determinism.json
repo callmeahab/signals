@@ -1,7 +1,9 @@
 {
   "count": 64,
-  "changed": [
-    "overview-1440-light.png"
+  "changed": [],
+  "runs": [
+    2,
+    3
   ],
   "first": {
     "adoption-1440-dark.png": "1446462e47f61d08821e8995fe80d564f867aa82674df589bd61d6a3b6241fb8",
@@ -21,7 +23,7 @@
     "live-390-dark.png": "b59bee9bf2e5de33d07c0ee8a32170c70fbe8da68df3ef40e842830b7bae2221",
     "live-390-light.png": "12478568eafa40e459b8c5ddd400cc5100fd2d32e6e3e8e754f1956b1fee4aa3",
     "overview-1440-dark.png": "4f03e6aae5865ebdb9b841ffcca263b581a55089a06b197b6254eddce3ab8106",
-    "overview-1440-light.png": "ec3a21f1f3127c64e3deb49845f63364b9da3ac343eac4d8b8fbd2c9e8a2efb3",
+    "overview-1440-light.png": "7e96d07cf2bf789e3a53dd33b5c90ec2f341668271ac7018c7bf87cd0ec6a1c3",
     "overview-390-dark.png": "ab8d90eea08454f93482f6c15de9863f1d96d5c060ad7355fed9e06605e46a76",
     "overview-390-light.png": "b703629045305862d1223ebe4fdc003b77cb89b629f898755efe1af924f24173",
     "protocol-1440-dark.png": "1dfb6d442c8bba8669f29d8da3ac5066530ce1ca3701fe1d3bcb90b30e27e07b",
