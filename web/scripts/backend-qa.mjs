@@ -120,7 +120,9 @@ try {
  await visit('live');await page.getByText('Streaming',{exact:true}).waitFor();
  const live=event('tool.called',Date.now()-start,{...calls[0].attrs,tool:'live_browser_probe'});
  assert.equal((await page.request.post(`${replica}/v1/events`,{headers:{Authorization:`Bearer ${secret}`},data:envelope([live])})).status(),202);
- await page.locator('.event-row').filter({hasText:live.id}).waitFor({timeout:15000});
+ // The payload is built only for an opened row, so a row is addressed by the id its
+ // summary carries.
+ await page.locator(`.event-row summary[data-event-id="${live.id}"]`).waitFor({timeout:15000});
  await visit('settings','analytics/alerts');
  await expect(page.getByLabel('search_documents SLO class')).toBeVisible();
  assert.deepEqual((await page.locator('select[aria-label$=" SLO class"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('aria-label').replace(/ SLO class$/,'')))).sort(),catalogued);

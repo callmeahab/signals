@@ -387,6 +387,7 @@ try {
       check(await page.locator('.event-row.has-error').count() > 0, 'errors view includes spec errors');
       await page.getByLabel('Event type').selectOption('resource.read');
       check(await page.locator('.event-row summary').first().innerText().then(t=>t.includes('docs://getting-started')), 'resource URI visible');
+      check(await page.locator('.event-row summary[data-event-id]').count()>0,'event rows are addressable by event id');
       await page.getByLabel('Event type').selectOption('');
       await page.getByRole('button', {name:'Resume', exact:true}).click();
       await page.goto(`${base}/#settings`);

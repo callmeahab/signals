@@ -1,7 +1,7 @@
 'use client';
 import { TableScroll } from './table-scroll.js';
 import { sessionDuration } from './time.js';
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Glyph, Icon } from './icons/index.js';
 import { Gantt, Donut, RankedBars, Sparkline as MiniSparkline, clientColor, unitFormat } from './charts/index.js';
 import { Card, TilesV3 } from './analytics-v3.js';
@@ -201,8 +201,24 @@ export function Drawer({ title, children, onClose, mono = false }: { title: stri
   useEffect(() => { const dialog = ref.current; dialog?.showModal(); return () => dialog?.close(); }, []);
   return <dialog ref={ref} className={`drawer ${mono ? 'drawer--tool' : ''}`} onCancel={onClose}><div className="drawer-header"><h2>{title}</h2><button className="icon-button" aria-label="Close details" onClick={onClose}><Glyph name="cross" size={20}/></button></div>{children}</dialog>;
 }
+// The event id lives on the summary, so a row is addressable without expanding it. The
+// row is memoised, so appending to a 200-event stream renders the new row and leaves the
+// rest alone.
+const EventRow = memo(function EventRow({ event: e }: { event: SignalEvent }) {
+  return <details className={`event-row ${(e.type === 'error' || e.attrs.is_error || e.attrs.level === 'error') ? 'has-error' : ''}`}><summary data-event-id={e.id}><span className="event-dot" /><time className="mono">{time(e.ts)}</time><span className="event-type mono">{e.type}</span><span className="event-tool mono">{e.attrs.message ?? e.attrs.error_message ?? e.attrs.tool ?? e.attrs.uri ?? e.attrs.prompt ?? e.attrs.method ?? e.attrs.name ?? e.client?.name ?? 'connection'}</span><span className="event-duration mono">{e.attrs.duration_ms != null ? `${e.attrs.duration_ms} ms` : '—'}</span><Icon name="chevron" size={14} target="button, summary"/></summary><pre>{JSON.stringify(e, null, 2)}</pre></details>;
+});
+// Mounting 200 rows in one React pass is the Live screen's longest task. The first ten
+// arrive with the screen and the rest follow ten per animation frame, so no single pass
+// is large; a stream append catches up on the next frame.
+const EVENT_ROWS_FIRST = 6, EVENT_ROWS_PER_FRAME = 6;
 function EventRows({ events }: { events: SignalEvent[] }) {
-  return <div className="event-list">{events.map(e => <details className={`event-row ${(e.type === 'error' || e.attrs.is_error || e.attrs.level === 'error') ? 'has-error' : ''}`} key={e.id}><summary><span className="event-dot" /><time className="mono">{time(e.ts)}</time><span className="event-type mono">{e.type}</span><span className="event-tool mono">{e.attrs.message ?? e.attrs.error_message ?? e.attrs.tool ?? e.attrs.uri ?? e.attrs.prompt ?? e.attrs.method ?? e.attrs.name ?? e.client?.name ?? 'connection'}</span><span className="event-duration mono">{e.attrs.duration_ms != null ? `${e.attrs.duration_ms} ms` : '—'}</span><Icon name="chevron" size={14} target="button, summary"/></summary><pre>{JSON.stringify(e, null, 2)}</pre></details>)}</div>;
+  const [shown, setShown] = useState(EVENT_ROWS_FIRST);
+  useEffect(() => {
+    if (shown >= events.length) return;
+    const frame = requestAnimationFrame(() => setShown(n => Math.min(events.length, n + EVENT_ROWS_PER_FRAME)));
+    return () => cancelAnimationFrame(frame);
+  }, [events.length, shown]);
+  return <div className="event-list">{events.slice(0, Math.max(EVENT_ROWS_FIRST, shown)).map(e => <EventRow key={e.id} event={e} />)}</div>;
 }
 function EventDrawer({ client, project, tool, range, onClose }: { client: SignalsClient; project: string; tool: Tool; range: Range; onClose: () => void }) {
   const query = useQuery(async signal => {const [points,errors,events]=await Promise.all([client.toolTimeseries(project,tool.tool,range,signal),client.events(project,{tool:tool.tool,is_error:true},signal),client.events(project,{tool:tool.tool},signal)]);return {points,errors:errors.items,events:events.items};}, [client, project, tool.tool, range]);
