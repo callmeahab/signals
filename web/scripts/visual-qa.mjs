@@ -74,9 +74,9 @@ try {
         check(await spark.evaluate(el=>Math.abs(el.getBoundingClientRect().width-el.closest('.tile').clientWidth)<=2),`${screen}/${width}: full-width sparkline`);
       }
       if(width>=1024){
-        const fullWidth={overview:['Calls by client','Client mix','Tools needing attention'],adoption:['Clients','Transport and protocol'],tools:['Tool health','Tool performance','Top tool paths'],cost:['By tenant','Billing periods'],protocol:['Capability matrix'],settings:['Alert rules','Analytics settings']};
+        const fullWidth={overview:['Calls by client','Client mix','Tools needing attention'],adoption:['Clients','Transport and protocol'],tools:['Tool health','Tool performance','Top tool paths'],sessions:['The story of a connection','Sessions by client'],cost:['By tenant','Billing periods'],protocol:['Capability matrix'],settings:['Alert rules','Analytics settings']};
         for(const title of fullWidth[screen]??[]){
-          const card=page.locator('.card').filter({has:page.getByRole('heading',{name:title,exact:true})});
+          const card=page.locator('.grid > .panel').filter({has:page.getByRole('heading',{name:title,exact:true})});
           check(await card.evaluate(el=>Math.abs(el.getBoundingClientRect().width-el.parentElement.getBoundingClientRect().width)<2),`${screen}/${width}: ${title} occupies a full row`);
         }
       }

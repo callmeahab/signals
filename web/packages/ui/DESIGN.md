@@ -20,8 +20,10 @@
    occupies a separate row. Active identities and bounded identity quality stay paired.
 6. Reliability audit: SLO classes are bounded, error/auth grouped charts have fixed
    SVG heights, availability already spans a full row. No entity list shares a row
-   with a fixed chart. Sessions' replay and session table already occupy separate
-   rows; Callers' table and Live's event stream already stand alone. Live Event mix
+   with a fixed chart. After the Round 1 correction, Sessions' replay, per-session
+   table (The story of a connection), and Sessions by client donut each occupy
+   their own full-width row. Callers' table and Live's event stream already stand
+   alone. Live Event mix
    stays paired as its event-type set is bounded.
 7. Protocol's capability lists already span a full row; its other cards contain
    bounded metric sets. Settings' per-tool SLO overrides now span a full row, with
