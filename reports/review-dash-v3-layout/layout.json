@@ -1,12 +1,7 @@
 {
-  "failures": [
-    "sessions/1280/light: per-entity list shares a row {\"titles\":[\"The story of a connection\",\"Sessions by client\"],\"widths\":[687,485],\"heights\":[780,310],\"covered\":1172,\"entities\":[\"The story of a connection\"]}",
-    "sessions/1280/dark: per-entity list shares a row {\"titles\":[\"The story of a connection\",\"Sessions by client\"],\"widths\":[687,485],\"heights\":[780,310],\"covered\":1172,\"entities\":[\"The story of a connection\"]}",
-    "sessions/1440/light: per-entity list shares a row {\"titles\":[\"The story of a connection\",\"Sessions by client\"],\"widths\":[687,485],\"heights\":[780,310],\"covered\":1172,\"entities\":[\"The story of a connection\"]}",
-    "sessions/1440/dark: per-entity list shares a row {\"titles\":[\"The story of a connection\",\"Sessions by client\"],\"widths\":[687,485],\"heights\":[780,310],\"covered\":1172,\"entities\":[\"The story of a connection\"]}"
-  ],
+  "failures": [],
   "report": {
-    "product": "http://127.0.0.1:27680",
+    "product": "http://127.0.0.1:25577",
     "widths": {
       "390/light": {
         "overview": {
@@ -6928,10 +6923,10 @@
                 {
                   "title": "The story of a connection",
                   "top": 1123,
-                  "bottom": 1903,
-                  "width": 687,
-                  "height": 780.1875,
-                  "full": false,
+                  "bottom": 1870,
+                  "width": 1192,
+                  "height": 747.1875,
+                  "full": true,
                   "entity": true,
                   "ribbons": 0,
                   "legend": 0,
@@ -6958,11 +6953,11 @@
                 },
                 {
                   "title": "Sessions by client",
-                  "top": 1123,
-                  "bottom": 1433,
-                  "width": 485,
+                  "top": 1890,
+                  "bottom": 2200,
+                  "width": 1192,
                   "height": 310,
-                  "full": false,
+                  "full": true,
                   "entity": false,
                   "ribbons": 0,
                   "legend": 0,
@@ -6976,21 +6971,31 @@
               "rows": [
                 {
                   "titles": [
-                    "The story of a connection",
-                    "Sessions by client"
+                    "The story of a connection"
                   ],
                   "widths": [
-                    687,
-                    485
+                    1192
                   ],
                   "heights": [
-                    780,
-                    310
+                    747
                   ],
-                  "covered": 1172,
+                  "covered": 1192,
                   "entities": [
                     "The story of a connection"
                   ]
+                },
+                {
+                  "titles": [
+                    "Sessions by client"
+                  ],
+                  "widths": [
+                    1192
+                  ],
+                  "heights": [
+                    310
+                  ],
+                  "covered": 1192,
+                  "entities": []
                 }
               ]
             }
@@ -8713,10 +8718,10 @@
                 {
                   "title": "The story of a connection",
                   "top": 1123,
-                  "bottom": 1903,
-                  "width": 687,
-                  "height": 780.1875,
-                  "full": false,
+                  "bottom": 1870,
+                  "width": 1192,
+                  "height": 747.1875,
+                  "full": true,
                   "entity": true,
                   "ribbons": 0,
                   "legend": 0,
@@ -8743,11 +8748,11 @@
                 },
                 {
                   "title": "Sessions by client",
-                  "top": 1123,
-                  "bottom": 1433,
-                  "width": 485,
+                  "top": 1890,
+                  "bottom": 2200,
+                  "width": 1192,
                   "height": 310,
-                  "full": false,
+                  "full": true,
                   "entity": false,
                   "ribbons": 0,
                   "legend": 0,
@@ -8761,21 +8766,31 @@
               "rows": [
                 {
                   "titles": [
-                    "The story of a connection",
-                    "Sessions by client"
+                    "The story of a connection"
                   ],
                   "widths": [
-                    687,
-                    485
+                    1192
                   ],
                   "heights": [
-                    780,
-                    310
+                    747
                   ],
-                  "covered": 1172,
+                  "covered": 1192,
                   "entities": [
                     "The story of a connection"
                   ]
+                },
+                {
+                  "titles": [
+                    "Sessions by client"
+                  ],
+                  "widths": [
+                    1192
+                  ],
+                  "heights": [
+                    310
+                  ],
+                  "covered": 1192,
+                  "entities": []
                 }
               ]
             }
@@ -10498,10 +10513,10 @@
                 {
                   "title": "The story of a connection",
                   "top": 1123,
-                  "bottom": 1903,
-                  "width": 687,
-                  "height": 780.1875,
-                  "full": false,
+                  "bottom": 1870,
+                  "width": 1192,
+                  "height": 747.1875,
+                  "full": true,
                   "entity": true,
                   "ribbons": 0,
                   "legend": 0,
@@ -10528,11 +10543,11 @@
                 },
                 {
                   "title": "Sessions by client",
-                  "top": 1123,
-                  "bottom": 1433,
-                  "width": 485,
+                  "top": 1890,
+                  "bottom": 2200,
+                  "width": 1192,
                   "height": 310,
-                  "full": false,
+                  "full": true,
                   "entity": false,
                   "ribbons": 0,
                   "legend": 0,
@@ -10546,21 +10561,31 @@
               "rows": [
                 {
                   "titles": [
-                    "The story of a connection",
-                    "Sessions by client"
+                    "The story of a connection"
                   ],
                   "widths": [
-                    687,
-                    485
+                    1192
                   ],
                   "heights": [
-                    780,
-                    310
+                    747
                   ],
-                  "covered": 1172,
+                  "covered": 1192,
                   "entities": [
                     "The story of a connection"
                   ]
+                },
+                {
+                  "titles": [
+                    "Sessions by client"
+                  ],
+                  "widths": [
+                    1192
+                  ],
+                  "heights": [
+                    310
+                  ],
+                  "covered": 1192,
+                  "entities": []
                 }
               ]
             }
@@ -12283,10 +12308,10 @@
                 {
                   "title": "The story of a connection",
                   "top": 1123,
-                  "bottom": 1903,
-                  "width": 687,
-                  "height": 780.1875,
-                  "full": false,
+                  "bottom": 1870,
+                  "width": 1192,
+                  "height": 747.1875,
+                  "full": true,
                   "entity": true,
                   "ribbons": 0,
                   "legend": 0,
@@ -12313,11 +12338,11 @@
                 },
                 {
                   "title": "Sessions by client",
-                  "top": 1123,
-                  "bottom": 1433,
-                  "width": 485,
+                  "top": 1890,
+                  "bottom": 2200,
+                  "width": 1192,
                   "height": 310,
-                  "full": false,
+                  "full": true,
                   "entity": false,
                   "ribbons": 0,
                   "legend": 0,
@@ -12331,21 +12356,31 @@
               "rows": [
                 {
                   "titles": [
-                    "The story of a connection",
-                    "Sessions by client"
+                    "The story of a connection"
                   ],
                   "widths": [
-                    687,
-                    485
+                    1192
                   ],
                   "heights": [
-                    780,
-                    310
+                    747
                   ],
-                  "covered": 1172,
+                  "covered": 1192,
                   "entities": [
                     "The story of a connection"
                   ]
+                },
+                {
+                  "titles": [
+                    "Sessions by client"
+                  ],
+                  "widths": [
+                    1192
+                  ],
+                  "heights": [
+                    310
+                  ],
+                  "covered": 1192,
+                  "entities": []
                 }
               ]
             }

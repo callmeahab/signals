@@ -515,3 +515,151 @@ crates/signals-server/bench/artifacts
 Socket checks confirmed task ports 25570, 25571, 25572, 25573, 25575, 25576, 25577, 23330, 23331, 23461 are closed.
 `docker ps -a --format "{{.Names}}"` contains neither task Postgres container.
 Only committed production screenshots and their SHA-256 manifest are retained.
+
+## Round 1 fix
+
+Review `reviews/dash-v3-layout-r1.md` correctly identified that the Sessions table
+still shared a row with the client donut; the original audit note overlooked the
+`Panel` beside the `Card`.
+
+- `web/packages/ui/src/dashboard.tsx`: “The story of a connection” uses `s12`;
+  “Sessions by client” uses the default full-width Card span. Replay, session table,
+  and client donut now each have an independent full-width row.
+- `web/packages/ui/DESIGN.md`: corrected item 6 to describe these three rows.
+- `web/scripts/visual-qa.mjs`: added both Sessions titles to the full-width list
+  and scoped the measurement to `.grid > .panel`, covering both component types.
+- `reports/review-dash-v3-layout/layout.json`: refreshed independent measurements.
+- `web/artifacts/v3`: regenerated production screenshots, screenshot hash manifest,
+  and single/walk performance evidence.
+
+Validation commands run from `web/` unless noted otherwise. Production QA uses:
+
+```sh
+VITE_DEMO=1 bun --bun vite build --config apps/dashboard/vite.config.ts --outDir ../../artifacts/layout-r1-demo
+bun --bun vite preview --config apps/dashboard/vite.config.ts --outDir ../../artifacts/layout-r1-demo --host 127.0.0.1 --port 25577
+```
+
+`bun run check` (exit 0):
+
+```text
+$ bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+```
+
+`bun run build` (exit 0):
+
+```text
+dist/assets/urbanist-latin-ext-wght-normal-Bdxck5Au.woff2          16.60 kB
+dist/assets/urbanist-latin-wght-normal-D69JTELx.woff2              27.75 kB
+dist/assets/index-Dp9XnY0Z.css                                     70.27 kB │ gzip:  13.97 kB
+dist/assets/index-BnNpwzmx.js                                     346.53 kB │ gzip: 105.78 kB
+
+✓ built in 427ms
+```
+
+`PLAYWRIGHT_CHANNEL=chromium PRODUCT_URL=http://127.0.0.1:25577 bun ../reports/review-dash-v3-layout/layout.mjs` (exit 0):
+
+```text
+Layout probe passed: 7 viewports, contrast failures 0, clipped 0
+```
+
+`BASE_URL=http://127.0.0.1:25577 PLAYWRIGHT_CHANNEL=chromium bun scripts/performance-qa.mjs` (exit 0):
+
+```text
+Run 1 overview → adoption: 109.10 ms aggregate (informational); longest task 8.93 ms (budget < 50 ms)
+```
+
+`BASE_URL=http://127.0.0.1:25577 PLAYWRIGHT_CHANNEL=chromium bun scripts/performance-qa.mjs --walk` (exit 0):
+
+```text
+Run 3 cost → protocol: 115.73 ms aggregate (informational); longest task 7.80 ms (budget < 50 ms)
+Run 3 protocol → live: 58.64 ms aggregate (informational); longest task 17.25 ms (budget < 50 ms)
+Run 3 live → overview: 151.52 ms aggregate (informational); longest task 7.83 ms (budget < 50 ms)
+Run 3 overview → adoption: 156.10 ms aggregate (informational); longest task 10.87 ms (budget < 50 ms)
+Run 3 adoption → reliability: 146.89 ms aggregate (informational); longest task 8.40 ms (budget < 50 ms)
+```
+
+The independent probe reports `failures: []`. At 1280/light, 1280/dark,
+1440/light and 1440/dark, the Sessions grid contains two separate rows:
+
+```text
+The story of a connection: 1192px wide
+Sessions by client: 1192px wide
+```
+
+Production longest tasks: 8.925ms single and 30.401ms maximum across all 30 walk transitions, below the unchanged 50ms gate.
+
+`PLAYWRIGHT_CHANNEL=chromium bun run test` (exit 0):
+
+```text
+Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.
+Client share QA passed: 27 clients, repeated versions, coherent calls/sessions and null shares without calls.
+review-r1 probe passed
+review-r2 probe passed
+
+  VITE v8.3.2  ready in 91 ms
+
+  ➜  Local:   http://127.0.0.1:23330/
+Visual QA passed: v3 chart SVG/table twins, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, 390/1280/1440 widths, three-column tiles, 108px sparklines, full-row entity lists, 27-client legend, zero-call arcs, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+```
+
+`PLAYWRIGHT_CHANNEL=chromium bun run test:next` (exit 0):
+
+```text
+
+○  (Static)  prerendered as static content
+
+▲ Next.js 16.3.8
+- Local:         http://127.0.0.1:23331
+- Network:       http://127.0.0.1:23331
+✓ Ready in 81ms
+✓ Running next.config.mjs took 7ms
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.
+```
+
+Two serial static production runs, each using:
+
+```sh
+BASE_URL=http://127.0.0.1:25577 PLAYWRIGHT_CHANNEL=chromium bun scripts/visual-qa.mjs
+```
+
+Each exited 0 with the visual QA success output above, including contrast/clip
+scans. Python `hashlib.sha256` compared every PNG between the runs:
+
+```text
+116 PNG files compared; changed: []
+```
+
+The refreshed `web/artifacts/v3/layout-sha256.json` records the matching hashes.
+Only eight PNGs differ from the prior baseline: desktop Sessions and session
+Drawer captures at 1280/1440 in both themes; the other 108 match the baseline.
+
+The corrected [Sessions desktop capture](../web/artifacts/v3/sessions-1440-light.png)
+shows the independent replay, session table and donut rows. No Round 1 work or
+new divergence remains; nothing was pushed.
+
+Production demo build output:
+
+```text
+artifacts/layout-r1-demo/assets/index-Dp9XnY0Z.css                                     70.27 kB │ gzip:  13.97 kB
+artifacts/layout-r1-demo/assets/index-DXqINaaj.js                                     359.38 kB │ gzip: 110.82 kB
+
+✓ built in 426ms
+```
+
+`static-one.log` final output:
+
+```text
+Visual QA passed: v3 chart SVG/table twins, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, 390/1280/1440 widths, three-column tiles, 108px sparklines, full-row entity lists, 27-client legend, zero-call arcs, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+```
+
+`static-two.log` final output:
+
+```text
+Visual QA passed: v3 chart SVG/table twins, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, 390/1280/1440 widths, three-column tiles, 108px sparklines, full-row entity lists, 27-client legend, zero-call arcs, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+```
+
+Round 1 cleanup: stopped the preview process on port 25577, removed
+`web/artifacts/layout-r1-demo` and `web/artifacts/layout-r1-logs` with
+`shutil.rmtree`, and asserted both directories absent and the preview port closed.
+Implementation commit: `990399e`; final evidence is committed with this report.

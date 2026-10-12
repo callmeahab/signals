@@ -3,15 +3,15 @@
   "repeats": 1,
   "longestTaskBudgetMs": 50,
   "aggregateInformational": true,
-  "firstSwitchMedianMs": 196.519,
+  "firstSwitchMedianMs": 109.096,
   "runs": [
     {
       "run": 1,
       "step": 1,
       "transition": "overview → adoption",
-      "mainThreadMs": 196.519,
-      "longestTaskMs": 14.733,
-      "recalcStyleMs": 47.083999999999996,
+      "mainThreadMs": 109.096,
+      "longestTaskMs": 8.925,
+      "recalcStyleMs": 26.939,
       "nodes": 2199,
       "listeners": 193,
       "longestTaskBudgetMs": 50
