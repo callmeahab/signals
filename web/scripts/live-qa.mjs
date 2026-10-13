@@ -27,15 +27,17 @@ try {
   await page.clock.fastForward(POLL_INTERVAL_MS - 5000);
   await page.waitForTimeout(150);
   check((await activity(page)).loads === before.loads, 'the screen refreshed before its interval was due');
-  // Since v5 every chart on the screen is painted, the ones below the fold included, and
-  // a poll re-renders only the parts whose data changed. So the elements the refresh
-  // rebuilds have to be told apart from the ones it leaves alone: an untouched chart
-  // keeps the classes from its own first paint, which is not motion. Tag what is on
-  // screen now; what is not tagged afterwards is what the refresh redrew.
+  // Since v5 every chart on the screen is painted, the ones below the fold included, one
+  // card per animation frame -- and this page runs on a fake clock, so a chart whose turn
+  // in that queue has not come is still waiting to be built. The claim is about charts
+  // that have already painted: a refresh must redraw those finished. So the figures that
+  // have an SVG now are tagged, and only what the refresh puts back inside *them* is
+  // read. The tag goes on the figure, which React keeps; the refresh replaces its
+  // contents.
   const beforePoll = await page.evaluate(() => {
-    const marked = [...document.querySelectorAll('.plot,.stroke-draw,.growx,.growy,.popin')];
-    for (const el of marked) el.setAttribute('data-pre-poll', '');
-    return marked.length;
+    const painted = [...document.querySelectorAll('.v3-chart')].filter(figure => figure.querySelector('svg[role=img]'));
+    for (const figure of painted) figure.setAttribute('data-pre-poll', '');
+    return painted.length;
   });
   check(beforePoll > 0, 'no chart had painted before the poll was due');
   await page.clock.fastForward(6000);
@@ -48,11 +50,13 @@ try {
   check(await page.locator('.signals-ui').evaluate(el => !el.hasAttribute('data-stale')), 'a poll dimmed the screen as though the project had changed');
   check(await page.locator('.signals-ui').evaluate(el => !el.classList.contains('signals-ui--enter')), 'a poll replayed the content fade');
   const motion = await page.evaluate(() => {
-    const marked = [...document.querySelectorAll('.plot,.stroke-draw,.growx,.growy,.popin')];
-    const redrawn = marked.filter(n => !n.hasAttribute('data-pre-poll'));
-    return { total: marked.length, redrawn: redrawn.length, instant: redrawn.filter(n => n.classList.contains('nt')).length, running: document.getAnimations().filter(a => a.playState === 'running').length };
+    const parts = '.plot,.stroke-draw,.growx,.growy,.popin';
+    const marked = [...document.querySelectorAll(parts)];
+    const redrawn = [...document.querySelectorAll('.v3-chart[data-pre-poll]')].flatMap(figure => [...figure.querySelectorAll(parts)]);
+    return { total: marked.length, figures: document.querySelectorAll('.v3-chart[data-pre-poll]').length, redrawn: redrawn.length, instant: redrawn.filter(n => n.classList.contains('nt')).length, running: document.getAnimations().filter(a => a.playState === 'running').length };
   });
-  check(motion.redrawn > 0 && motion.instant === motion.redrawn, `charts redrew with draw-in motion: ${JSON.stringify(motion)}`);
+  check(motion.redrawn > 0 && motion.instant === motion.redrawn, `charts that had already painted redrew with draw-in motion: ${JSON.stringify(motion)}`);
+  console.log(`poll: ${beforePoll} charts had painted, ${motion.figures} of them still on screen, ${motion.redrawn} redrawn parts, all ${motion.instant} finished`);
   check(motion.running === 0, `animations were still running after a refresh: ${motion.running}`);
 
   // 3. The strip ticks and says how long ago.
