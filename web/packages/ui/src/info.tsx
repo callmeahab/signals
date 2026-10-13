@@ -55,11 +55,11 @@ export function InfoPopover({ titleId, label, size = 24, children }: { titleId: 
  const button = useRef<HTMLButtonElement>(null);
  const panel = useRef<HTMLDivElement>(null);
  const panelId = useId();
- const close = useCallback((refocus: boolean) => { sticky.current = false; setOpen(false); if (refocus) { suppressFocus.current = true; button.current?.focus(); suppressFocus.current = false; } }, []);
+ const close = useCallback((refocus: boolean) => { clearTimeout(hoverTimer.current); sticky.current = false; setOpen(false); if (refocus) { suppressFocus.current = true; button.current?.focus(); suppressFocus.current = false; } }, []);
 
  useEffect(() => {
   if (!open) return;
-  const token = { close: () => setOpen(false) };
+  const token = { close: () => close(false) };
   openPanel?.close();
   openPanel = token;
   const el = panel.current!, trigger = button.current!;

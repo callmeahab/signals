@@ -37,11 +37,11 @@ export const explanations: Explanations = {
  'overview.tile.active-users':
   { title: 'Active users', body: 'Distinct identities that sent any event in the window.', computed: 'An identity is the OAuth subject when there is one, otherwise the caller key, otherwise a hashed network address — so network-only identities are an approximation, not named people.', action: 'A high network-only count means you cannot yet attribute usage; issue per-client keys or turn on OAuth.' },
  'overview.tile.sessions':
-  { title: 'Sessions', body: 'Sessions whose first event falls in the window, and the average number of calls in each.', computed: 'Many sessions with very few calls each is a reconnect loop or a client that gives up after the handshake.' },
+  { title: 'Sessions', body: 'Sessions whose first event falls in the window, and the average number of calls in each.', computed: 'Counts session starts in the selected window; calls per session divides their calls by their session count.', action: 'Many sessions with very few calls each is a reconnect loop or a client that gives up after the handshake.' },
  'overview.tile.tool-success': ({ sloTargets: t = DEFAULT_TARGETS }) =>
   ({ title: 'Tool success', body: `Share of calls in the window that did not report an error.`, computed: `Each tool is judged against its own class target — ${target(t.read)} for read tools, ${target(t.mutate)} for anything that mutates — and the caption counts the tools currently below theirs.`, action: `Anything below target is spending error budget; Reliability shows how fast.` }),
  'overview.tile.p95-latency':
-  { title: 'P95 latency', body: 'The call duration that 95% of calls in the window beat.', computed: 'Percentiles come from log-spaced histograms, so the figure is accurate to within about 26%; windows under six hours are exact instead.', action: 'The trend is the one series that follows the window -- hourly up to 48 hours, daily after -- and p95 far above p50 means a slow minority, which is what users actually notice.' },
+  { title: 'p95 latency', body: 'The call duration that 95% of calls in the window beat.', computed: 'Percentiles come from log-spaced histograms, so the figure is accurate to within about 26%; windows under six hours are exact instead.', action: 'The trend is the one series that follows the window -- hourly up to 48 hours, daily after -- and p95 far above p50 means a slow minority, which is what users actually notice.' },
  'overview.tile.context-tokens':
   { title: 'Context tokens', body: 'Estimated tokens your tool responses added to the model context in the window.', computed: 'It is output characters where the SDK reports them, otherwise output bytes, divided by the project token divisor (4 by default) — an estimate, never a provider invoice.', action: 'Rising tokens per call means responses are getting more expensive to read.' },
  'overview.card.calls-by-client':
@@ -53,15 +53,15 @@ export const explanations: Explanations = {
  'overview.card.weekly-retention':
   { title: 'Weekly retention', body: 'Each row is a weekly cohort of identities, and each column is the share of that cohort still active N weeks later.', computed: 'Cohorts start on Monday in UTC, and an unfinished week is blank rather than low.', action: 'Columns fading fast means first calls are not turning into habits.' },
  'overview.card.attention': ({ sloTargets: t = DEFAULT_TARGETS }) =>
-  ({ title: 'Attention', body: `Every tool that is failing its class target, within a point of it, or advertised but never called in the window.`, computed: `Read tools target ${target(t.read)} success, mutating tools ${target(t.mutate)}, and the class comes from your settings, then catalogue annotations, then the tool name.`, action: `Start at the top: that row is burning the most error budget.` }),
+  ({ title: 'Tools needing attention', body: `Every tool that is failing its class target, within a point of it, or advertised but never called in the window.`, computed: `Read tools target ${target(t.read)} success, mutating tools ${target(t.mutate)}, and the class comes from your settings, then catalogue annotations, then the tool name.`, action: `Start at the top: that row is burning the most error budget.` }),
 
  /* ------------------------------------------------------------------ Adoption */
  'adoption.tile.dau':
-  { title: 'Dau', body: 'Distinct identities active on the most recent day of the window.', computed: 'Identity is the OAuth subject, then the caller key, then a hashed network address, so this is people-or-machines, not sessions.', action: 'The sparkline shows whether today is typical.' },
+  { title: 'DAU', body: 'Distinct identities active on the most recent day of the window.', computed: 'Identity is the OAuth subject, then the caller key, then a hashed network address, so this is people-or-machines, not sessions.', action: 'The sparkline shows whether today is typical.' },
  'adoption.tile.wau':
-  { title: 'Wau', body: 'Distinct identities active in the seven days ending at the window end.', computed: 'It is a rolling count, so it reaches back behind the window start and is always at least the daily figure.', action: 'Flat WAU with rising DAU means the same few identities are just busier.' },
+  { title: 'WAU', body: 'Distinct identities active in the seven days ending at the window end.', computed: 'It is a rolling count, so it reaches back behind the window start and is always at least the daily figure.', action: 'Flat WAU with rising DAU means the same few identities are just busier.' },
  'adoption.tile.mau':
-  { title: 'Mau', body: 'Distinct identities active in the 30 days ending at the window end, counted the same way as WAU.', computed: 'It is the denominator for stickiness and the widest honest measure of reach.', action: 'If it is barely above WAU, almost nobody arrived more than a week ago.' },
+  { title: 'MAU', body: 'Distinct identities active in the 30 days ending at the window end, counted the same way as WAU.', computed: 'It is the denominator for stickiness and the widest honest measure of reach.', action: 'If it is barely above WAU, almost nobody arrived more than a week ago.' },
  'adoption.tile.stickiness':
   { title: 'Stickiness', body: 'Daily actives divided by monthly actives, as a percentage — how much of your audience shows up on an average day.', computed: 'Both counts use the same identity rules.', action: 'Under about 10% means an occasional tool; above 25% means something people keep open.' },
  'adoption.tile.new-users':
@@ -75,7 +75,7 @@ export const explanations: Explanations = {
  'adoption.card.clients':
   { title: 'Clients', body: 'Every MCP client and version that connected in the window, with its share of tool calls, session count and the capabilities it declared at initialization.', computed: 'Share is calls divided by all calls in the window, to one decimal, so it is independent of session counts.', action: 'Old versions clustering here are the ones to keep supporting.' },
  'adoption.card.transport-protocol':
-  { title: 'Transport protocol', body: 'Sessions by wire transport and by the protocol revision the handshake agreed.', computed: 'Both are counted per session in the window, and the revision list grows as clients adopt newer specs.', action: 'A long tail of old revisions limits which protocol features you can rely on.' },
+  { title: 'Transport and protocol', body: 'Sessions by wire transport and by the protocol revision the handshake agreed.', computed: 'Both are counted per session in the window, and the revision list grows as clients adopt newer specs.', action: 'A long tail of old revisions limits which protocol features you can rely on.' },
  'adoption.card.conversion':
   { title: 'Conversion', body: 'The activation funnel as a curve: each step as a percentage of the identities that connected.', computed: 'The curve stops at the last step that has a count, so a step still waiting for data does not plot as a fall to zero.', action: 'The steepest segment is the one to fix first.' },
 
@@ -89,19 +89,19 @@ export const explanations: Explanations = {
  'tools.tile.retries':
   { title: 'Retries', body: 'Calls that repeated the same tool in the same session within 30 seconds of a failure.', computed: 'Other calls may come in between, and a retry that succeeds counts as self-corrected.', action: 'A high count means the model is working around your tool rather than being served by it.' },
  'tools.tile.below-slo': ({ sloTargets: t = DEFAULT_TARGETS }) =>
-  ({ title: 'Below slo', body: `Tools whose success rate in the window is under their class target: ${target(t.read)} for read tools, ${target(t.mutate)} for mutating ones.`, computed: `The class comes from your settings first, then catalogue read-only or destructive annotations, then the name prefix.`, action: `Each tool here is spending error budget right now.` }),
+  ({ title: 'Below SLO', body: `Tools whose success rate in the window is under their class target: ${target(t.read)} for read tools, ${target(t.mutate)} for mutating ones.`, computed: `The class comes from your settings first, then catalogue read-only or destructive annotations, then the name prefix.`, action: `Each tool here is spending error budget right now.` }),
  'tools.tile.hallucinated':
   { title: 'Hallucinated', body: 'Calls to tool names your server does not advertise, plus every explicit unknown-tool error.', computed: 'With a complete catalogue, any name outside it counts; with a truncated one, only the explicit errors do.', action: 'Recurring invented names usually mean a prompt or description is promising a tool you do not have.' },
  'tools.card.paths':
-  { title: 'Paths', body: 'The most common consecutive runs of tool calls inside a single session — pairs and triples, top 20 by count.', computed: 'Shares use every observed pair and triple as the denominator, and runs that cross midnight are kept.', action: 'These are the journeys worth making fast.' },
+  { title: 'Top tool paths', body: 'The most common consecutive runs of tool calls inside a single session — pairs and triples, top 20 by count.', computed: 'Shares use every observed pair and triple as the denominator, and runs that cross midnight are kept.', action: 'These are the journeys worth making fast.' },
  'tools.card.health': ({ sloTargets: t = DEFAULT_TARGETS }) =>
-  ({ title: 'Health', body: `Every tool's success rate against its class target, worst first, with its call volume.`, computed: `Read tools target ${target(t.read)}, mutating tools ${target(t.mutate)}, and a tool advertised but never called in the window reads dead.`, action: `The bars below their tick are where your error budget is going.` }),
+  ({ title: 'Tool health', body: `Every tool's success rate against its class target, worst first, with its call volume.`, computed: `Read tools target ${target(t.read)}, mutating tools ${target(t.mutate)}, and a tool advertised but never called in the window reads dead.`, action: `The bars below their tick are where your error budget is going.` }),
  'tools.card.latency':
-  { title: 'Latency', body: 'Distribution of call durations across all tools in the window, in log-spaced buckets about 1.26 apart.', computed: 'Markers show p50, p95 and p99 from the same histogram, so each is accurate to within about 26%.', action: 'A second hump to the right is a slow path, not noise.' },
+  { title: 'Latency distribution', body: 'Distribution of call durations across all tools in the window, in log-spaced buckets about 1.26 apart.', computed: 'Markers show p50, p95 and p99 from the same histogram, so each is accurate to within about 26%.', action: 'A second hump to the right is a slow path, not noise.' },
  'tools.card.catalogue':
   { title: 'Catalogue', body: 'What the latest `tools/list` snapshot advertised against what was actually called in the window, with the snapshot hash and the time it was taken.', computed: 'When the snapshot is incomplete, coverage and the never-called list are unknown rather than empty.', action: 'A stale timestamp means no client has listed your tools recently.' },
  'tools.card.performance':
-  { title: 'Performance', body: 'One row per tool for the window: calls, success against its class target, latency percentiles, average payload sizes, estimated tokens and error counts.', computed: 'A dash means the SDKs have not reported that error class yet, which is different from zero.', action: 'Select a row for that tool\'s own trend, histogram and error split.' },
+  { title: 'Tool performance', body: 'One row per tool for the window: calls, success against its class target, latency percentiles, average payload sizes, estimated tokens and error counts.', computed: 'A dash means the SDKs have not reported that error class yet, which is different from zero.', action: 'Select a row for that tool\'s own trend, histogram and error split.' },
 
  /* --------------------------------------------------- Tool drawer (per tool) */
  'tool.tile.calls':
@@ -109,11 +109,11 @@ export const explanations: Explanations = {
  'tool.tile.success': ({ sloTargets: t = DEFAULT_TARGETS }) =>
   ({ title: 'Success', body: `Share of this tool's calls that did not report an error, against its class target — ${target(t.read)} for read tools, ${target(t.mutate)} for mutating ones.`, computed: `The class shown beside it is the one actually in force, from your settings, the catalogue, or the name.`, action: `Below target means this tool is the one spending budget.` }),
  'tool.tile.p95':
-  { title: 'P95', body: 'The duration 95% of this tool\'s calls beat, in milliseconds, from its own log-spaced histogram.', computed: 'Accuracy is within about 26% of the value; windows under six hours are computed exactly.', action: 'Treat p95, not the average, as what callers feel.' },
+  { title: 'p95', body: 'The duration 95% of this tool\'s calls beat, in milliseconds, from its own log-spaced histogram.', computed: 'Accuracy is within about 26% of the value; windows under six hours are computed exactly.', action: 'Treat p95, not the average, as what callers feel.' },
  'tool.card.calls-errors':
-  { title: 'Calls errors', body: 'This tool\'s successful calls and errors per UTC day over the window, stacked.', computed: 'A tool\'s trend is grouped by day whatever the range, and a day with no calls is simply absent.', action: 'Errors arriving in a block rather than a trickle point at a dependency, not the tool.' },
+  { title: 'Calls and errors', body: 'This tool\'s successful calls and errors per UTC day over the window, stacked.', computed: 'A tool\'s trend is grouped by day whatever the range, and a day with no calls is simply absent.', action: 'Errors arriving in a block rather than a trickle point at a dependency, not the tool.' },
  'tool.card.latency':
-  { title: 'Latency', body: 'This tool\'s own call durations, in log-spaced buckets about 1.26 apart, with its p50, p95 and p99 marked.', computed: 'Counts add up to the tool\'s measured calls in the window.', action: 'A long right tail with a healthy p50 means a slow input, not a slow tool.' },
+  { title: 'Latency distribution', body: 'This tool\'s own call durations, in log-spaced buckets about 1.26 apart, with its p50, p95 and p99 marked.', computed: 'Counts add up to the tool\'s measured calls in the window.', action: 'A long right tail with a healthy p50 means a slow input, not a slow tool.' },
  'tool.card.error-split':
   { title: 'Error split', body: 'This tool\'s errors by class: tool, protocol, timeout, cancelled and unknown.', computed: 'Every class except tool stays blank until the SDK reports an error kind, so a dash is "not reported yet", not zero.', action: 'Timeouts and protocol errors are usually yours to fix; cancellations are the client changing its mind.' },
 
@@ -139,7 +139,7 @@ export const explanations: Explanations = {
  'reliability.card.error-codes':
   { title: 'Error codes', body: 'JSON-RPC error codes behind the failed calls in the window, by count.', computed: 'It stays empty until the SDKs report codes, which is different from having no errors.', action: 'Invalid-params codes are usually a schema mismatch you own.' },
  'reliability.card.auth-failures':
-  { title: 'Auth failures', body: 'Requests rejected before a session existed, grouped by reason — invalid, expired, missing or out of scope.', computed: 'These never appear as session or call errors, because there was no session yet.', action: 'A spike in one reason is a client misconfiguration, not an attack.' },
+  { title: 'Authentication failures', body: 'Requests rejected before a session existed, grouped by reason — invalid, expired, missing or out of scope.', computed: 'These never appear as session or call errors, because there was no session yet.', action: 'A spike in one reason is a client misconfiguration, not an attack.' },
  'reliability.card.availability':
   { title: 'Availability', body: 'Share of synthetic probes in the window that succeeded, one dot per probe.', computed: 'Probing runs only once both a probe URL and key are set in Settings, and it performs initialize plus `tools/list`, never your tools.', action: 'Healthy tools stays blank because discovery does not execute anything.' },
 
@@ -151,23 +151,23 @@ export const explanations: Explanations = {
  'sessions.tile.cancelled':
   { title: 'Cancelled', body: 'Calls the client abandoned mid-flight in the window.', computed: 'Cancellations are the client\'s decision, usually about how long it was prepared to wait.', action: 'Read them next to p95 latency.' },
  'sessions.tile.streamable-http':
-  { title: 'Streamable http', body: 'Sessions in the window that used the streamable HTTP transport — the remote path, and normally the majority.', computed: 'Transport is recorded per session at session start.', action: 'A sudden fall here with stdio rising means traffic moved to local clients.' },
+  { title: 'streamable-http', body: 'Sessions in the window that used the streamable HTTP transport — the remote path, and normally the majority.', computed: 'Transport is recorded per session at session start.', action: 'A sudden fall here with stdio rising means traffic moved to local clients.' },
  'sessions.tile.stdio':
-  { title: 'Stdio', body: 'Sessions in the window that used stdio, which means a locally launched server: desktop clients and development.', computed: 'These sessions never traverse your network, so availability probes say nothing about them.' },
+  { title: 'stdio', body: 'Sessions in the window that used stdio, which means a locally launched server: desktop clients and development.', computed: 'These sessions never traverse your network, so availability probes say nothing about them.' },
  'sessions.tile.open':
-  { title: 'Open', body: 'Sessions on this page with no `session.ended` event yet.', computed: 'Long-lived clients legitimately sit here; so does a client that crashed without closing.', action: 'Combine with the duration column before reading too much into it.' },
+  { title: 'Open on this page', body: 'Sessions on this page with no `session.ended` event yet.', computed: 'Long-lived clients legitimately sit here; so does a client that crashed without closing.', action: 'Combine with the duration column before reading too much into it.' },
  'sessions.card.replay':
-  { title: 'Replay', body: 'The newest session, one lane per target, with every event placed at its offset from the session start.', computed: 'Bar length is the call\'s measured duration and red marks a reported error.', action: 'It is the fastest way to see which call blocked the rest.' },
+  { title: 'Session replay', body: 'The newest session, one lane per target, with every event placed at its offset from the session start.', computed: 'Bar length is the call\'s measured duration and red marks a reported error.', action: 'It is the fastest way to see which call blocked the rest.' },
  'sessions.card.table':
-  { title: 'Table', body: 'Newest sessions first, with client, identity, duration, call depth, errors and how the session ended.', computed: 'Identity follows the usual precedence: OAuth subject, then caller key, then hashed network address.', action: 'Select a row to replay that one connection event by event.' },
+  { title: 'The story of a connection', body: 'Newest sessions first, with client, identity, duration, call depth, errors and how the session ended.', computed: 'Identity follows the usual precedence: OAuth subject, then caller key, then hashed network address.', action: 'Select a row to replay that one connection event by event.' },
  'sessions.card.by-client':
-  { title: 'By client', body: 'Sessions in the window held by each MCP client.', computed: 'It counts sessions, not calls, so a chatty client can be small here and large on the Overview mix.', action: 'A client with many sessions and few calls is probably reconnecting.' },
+  { title: 'Sessions by client', body: 'Sessions in the window held by each MCP client.', computed: 'It counts sessions, not calls, so a chatty client can be small here and large on the Overview mix.', action: 'A client with many sessions and few calls is probably reconnecting.' },
 
  /* ------------------------------------------------------------------- Callers */
  'callers.card.table':
-  { title: 'Table', body: 'Every identity that produced activity in the window, with its kind, call and session counts, clients and error rate.', computed: 'Kind is strong for an OAuth subject, key for a caller key, network for a hashed address, and the kinds never merge into one another.', action: 'Network rows cannot be contacted or billed; issue keys to turn them into names.' },
+  { title: 'A name behind every connection', body: 'Every identity that produced activity in the window, with its kind, call and session counts, clients and error rate.', computed: 'Kind is strong for an OAuth subject, key for a caller key, network for a hashed address, and the kinds never merge into one another.', action: 'Network rows cannot be contacted or billed; issue keys to turn them into names.' },
  'callers.card.billing':
-  { title: 'Billing', body: 'Estimated context tokens and calls per identity, by calendar month.', computed: 'Tokens are output characters or bytes divided by the project token divisor, so they are an estimate for chargeback, not an invoice.', action: 'One identity dominating a month is usually a batch job, not a user.' },
+  { title: 'Monthly tenant usage', body: 'Estimated context tokens and calls per identity, by calendar month.', computed: 'Tokens are output characters or bytes divided by the project token divisor, so they are an estimate for chargeback, not an invoice.', action: 'One identity dominating a month is usually a batch job, not a user.' },
 
  /* ---------------------------------------------------------------------- Cost */
  'cost.tile.context-tokens':
@@ -183,7 +183,7 @@ export const explanations: Explanations = {
  'cost.tile.billing-period':
   { title: 'Billing period', body: 'The most recent calendar month with usage, and how many identities it covers.', computed: 'Periods are UTC months and the current one is month to date, so it is always incomplete.', action: 'Use it to line usage up with your own billing cycle.' },
  'cost.card.treemap':
-  { title: 'Treemap', body: 'Estimated tokens by tool, each area proportional to its share of the window.', computed: 'Tokens are output characters or bytes divided by the project token divisor, so this is where context goes, not what it costs in money.', action: 'The largest tiles are where an output schema change pays back most.' },
+  { title: 'Where the context goes', body: 'Estimated tokens by tool, each area proportional to its share of the window.', computed: 'Tokens are output characters or bytes divided by the project token divisor, so this is where context goes, not what it costs in money.', action: 'The largest tiles are where an output schema change pays back most.' },
  'cost.card.payload-sizes':
   { title: 'Payload sizes', body: 'How many calls in the window landed in each payload size band, for inputs and for outputs.', computed: 'Boundaries are 1 KB, 4 KB, 16 KB and 64 KB, and each boundary counts in the larger band.', action: 'Outputs sitting far right of inputs means your server amplifies every request.' },
  'cost.card.by-tenant':
@@ -223,7 +223,7 @@ export const explanations: Explanations = {
  'live.card.errors-in-window':
   { title: 'Errors in window', body: 'How many of the last 200 streamed events were errors or failed calls.', computed: 'Counted from the stream, so it will not match Reliability, which uses the selected window.', action: 'A burst here is the earliest warning you get.' },
  'live.card.stream':
-  { title: 'Stream', body: 'Every event as it arrives, newest first, capped at the latest 200.', computed: 'Expand one for its full payload; pause to hold the view still while you read.', action: 'Filters apply to the buffer, so a quiet filter does not mean a quiet server.' },
+  { title: 'Expand an event to inspect its payload. Pause to hold the view steady.', body: 'Every event as it arrives, newest first, capped at the latest 200.', computed: 'Expand one for its full payload; pause to hold the view still while you read.', action: 'Filters apply to the buffer, so a quiet filter does not mean a quiet server.' },
 
  /* ------------------------------------------------------------------ Settings */
  'settings.card.alert-rules':

@@ -45,11 +45,10 @@ export function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unk
     Promise.resolve().then(() => loader.current(controller.signal)).then(
       value => { if (!controller.signal.aborted) { held.current = value; setState({ value, loading: false, stale: false }); } finish(!controller.signal.aborted); },
       error => {
-        // A failed background refresh must not throw away the screen; a failed range or
-        // project change must not leave the previous answer standing in for the new one.
+        // Keep the last painted content on failure; the error remains available to
+        // the caller and stale marks that this is not a successful new answer.
         if (!controller.signal.aborted) {
-          if (kind !== 'refresh') held.current = undefined;
-          setState(old => ({ value: kind === 'refresh' ? old.value : undefined, error: error instanceof Error ? error.message : 'Could not load data.', loading: false, stale: false }));
+          setState(old => ({ value: old.value, error: error instanceof Error ? error.message : 'Could not load data.', loading: false, stale: old.value !== undefined }));
         }
         finish(false);
       });
@@ -72,9 +71,11 @@ export function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unk
   // the skeleton nor the content it replaces can flash.
   const [skeleton, setSkeleton] = useState(false);
   const shownAt = useRef(0);
+  const contentPainted = useRef(false);
+  useEffect(() => { if (state.value !== undefined && !skeleton) contentPainted.current = true; }, [state.value, skeleton]);
   useEffect(() => {
-    if (state.loading && state.value === undefined && !state.error) {
-      const timer = setTimeout(() => { shownAt.current = Date.now(); setSkeleton(true); }, SKELETON_DELAY_MS);
+    if (!contentPainted.current && state.loading && state.value === undefined && !state.error) {
+      const timer = setTimeout(() => { shownAt.current = Date.now(); if (!contentPainted.current) setSkeleton(true); }, SKELETON_DELAY_MS);
       return () => clearTimeout(timer);
     }
     if (!skeleton) return;
@@ -83,7 +84,7 @@ export function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unk
     const timer = setTimeout(() => setSkeleton(false), left);
     return () => clearTimeout(timer);
   }, [state.loading, state.value, state.error, skeleton]);
-  return { ...state, skeleton, reload };
+  return { ...state, skeleton: !contentPainted.current && skeleton, reload };
 }
 
 // Nothing at all for the first 200 ms: the shell is already up, so a blank card area
@@ -127,7 +128,7 @@ export function SignalsDashboard({ client, project, screen, range, onNavigate, o
     };
     const off = onActivity(paint);
     return () => { off(); clearTimeout(timer); };
-  }, [screen, project.id]);
+  }, [screen]);
   return <div ref={root} className="signals-ui">
     {client.analytics && (['overview','adoption','tools','reliability','cost','protocol'] as string[]).includes(screen) && <AnalyticsV3 key={screen} {...props} screen={screen as 'overview'|'adoption'|'tools'|'reliability'|'cost'|'protocol'} />}
     {client.analytics && screen === 'settings' && <AnalyticsSettingsPanel client={client} project={project} onProjectChange={onProjectChange} readOnly={readOnly}/>}
@@ -194,6 +195,7 @@ function SessionsScreen({ client, project, range }: ScreenProps) {
   const query = useQuery(async signal => {const [page,overview,reliability,adoption]=await Promise.all([client.sessions(project.id,cursor,signal),client.analytics?.(project.id,'overview',{range},signal),client.analytics?.(project.id,'reliability',{range},signal),client.analytics?.(project.id,'adoption',{range},signal)]);return {...page,overview,reliability,adoption};}, [client, project.id, cursor,range], { poll: true });
   const [selected, setSelected] = useState<Session | null>(null);
   const d=query.value;
+  if(query.skeleton)return <QueryState {...query} retry={query.reload}/>;
   return <>{d?.overview&&<TilesV3 compact items={[{info:'sessions.tile.sessions',label:'Sessions',value:d.overview.tiles.sessions.value,meta:`${d.overview.tiles.sessions.calls_per_session??'No data yet'} calls / session`,unit:'sessions',points:d.adoption?.active.points.map(p=>({t:p.t,value:p.sessions}))},{info:'sessions.tile.with-errors',label:'With errors',value:d.reliability?.sessions_with_errors.count,meta:'at least one failed call'},{info:'sessions.tile.cancelled',label:'Cancelled',value:d.reliability?.cancellations.count,meta:'client cancelled mid-call'},{info:'sessions.tile.streamable-http',label:'streamable-http',value:d.adoption?.transports.find(t=>t.transport==='streamable-http')?.sessions,meta:'primary transport'},{info:'sessions.tile.stdio',label:'stdio',value:d.adoption?.transports.find(t=>t.transport==='stdio')?.sessions,meta:'local and dev clients'},{info:'sessions.tile.open',label:'Open on this page',value:d.items.filter(s=>!s.ended_at).length,meta:'no session.ended yet'}]}/>} {query.value?.items[0]&&client.timeline&&<SessionPreview client={client} project={project.id} session={query.value.items[0].session_id}/>} {!query.value || query.skeleton ? <QueryState {...query} retry={query.reload} /> : <div className="grid"><Panel className="s12" info="sessions.card.table" title="The story of a connection" subtitle="Newest sessions first · select one to see its timeline"><TableScroll><table><thead><tr><th>Client</th><th>Caller</th><th>Started</th><th>Duration</th><th>Depth</th><th>Errors</th><th>Outcome</th><th>Transport</th><th>Reason</th></tr></thead><tbody>{query.value.items.map(s => <tr key={s.session_id}><td><button className="row-button" onClick={() => setSelected(s)}><span className="client-avatar small">{(s.client_name ?? s.client?.name ?? 'Unknown').slice(0, 1)}</span>{s.client_name ?? s.client?.name ?? 'Unknown'}</button></td><td>{s.caller_label}</td><td className="mono muted">{date(s.started_at)}</td><td>{sessionDuration(s.started_at,s.ended_at)}</td><td>{s.calls}</td><td className={s.errors ? 'error-text' : ''}>{s.errors}</td><td><Pill error={s.errors>0}>{s.errors?'Error':s.ended_at ? 'Ended' : 'Active'}</Pill></td><td className="mono">{s.transport}</td><td>{s.reason??'No data yet'}</td></tr>)}</tbody></table></TableScroll>{!query.value.items.length && <Empty title="No sessions yet">Connect an MCP client to start your first session.</Empty>}<div className="pagination"><button className="button secondary" disabled={!cursor} onClick={() => setCursor(undefined)}>Newest</button><button className="button secondary" disabled={!query.value.next_cursor} onClick={() => setCursor(query.value?.next_cursor ?? undefined)}>Older sessions<Glyph name="arrow-right" size={15}/></button></div></Panel>{d?.adoption&&<Card info="sessions.card.by-client" title="Sessions by client" sub="Who is holding the connections"><Donut label="Sessions by client" columns={['Client','Sessions']} format={unitFormat('sessions')} centre={compact.format(d.overview?.tiles.sessions.value??0)} sub="sessions" items={d.adoption.clients.map((c,i)=>({name:`${c.name} ${c.version}`,value:c.sessions,color:clientColor(c.name,i)}))}/></Card>}</div>}{selected && <SessionDrawer client={client} project={project.id} session={selected} onClose={() => setSelected(null)} />}</>;
 }
 export function Drawer({ title, children, onClose, mono = false }: { title: string; children: ReactNode; onClose: () => void; mono?: boolean }) {

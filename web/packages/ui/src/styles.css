@@ -812,3 +812,24 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
 .dark .drawer::backdrop{background:color-mix(in oklch,oklch(0.220 0.013 70) 40%,transparent)}
 .scrim{background:color-mix(in oklch,var(--ink-hard) 28%,transparent);backdrop-filter:none}
 .dark .scrim{background:color-mix(in oklch,oklch(0.220 0.013 70) 40%,transparent)}
+
+/* v6: independent hover-card typography and generous corner targets. */
+.card,.panel,.tile{position:relative}
+.card__title-row,.panel-title-row{padding-right:44px}
+.tile__label{padding-right:32px;min-height:24px;white-space:normal}
+.info-button,.tiles--compact .info-button{position:absolute;right:12px;top:10px;width:40px;height:40px;border-radius:8px}
+.tile .info-button{right:8px;top:5px}
+.info-pop{width:340px;max-width:calc(100vw - 16px);padding:18px;text-transform:none;letter-spacing:normal;white-space:normal;font:500 13.5px/1.55 var(--sans);overflow:visible}
+.info-pop p{font:inherit;margin:8px 0 0;max-width:36ch;color:inherit;text-transform:none;letter-spacing:normal;white-space:normal}
+.info-pop__title{font:600 14px/1.4 var(--sans);text-transform:none;letter-spacing:normal}
+.info-pop__computed,.info-pop__action{font-size:12.5px!important;color:var(--muted-foreground)!important;margin-top:14px!important}
+.info-pop__computed strong,.info-pop__action strong{font-weight:600}
+.info-pop::before{content:"";position:absolute;width:8px;height:8px;left:var(--arrow-x,50%);top:-5px;transform:rotate(45deg);background:var(--popover);border-left:1px solid var(--border);border-top:1px solid var(--border)}
+.info-pop[data-side=above]::before{top:auto;bottom:-5px;transform:rotate(225deg)}
+@media(max-width:560px){.info-pop{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);overflow-y:auto}.info-pop::before{display:none}}
+
+.info-pop__title{display:flex;align-items:center;gap:10px}.info-pop__unit{font:500 11px var(--sans);padding:2px 7px;border-radius:6px;background:var(--secondary);color:var(--secondary-foreground)}
+
+.card-pending{min-height:180px;border-radius:8px;background:linear-gradient(100deg,var(--surface-sunken) 25%,var(--card) 45%,var(--surface-sunken) 65%);background-size:200% 100%;animation:pending-shimmer 1.8s ease-in-out infinite}
+@keyframes pending-shimmer{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.card-pending{animation:none}}
