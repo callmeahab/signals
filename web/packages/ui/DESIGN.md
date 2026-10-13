@@ -284,3 +284,13 @@
     action or context fields. Pointer release, cancellation and blur clear focus suppression.
 36. The browser suite checks actual Enter reopening after Escape and includes all three
     demo review probes; backend QA also runs the real collector project-state probe.
+37. Round 2: supporting-query failures only replace the tile fragment that depends on
+    that query. Overview and Cost headlines remain visible when their primary answer
+    succeeded; supporting trends/captions receive the notice and a framed empty state.
+38. Choreography QA always checks the scheduled entrance/count/chart delays and
+    durations, count monotonicity and terminal text. Count step density requires
+    20 average fps over the tween; an early zero requires a sample before 100 ms into
+    the scheduled tween. Observed animation ordering requires every sampled frame
+    interval in the mount window to sustain 20 fps, since a single stalled frame can
+    separate the observed animation clocks. Both average and slowest-frame cadence
+    are printed; skipped observations never skip the exact schedule assertions.
