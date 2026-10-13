@@ -245,11 +245,12 @@ try {
     }
     // Every chart draws in after the card or tile it belongs to, never before it.
     const owners = new Map([...tiles.map(t => ['tile:' + t.index, t]), ...cards.map(c => ['card:' + c.index, c])]);
-    let checked = 0;
+    let checked = 0, margin = Infinity;
     for (const chart of charts) {
       const owner = chart.owner && owners.get(chart.owner);
       if (!owner) continue;
       checked++;
+      margin = Math.min(margin, chart.start - owner.start - CHART_AFTER);
       check(chart.start >= owner.start + CHART_AFTER - FRAME_SLACK,
         `${screen}: the ${chart.chart} chart in ${chart.owner} draws in ${Math.round(owner.start + CHART_AFTER - chart.start)} ms before its own entrance allows, past the ${FRAME_SLACK} ms a frame is worth`);
     }
@@ -263,7 +264,7 @@ try {
     // settled -- the sampler has been recording since before the click either way.
     await settle(page);
     const climbs = checkCountUp(screen, rows, await counts(page));
-    console.log(`${screen}: ${tiles.length} tiles ${tiles[0]?.delay}+${TILE_STEP}i ms, ${cards.length} cards ${cards[0]?.delay}+${CARD_STEP}i ms (last ${cards.at(-1)?.delay} ms), ${checked}/${charts.length} chart draw-ins anchored to their card, ${climbs.climbed} tiles climbed from zero (${climbs.finest?.label} over ${climbs.finest?.spanMs} ms in ${climbs.finest?.steps} steps)`);
+    console.log(`${screen}: ${tiles.length} tiles ${tiles[0]?.delay}+${TILE_STEP}i ms, ${cards.length} cards ${cards[0]?.delay}+${CARD_STEP}i ms (last ${cards.at(-1)?.delay} ms), ${checked}/${charts.length} chart draw-ins anchored to their card (earliest ${Math.round(margin)} ms into its own window, ${FRAME_SLACK} ms of slack), ${climbs.climbed} tiles climbed from zero (${climbs.finest?.label} over ${climbs.finest?.spanMs} ms in ${climbs.finest?.steps} steps)`);
     // And when it is over, it is over: nothing is left running on the screen.
     const settled = await paintedState(page);
     check(settled.charts > 0 && settled.svg === settled.charts && settled.twin === settled.charts, `${screen}: ${settled.svg}/${settled.charts} charts painted with ${settled.twin} twins after the entrance`);
