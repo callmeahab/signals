@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 await import('./v6-status-qa.mjs');
 await import('./count-sampling-qa.mjs');
+await import('../test/review-v6-r3/copy-sweep.mjs');
 await import('./snippet-id-qa.mjs');
 await import('./spec-qa.mjs');
 await import('./analytics-qa.mjs');

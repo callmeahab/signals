@@ -61,7 +61,7 @@ export const explanations: Explanations = {
  'adoption.tile.wau':
   { title: 'WAU', body: 'Distinct identities active in the seven days ending at the window end.', computed: 'It is a rolling count, so it reaches back behind the window start and is always at least the daily figure.', action: 'Flat WAU with rising DAU means the same few identities are just busier.' },
  'adoption.tile.mau':
-  { title: 'MAU', body: 'Distinct identities active in the 30 days ending at the window end, counted the same way as WAU.', computed: 'It is the denominator for stickiness and the widest honest measure of reach.', action: 'If it is barely above WAU, almost nobody arrived more than a week ago.' },
+  { title: 'MAU', body: 'MAU measures the monthly reach of your server.', computed: 'Distinct identities active in the 30 days ending at the window end, counted the same way as WAU.', action: 'It is the denominator for stickiness and the widest honest measure of reach. If it is barely above WAU, almost nobody arrived more than a week ago.' },
  'adoption.tile.stickiness':
   { title: 'Stickiness', body: 'Daily actives divided by monthly actives, as a percentage — how much of your audience shows up on an average day.', computed: 'Both counts use the same identity rules.', action: 'Under about 10% means an occasional tool; above 25% means something people keep open.' },
  'adoption.tile.new-users':
@@ -127,7 +127,7 @@ export const explanations: Explanations = {
  'reliability.tile.sessions-with-errors':
   { title: 'Sessions with errors', body: 'Sessions with errors measures how many conversations included a failed call.', computed: 'Sessions in the window with at least one failed call, and their share of all sessions.', action: 'One bad tool can put an error in most sessions, so read it next to Tool health.' },
  'reliability.tile.silent-failures':
-  { title: 'Silent failures', body: 'Calls that reported success with no output at all, plus results delivered after the client cancelled.', computed: 'The model cannot tell these from an empty answer, so they look like your tool had nothing to say.', action: 'Any number here is worth a look.' },
+  { title: 'Silent failures', body: 'The Silent failures metric measures calls that did not deliver a usable answer to the client.', computed: 'Calls that reported success with no output at all, plus results delivered after the client cancelled.', action: 'The model cannot tell these from an empty answer, so they look like your tool had nothing to say. Any number here is worth a look.' },
  'reliability.tile.hallucinated-tools':
   { title: 'Hallucinated tools', body: 'Calls to names your server does not advertise, with the names themselves.', computed: 'With a complete catalogue every outside name counts; with a truncated one only explicit unknown-tool errors do.', action: 'The names are a reading list for your prompts and tool descriptions.' },
  'reliability.card.error-budget':
@@ -137,7 +137,7 @@ export const explanations: Explanations = {
  'reliability.card.success-by-class':
   { title: 'Success by class', body: 'Success rate per SLO class against its target, with the share of error budget still unspent.', computed: 'Read tools target 99.5% and mutating tools 98%; the classes themselves are set in Settings.', action: 'A class under target with budget left is a warning; under target with none is an incident.' },
  'reliability.card.error-codes':
-  { title: 'Error codes', body: 'JSON-RPC error codes behind the failed calls in the window, by count.', computed: 'It stays empty until the SDKs report codes, which is different from having no errors.', action: 'Invalid-params codes are usually a schema mismatch you own.' },
+  { title: 'Error codes', body: 'The Error codes chart shows which kinds of JSON-RPC errors caused calls to fail.', computed: 'JSON-RPC error codes behind the failed calls in the window, by count.', action: 'It stays empty until the SDKs report codes, which is different from having no errors. Invalid-params codes are usually a schema mismatch you own.' },
  'reliability.card.auth-failures':
   { title: 'Authentication failures', body: 'Authentication failures counts requests rejected before a session could begin.', computed: 'Requests rejected before a session existed, grouped by reason — invalid, expired, missing or out of scope.', action: 'A spike in one reason is a client misconfiguration, not an attack.' },
  'reliability.card.availability':
