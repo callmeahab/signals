@@ -1,0 +1,22 @@
+1440 overview     charts=19 svg=19 twin=19 scrollY=0 OK in 55ms
+1440 adoption     charts=10 svg=10 twin=10 scrollY=0 OK in 2ms
+1440 tools        charts=14 svg=14 twin=14 scrollY=0 OK in 3ms
+1440 reliability  charts=5 svg=5 twin=5 scrollY=0 OK in 3ms
+1440 sessions     charts=3 svg=3 twin=3 scrollY=0 OK in 2ms
+1440 callers      charts=0 svg=0 twin=0 scrollY=0 no .v3-chart on this screen
+1440 cost         charts=4 svg=4 twin=4 scrollY=0 OK in 2ms
+1440 protocol     charts=2 svg=2 twin=2 scrollY=0 OK in 1ms
+1440 live         charts=3 svg=3 twin=3 scrollY=0 OK in 2ms
+1440 settings     charts=0 svg=0 twin=0 scrollY=0 no .v3-chart on this screen
+1440 setup        charts=0 svg=0 twin=0 scrollY=0 no .v3-chart on this screen
+390 overview     charts=19 svg=19 twin=19 scrollY=0 OK in 56ms
+390 adoption     charts=10 svg=10 twin=10 scrollY=0 OK in 4ms
+390 tools        charts=14 svg=14 twin=14 scrollY=0 OK in 1ms
+390 reliability  charts=5 svg=5 twin=5 scrollY=0 OK in 3ms
+390 sessions     charts=3 svg=3 twin=3 scrollY=0 OK in 1ms
+390 callers      charts=0 svg=0 twin=0 scrollY=0 no .v3-chart on this screen
+390 cost         charts=4 svg=4 twin=4 scrollY=0 OK in 1ms
+390 protocol     charts=2 svg=2 twin=2 scrollY=0 OK in 3ms
+390 live         charts=3 svg=3 twin=3 scrollY=0 OK in 1ms
+390 settings     charts=0 svg=0 twin=0 scrollY=0 no .v3-chart on this screen
+390 setup        charts=0 svg=0 twin=0 scrollY=0 no .v3-chart on this screen

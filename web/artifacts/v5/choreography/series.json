@@ -1,5 +1,5 @@
 {
-  "base": "http://127.0.0.1:23500",
+  "base": "http://127.0.0.1:23330",
   "frames": 18,
   "timings": {
     "TILE_FIRST": 130,
@@ -22,7 +22,7 @@
       "tilesShown": 6,
       "cards": 5,
       "cardsShown": 5,
-      "running": 1,
+      "running": 0,
       "scrollY": 0
     },
     {
@@ -53,7 +53,7 @@
     },
     {
       "frame": 3,
-      "atMs": 319,
+      "atMs": 320,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -66,7 +66,7 @@
     },
     {
       "frame": 4,
-      "atMs": 420,
+      "atMs": 421,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -79,7 +79,7 @@
     },
     {
       "frame": 5,
-      "atMs": 520,
+      "atMs": 521,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -92,7 +92,7 @@
     },
     {
       "frame": 6,
-      "atMs": 620,
+      "atMs": 621,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -105,7 +105,7 @@
     },
     {
       "frame": 7,
-      "atMs": 720,
+      "atMs": 724,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -118,7 +118,7 @@
     },
     {
       "frame": 8,
-      "atMs": 821,
+      "atMs": 825,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -131,7 +131,7 @@
     },
     {
       "frame": 9,
-      "atMs": 922,
+      "atMs": 926,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -144,7 +144,7 @@
     },
     {
       "frame": 10,
-      "atMs": 1022,
+      "atMs": 1027,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -157,7 +157,7 @@
     },
     {
       "frame": 11,
-      "atMs": 1122,
+      "atMs": 1127,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -170,7 +170,7 @@
     },
     {
       "frame": 12,
-      "atMs": 1222,
+      "atMs": 1227,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -183,7 +183,7 @@
     },
     {
       "frame": 13,
-      "atMs": 1322,
+      "atMs": 1327,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -196,7 +196,7 @@
     },
     {
       "frame": 14,
-      "atMs": 1425,
+      "atMs": 1427,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -209,7 +209,7 @@
     },
     {
       "frame": 15,
-      "atMs": 1534,
+      "atMs": 1527,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -222,7 +222,7 @@
     },
     {
       "frame": 16,
-      "atMs": 1634,
+      "atMs": 1627,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -235,7 +235,7 @@
     },
     {
       "frame": 17,
-      "atMs": 1754,
+      "atMs": 1728,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -243,7 +243,7 @@
       "tilesShown": 6,
       "cards": 5,
       "cardsShown": 5,
-      "running": 19,
+      "running": 20,
       "scrollY": 0
     }
   ],
