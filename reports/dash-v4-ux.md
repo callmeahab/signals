@@ -934,3 +934,186 @@ CI EXIT 0
 
 The backend suite's pass line is deliberately not extended with the new explanation check:
 it names what it proves, and the check itself fails with the popover text when it breaks.
+
+## Round 3 fixes
+
+Review `reviews/dash-v4-ux-r3.md` filed one blocker, and the brief added the flaky
+visual-qa assertion the coordinator hit. Both are closed.
+
+### Blocker 1 · The tab-switch gate reads a sample, not a single switch
+
+The review's re-run put 14 of 15 `overview → adoption` switches at 32.39–41.67 ms and run
+12 at 55.96 ms, and the gate failed on run 12. A single sample on a shared box is not
+evidence about the screen, and a gate that reports the machine's worst moment is not
+measuring the product. `scripts/performance-qa.mjs` now decides like this, written out in
+its header and as item 20 of `packages/ui/DESIGN.md`:
+
+- every transition is held to 50 ms, with the one documented exception, `protocol → live`
+  at 60 ms;
+- single mode asserts the **median** and the **90th percentile** of the repeats under the
+  budget;
+- one run may exceed its budget provided it stays under **70 ms**. It prints as an
+  outlier and is recorded in the artifact, alongside the median, p90, range and the
+  ceiling;
+- a second outlier fails, and so does any run at or above 70 ms;
+- the walk keeps its per-row budgets and applies the same one-outlier rule across its
+  30 rows.
+
+The percentile is nearest-rank, so p90 of 15 samples is the 14th value: one outlier has
+room in the sample the gate is run with, and in a short sample (p90 of 5 is the maximum)
+it does not. That is the honest behaviour — with five switches you cannot tell an outlier
+from the screen.
+
+The 15-run sample, `PERFORMANCE_REPEATS=15`, exit 0:
+
+```
+32.34  32.69  37.55  34.20  35.83  33.69  39.29  34.47
+34.99  33.17  38.59  36.27  35.87  36.61  36.35      ms
+15 repeats of adoption: longest task median 35.83 ms, p90 38.59 ms, range 32.34–39.29 ms;
+0 over budget (1 tolerated under 70 ms)
+```
+
+The walk, ten transitions × 3, exit 0, with the exception printed on each Live row:
+
+```
+Run 3 protocol → live: 208.12 ms aggregate (informational); longest task 50.07 ms (budget < 60 ms, documented exception against the 50 ms every other transition keeps: the pre-existing Live mount)
+Walk, 30 rows: longest task median 33.05 ms, p90 41.47 ms, range 15.74–50.07 ms; 0 over budget (1 tolerated under 70 ms)
+```
+
+Against the review's sample the new gate passes and says why: median and p90 in the
+thirties, one outlier at 55.96 ms, under the 70 ms ceiling, printed and recorded.
+
+The rule was also exercised the other way, with a real transition rather than a contrived
+one. `PERFORMANCE_SCREEN=live PERFORMANCE_REPEATS=5` measures `overview → live`, which is
+the expensive mount at the ordinary 50 ms budget:
+
+```
+Run 5 overview → live: longest task 52.50 ms (budget < 50 ms) — OUTLIER, over its 50 ms budget; 1 is tolerated under 70 ms
+5 repeats of live: longest task median 49.27 ms, p90 52.50 ms, range 47.75–52.50 ms; 1 over budget (1 tolerated under 70 ms)
+AssertionError: 90th-percentile longest task 52.50 ms is not under 50 ms
+exit 1
+```
+
+So the outlier line prints, the statistics are the gate, and tolerating one outlier does
+not rescue a sample whose p90 is over budget.
+
+### Blocker 2 (from the brief) · The click assertion was racing the hover readout
+
+The brief's hypothesis was the focus path. I measured both paths before changing either.
+Clicking the first chart on six screens, sampling every animation frame for 700 ms from
+inside the page, so the measurement does not depend on how fast a round-trip is:
+
+```
+overview    immediate count 0 | frames with a readout: 34 first at 169 ms (pointer 1 of 1)
+adoption    immediate count 0 | frames with a readout: 34 first at 165 ms (pointer 1 of 1)
+tools       immediate count 0 | frames with a readout: 0 none
+reliability immediate count 0 | frames with a readout: 0 none
+cost        immediate count 0 | frames with a readout: 34 first at 158 ms (pointer 1 of 1)
+protocol    immediate count 0 | frames with a readout: 0 none
+```
+
+No keyboard readout opens on a click, on any screen, in any frame. What appears 158–169 ms
+later is the **hover** readout, `.chart-key-tooltip--pointer`: the click leaves the pointer
+resting on the plot, so the 120 ms hover delay elapses, and the assertion's selector
+`.chart-key-tooltip` matched that element too. Whether the run saw it depended on whether
+the `count()` round-trip landed before or after ~150 ms, which is exactly what CPU load
+decides.
+
+Reproduced on demand by delaying the read, which is what load does to it:
+
+```
+read   0 ms after the click: old form saw 0 readout(s) (0 hover) -> passes | new form passes
+read 100 ms after the click: old form saw 0 readout(s) (0 hover) -> passes | new form passes
+read 150 ms after the click: old form saw 1 readout(s) (1 hover) -> FAILS  | new form passes
+read 300 ms after the click: old form saw 1 readout(s) (1 hover) -> FAILS  | new form passes
+```
+
+`scripts/visual-qa.mjs` now takes the pointer off the plot after the click — the click is
+the subject; resting the pointer there is the hover behaviour, which has its own 120 ms
+timing checks further down — then waits one animation frame before counting, and adds a
+second assertion that no keyboard readout appears however long the pointer path is given.
+
+The product side is hardened as the brief asked, with the measurement that says it was not
+the cause: in this Chromium `:focus-visible` is **false** for a click-focus even directly
+after a key press, and **true** for a key press followed by a programmatic focus, where
+the readout correctly opens.
+
+```
+after keyboard-then-click   :focus-visible = false | focused = true
+cold click                  :focus-visible = false
+key then programmatic focus :focus-visible = true  | keyboard readout open = 1
+```
+
+That heuristic differs between engines and has changed between versions, so
+`packages/ui/src/charts/index.tsx` no longer ORs it with the key-vs-pointer flag. The flag
+is the authority — a `pointerdown` always lands before the focus it causes, so by the time
+`onFocus` asks, the last input is known — and `:focus-visible` is consulted only while the
+flag is still `null`, meaning nothing has been typed or clicked in the document yet, which
+is the programmatic focus a screen reader or a test arrives with. Item 21 of `DESIGN.md`
+records it.
+
+Three serial `visual-qa.mjs` runs with the box deliberately busy — one CPU-burning loop
+per core (16) plus two `cargo build`s in throwaway target directories — all exit 0:
+
+```
+run 1 exit 0 | load 20.48 18.22 10.22 | Visual QA passed: …
+run 2 exit 0 | load 19.69 19.11 13.07 | Visual QA passed: …
+run 3 exit 0 | load 18.41 19.17 14.98 | Visual QA passed: …
+```
+
+### Round 3 commands, and what they printed
+
+```
+bun run check                                                   # exit 0
+bun run test                                                    # exit 0
+bun run test:next                                               # exit 0
+BASE_URL=… PERFORMANCE_REPEATS=15 bun scripts/performance-qa.mjs # exit 0, see the sample
+BASE_URL=… bun scripts/performance-qa.mjs --walk                 # exit 0, 30 rows
+BASE_URL=… PERFORMANCE_SCREEN=live PERFORMANCE_REPEATS=5 …        # exit 1, the rule firing
+three serial visual-qa runs under load                           # each exit 0
+four serial visual-qa runs, all tracked captures hashed          # byte-identical
+bun run build && python3 scripts/ci-conformance.py               # from the repo root, exit 0
+```
+
+Four serial static capture runs, hashing every **tracked** png under `web/artifacts/v3`.
+The round-1 and round-2 reports said 116: that is the count in the directory's top level,
+and the review was right that 160 are tracked, the other 44 under `mock/`. The proof now
+covers all of them:
+
+```
+tracked captures: 160
+run 1 exit 0    run 2 exit 0    run 3 exit 0    run 4 exit 0
+=== files hashed ===
+160
+run 1 vs run 2: identical
+run 1 vs run 3: identical
+run 1 vs run 4: identical
+manifest digest: 1358a81f587822d34e3c63124eb036d1
+git png diff: 0
+```
+
+That digest is the one the round-3 review recorded for the same set
+(`1358a81f587822d34e3c63124eb036d19c536fcee36ce4170e7b2735c49778a5`), so these two changes
+moved no pixel.
+
+`python3 scripts/ci-conformance.py` from the repo root, after `bun run build`, with
+`DATABASE_URL=postgres://postgres:postgres@127.0.0.1:25496/signals`,
+`ANALYTICS_PG_CONTAINER=dash-v4-ux-r4-pg`, `SIGNALS_URL=http://127.0.0.1:25510`,
+`ANALYTICS_REVIEW_URL=http://127.0.0.1:25511`, `ANALYTICS_REVIEW_PROBE_PORT=25512`,
+`SIGNALS_PROBE_LATENCY_BUDGET_MS=900` and `TMPDIR` under `/var/tmp`:
+
+```
+identity: 52/52 valid fixtures matched, 54/54 invalid fixtures matched
+gzip: 52/52 valid fixtures matched, 54/54 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case,
+replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Backend browser QA passed: … hour-stamped sparkline readouts on a 24-hour window …
+BENCH overview: median 149.29 ms … BENCH alerts: median 0.78 ms
+FINDINGS 0 MISMATCHES 0
+CI EXIT 0
+```
+
+The first attempt at this harness exited 1 before the collector started: `Address already
+in use (os error 98)` on port 25470, which something outside this worktree was already
+listening on. The three ports were moved to 25510–25512 and the run above is the one that
+counts.
