@@ -458,11 +458,12 @@ or less and `day` after that.
 - `web/packages/ui/src/time.ts` — `bucketForRange` (hour / day / week by range) is gone.
   In its place `SERIES_BUCKET = 'day'`, `latencyBucket(range)` and `bucketMilliseconds`,
   with the contract written out in a comment above them.
-- `web/apps/dashboard/src/demo-analytics.ts` — the demo now generates one point per UTC
-  day for calls by client, adoption actives and every tool trend on all four ranges, and
-  only the latency series switches: 24 hourly points at 24 hours, daily otherwise, with
-  `latency_over_time.bucket` set to match. A 24-hour window is one column and a 90-day
-  window is ninety, exactly as the collector answers.
+- `web/apps/dashboard/src/demo-analytics.ts` — the demo now puts calls by client,
+  adoption actives and every tool trend on the UTC-day grid on all four ranges, and only
+  the latency series switches: 24 hourly points at 24 hours, daily otherwise, with
+  `latency_over_time.bucket` set to match. Round 2 corrected the rest of this sentence,
+  which claimed a 24-hour window is one column and a 90-day window ninety: the collector
+  emits a point only for a date that has calls. See "Round 2 fixes".
 - `web/packages/ui/src/copy/explanations.ts` — the four popovers that stated the old rule
   now state the collector's: `overview.card.calls-by-client`, `adoption.card.active-identities`,
   `tool.card.calls-errors` and `overview.tile.p95-latency` (which is where the window-following

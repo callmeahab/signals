@@ -22,11 +22,17 @@ const SCREENS = ['overview', 'adoption', 'tools', 'reliability', 'sessions', 'ca
 // error from any dashboard helper: calls by client and adoption actives are UTC days on
 // every range (analytics.rs writes `"buckets":"day"` / `"bucket":"day"`), and latency is
 // hourly while the window is 48 hours or less.
+//
+// The call series is keyed by `date_naive()` and a date with no calls has no point, so a
+// window has at most one column per day and its gaps are whole days. `sparse` marks the
+// windows where the demo leaves dates out, which is the shape real data has. Adoption
+// counts every identity that sent any event, including on a day nobody called a tool, so
+// its grid stays complete.
 const BUCKETS = {
-  '24h': { bucket: 'day', label: 'Daily', hours: 24, points: 1, latency: 'hour', latencyHours: 1, latencyPoints: 24 },
-  '7d': { bucket: 'day', label: 'Daily', hours: 24, points: 7, latency: 'day', latencyHours: 24, latencyPoints: 7 },
-  '30d': { bucket: 'day', label: 'Daily', hours: 24, points: 30, latency: 'day', latencyHours: 24, latencyPoints: 30 },
-  '90d': { bucket: 'day', label: 'Daily', hours: 24, points: 90, latency: 'day', latencyHours: 24, latencyPoints: 90 },
+  '24h': { bucket: 'day', label: 'Daily', hours: 24, days: 1, sparse: false, latency: 'hour', latencyHours: 1, latencyPoints: 24 },
+  '7d': { bucket: 'day', label: 'Daily', hours: 24, days: 7, sparse: true, latency: 'day', latencyHours: 24, latencyPoints: 7 },
+  '30d': { bucket: 'day', label: 'Daily', hours: 24, days: 30, sparse: true, latency: 'day', latencyHours: 24, latencyPoints: 30 },
+  '90d': { bucket: 'day', label: 'Daily', hours: 24, days: 90, sparse: true, latency: 'day', latencyHours: 24, latencyPoints: 90 },
 };
 const RANGE_BUTTON = { '24h': '24 hours', '7d': '7 days', '30d': '30 days', '90d': '90 days' };
 
@@ -35,12 +41,19 @@ const RANGE_BUTTON = { '24h': '24 hours', '7d': '7 days', '30d': '30 days', '90d
 for (const [range, want] of Object.entries(BUCKETS)) {
   const overview = await demoClient.analytics('demo', 'overview', { range });
   const adoption = await demoClient.analytics('demo', 'adoption', { range });
-  for (const [name, series, bucketField] of [['calls_by_client', overview.calls_by_client.points, overview.calls_by_client.buckets], ['active', adoption.active.points, adoption.active.bucket]]) {
+  for (const [name, series, bucketField, complete] of [['calls_by_client', overview.calls_by_client.points, overview.calls_by_client.buckets, false], ['active', adoption.active.points, adoption.active.bucket, true]]) {
     const times = series.map(p => Date.parse(p.t));
     const gaps = [...new Set(times.slice(1).map((t, i) => (t - times[i]) / 3600000))];
     check(bucketField === want.bucket, `${range} ${name}: bucket ${bucketField}, expected ${want.bucket}`);
-    check(times.length < 2 || (gaps.length === 1 && gaps[0] === want.hours), `${range} ${name}: gaps ${gaps.join(',')}h, expected ${want.hours}h`);
-    check(times.length === want.points, `${range} ${name}: ${times.length} points, expected ${want.points}`);
+    check(series.every(p => p.t.endsWith('T00:00:00.000Z')), `${range} ${name}: every point must land on UTC midnight`);
+    check(gaps.every(gap => gap % want.hours === 0), `${range} ${name}: gaps ${gaps.join(',')}h, expected whole multiples of ${want.hours}h`);
+    if (complete) {
+      check(times.length === want.days, `${range} ${name}: ${times.length} points, expected ${want.days}`);
+      check(gaps.every(gap => gap === want.hours), `${range} ${name}: gaps ${gaps.join(',')}h, expected ${want.hours}h with no date left out`);
+    } else {
+      check(times.length >= 1 && times.length <= want.days, `${range} ${name}: ${times.length} points, expected between 1 and ${want.days}`);
+      check(want.sparse === gaps.some(gap => gap > want.hours), `${range} ${name}: gaps ${gaps.join(',')}h, expected ${want.sparse ? 'at least one date with no calls left out' : 'no missing dates'}`);
+    }
   }
   // Latency is the series that follows the window, and the overview sparkline is its p95.
   const reliability = await demoClient.analytics('demo', 'reliability', { range });
@@ -50,12 +63,15 @@ for (const [range, want] of Object.entries(BUCKETS)) {
   check(latencyTimes.length < 2 || (latencyGaps.length === 1 && latencyGaps[0] === want.latencyHours), `${range} latency: gaps ${latencyGaps.join(',')}h, expected ${want.latencyHours}h`);
   check(latencyTimes.length === want.latencyPoints, `${range} latency: ${latencyTimes.length} points, expected ${want.latencyPoints}`);
   check(JSON.stringify(overview.tiles.latency.sparkline) === JSON.stringify(reliability.latency_over_time.points.map(p => p.p95)), `${range}: the overview sparkline is the latency series' p95`);
-  // A tool's trend is grouped by day whatever the range.
+  // A tool's trend is grouped by day whatever the range, and a day with no calls is absent
+  // from it for the same reason it is absent from calls by client.
   const trendTools = await demoClient.analytics('demo', 'tools', { range });
   for (const tool of trendTools.tools) {
     const trendTimes = tool.trend.map(p => Date.parse(p.t));
     const trendGaps = [...new Set(trendTimes.slice(1).map((t, i) => (t - trendTimes[i]) / 3600000))];
-    check(trendTimes.length < 2 || (trendGaps.length === 1 && trendGaps[0] === 24), `${range} ${tool.tool} trend: gaps ${trendGaps.join(',')}h, expected 24h`);
+    check(trendGaps.every(gap => gap % 24 === 0), `${range} ${tool.tool} trend: gaps ${trendGaps.join(',')}h, expected whole multiples of 24h`);
+    check(trendTimes.length >= 1 && trendTimes.length <= want.days, `${range} ${tool.tool} trend: ${trendTimes.length} points, expected between 1 and ${want.days}`);
+    check(want.sparse === trendGaps.some(gap => gap > 24), `${range} ${tool.tool} trend: gaps ${trendGaps.join(',')}h, expected ${want.sparse ? 'a day with no calls left out' : 'no missing days'}`);
   }
   // Totals must survive the split into buckets (tiles versus charts).
   const perClient = {};

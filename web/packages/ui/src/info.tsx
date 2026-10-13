@@ -1,7 +1,7 @@
 'use client';
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Icon } from './icons/index.js';
-import { explain } from './copy/explanations.js';
+import { explain, type ExplainContext } from './copy/explanations.js';
 
 // One info popover is open at a time across the page; opening another closes it. The
 // registration is held by identity, so a popover closing later cannot clear the one that
@@ -16,13 +16,24 @@ function prose(text: string): ReactNode[] {
 
 export type InfoSource = string | ReactNode;
 
+// An explanation that quotes a saved setting has to read the same number as the tile it
+// explains. The screens that know those settings — they come back on the same answer as
+// the numbers — put them here, and the popovers below read them. A host that renders a
+// card outside any scope gets the collector's defaults, which is what the copy says.
+const ExplainScope = createContext<ExplainContext>({});
+
+/** Provides the project facts the copy may quote to every popover inside it. */
+export function ExplainFor({ context, children }: { context: ExplainContext; children: ReactNode }) {
+ return <ExplainScope.Provider value={context}>{children}</ExplainScope.Provider>;
+}
+
 /** Resolves the `info` prop of a card or tile: an id into the copy file, or a node. */
-export function infoContent(info: InfoSource): ReactNode | null {
+export function infoContent(info: InfoSource, context: ExplainContext = {}): ReactNode | null {
  if (info == null || info === false) return null;
  // A dotted string is a key into the copy file: an unknown one renders nothing, so the
  // QA assertion that every card and tile carries an explanation catches the typo rather
  // than a reader reading the key. Any other string is literal copy.
- if (typeof info === 'string') { const copy = explain(info); return copy ? prose(copy) : info.includes('.') ? null : prose(info); }
+ if (typeof info === 'string') { const copy = explain(info, context); return copy ? prose(copy) : info.includes('.') ? null : prose(info); }
  return info;
 }
 
@@ -83,6 +94,7 @@ export function InfoPopover({ titleId, label, size = 16, children }: { titleId: 
 
 /** Renders the button only when there is copy for this card or tile. */
 export function InfoFor({ info, titleId, label, size }: { info?: InfoSource; titleId: string; label: string; size?: number }) {
- const content = info == null ? null : infoContent(info);
+ const context = useContext(ExplainScope);
+ const content = info == null ? null : infoContent(info, context);
  return content ? <InfoPopover titleId={titleId} label={label} size={size}>{content}</InfoPopover> : null;
 }

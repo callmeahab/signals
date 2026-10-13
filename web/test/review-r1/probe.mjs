@@ -21,10 +21,14 @@ for (const range of ['24h', '7d', '30d', '90d']) {
   // The collector serves calls by client and adoption actives by UTC day on every range;
   // latency is the one series that follows the window. Written out against the collector
   // (crates/signals-store/src/analytics.rs) rather than against any dashboard helper.
+  // Calls are keyed by `date_naive()` and a date with no calls has no point, so this
+  // series is at most one point per day in the window and its gaps are whole days.
   const hours = bucketMilliseconds[SERIES_BUCKET] / 3600000;
-  const daily = overview.calls_by_client.buckets === SERIES_BUCKET && gaps.every(gap => gap === hours);
-  check(daily, `${range} calls_by_client buckets=${overview.calls_by_client.buckets} gaps=${gaps.map(gap => gap.toFixed(2)).join(',')}h (expected ${SERIES_BUCKET}, ${hours}h)`);
-  check(times.length === Math.ceil((Date.parse(overview.range.to)-Date.parse(overview.range.from))/(hours*3600000)), `${range}: complete bucket count`);
+  const windowDays = Math.ceil((Date.parse(overview.range.to)-Date.parse(overview.range.from))/(hours*3600000));
+  const daily = overview.calls_by_client.buckets === SERIES_BUCKET && gaps.every(gap => gap % hours === 0);
+  check(daily, `${range} calls_by_client buckets=${overview.calls_by_client.buckets} gaps=${gaps.map(gap => gap.toFixed(2)).join(',')}h (expected ${SERIES_BUCKET}, whole multiples of ${hours}h)`);
+  check(overview.calls_by_client.points.every(point => point.t.endsWith('T00:00:00.000Z')), `${range}: calls_by_client points must land on UTC midnight`);
+  check(times.length >= 1 && times.length <= windowDays, `${range}: ${times.length} call buckets, expected between 1 and ${windowDays}`);
   const overviewHtml=renderToStaticMarkup(createElement(OverviewAnalyticsScreen,{data:overview}));
   check(overviewHtml.includes('Daily tool calls'), `${range}: subtitle follows response`);
   const adoption = await demoClient.analytics('demo', 'adoption', { range });
@@ -32,8 +36,11 @@ for (const range of ['24h', '7d', '30d', '90d']) {
   check(adoptionHtml.includes('Daily observations'),`${range}: adoption subtitle follows response`);
   const adoptionTimes = adoption.active.points.map(point => Date.parse(point.t));
   const adoptionGaps = adoptionTimes.slice(1).map((time, index) => (time - adoptionTimes[index]) / 3600000);
+  // Adoption counts every identity that sent any event, including on a day nobody called
+  // a tool, so unlike the call series its grid is complete.
   const adoptionDaily = adoption.active.bucket === SERIES_BUCKET && adoptionGaps.every(gap => gap === hours);
   check(adoptionDaily, `${range} adoption bucket=${adoption.active.bucket} gaps=${adoptionGaps.map(gap => gap.toFixed(2)).join(',')}h`);
+  check(adoptionTimes.length === windowDays, `${range}: ${adoptionTimes.length} adoption buckets, expected ${windowDays}`);
   const reliability = await demoClient.analytics('demo', 'reliability', { range });
   const wantLatency = latencyBucket(range), latencyHours = bucketMilliseconds[wantLatency] / 3600000;
   const latencyTimes = reliability.latency_over_time.points.map(point => Date.parse(point.t));

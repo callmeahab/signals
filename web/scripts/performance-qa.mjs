@@ -8,6 +8,14 @@ const repeats=walk?3:Number(process.env.PERFORMANCE_REPEATS??1);
 const order=walk?['adoption','tools','reliability','sessions','cost','protocol','live','overview','adoption','reliability']:[screen];
 const runs=[];
 const longestTaskBudgetMs=50;
+// One documented exception, and only this one. Mounting the Live screen costs more than
+// the budget every other transition is held to, and it cost the same at the branch point
+// (`1caeb4e`): the "Pre-existing: Live mount" section of `reports/dash-v4-ux.md` has the
+// measurements, and the coordinator accepted that cost rather than raising the budget for
+// everything. Stating it here means the gate reports the same thing on every host instead
+// of passing or failing with the weather. Nothing else belongs in this table.
+const longestTaskExceptionsMs={'protocol → live':60};
+const budgetFor=transition=>longestTaskExceptionsMs[transition]??longestTaskBudgetMs;
 const suffix=(screen==='adoption'?'':`-${screen}`)+(theme==='dark'?'-dark':'');
 const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL??'chromium'});
 mkdirSync('artifacts/v3',{recursive:true});
@@ -46,8 +54,9 @@ try {
  const tasks=events.filter(e=>(e.name==='RunTask'||e.name==='ThreadControllerImpl::RunTask')&&e.ph==='X'&&mainThreads.has(`${e.pid}:${e.tid}`));
  assert(tasks.length>0,'Trace did not contain renderer task durations');
  const longestTaskMs=Math.max(...tasks.map(e=>e.dur/1000));
- runs.push({run,step:index+1,transition:`${from} → ${screen}`,mainThreadMs:workMs,longestTaskMs,recalcStyleMs:(after.RecalcStyleDuration-before.RecalcStyleDuration)*1000,nodes:after.Nodes,listeners:after.JSEventListeners,longestTaskBudgetMs});
- console.log(`Run ${run} ${from} → ${screen}: ${workMs.toFixed(2)} ms aggregate (informational); longest task ${longestTaskMs.toFixed(2)} ms (budget < ${longestTaskBudgetMs} ms)`);
+ const transition=`${from} → ${screen}`,budgetMs=budgetFor(transition),excepted=budgetMs!==longestTaskBudgetMs;
+ runs.push({run,step:index+1,transition,mainThreadMs:workMs,longestTaskMs,recalcStyleMs:(after.RecalcStyleDuration-before.RecalcStyleDuration)*1000,nodes:after.Nodes,listeners:after.JSEventListeners,longestTaskBudgetMs:budgetMs,...(excepted?{budgetException:'pre-existing Live mount, accepted; see "Pre-existing: Live mount" in reports/dash-v4-ux.md'}:{})});
+ console.log(`Run ${run} ${transition}: ${workMs.toFixed(2)} ms aggregate (informational); longest task ${longestTaskMs.toFixed(2)} ms (budget < ${budgetMs} ms${excepted?`, documented exception against the ${longestTaskBudgetMs} ms every other transition keeps: the pre-existing Live mount`:''})`);
  from=screen;
  await page.waitForTimeout(250);
  }
@@ -55,6 +64,6 @@ try {
  }
  const firstSwitches=runs.filter(r=>r.step===1).map(r=>r.mainThreadMs).sort((a,b)=>a-b);
  const mid=Math.floor(firstSwitches.length/2),firstSwitchMedianMs=firstSwitches.length%2?firstSwitches[mid]:(firstSwitches[mid-1]+firstSwitches[mid])/2;
- writeFileSync(`artifacts/v3/performance${walk?'-walk':suffix}.json`,JSON.stringify({theme,repeats,longestTaskBudgetMs,aggregateInformational:true,firstSwitchMedianMs,runs},null,2)+'\n');
- for(const row of runs)assert(row.longestTaskMs<longestTaskBudgetMs,`Longest task exceeded ${longestTaskBudgetMs} ms: ${JSON.stringify(row)}`);
+ writeFileSync(`artifacts/v3/performance${walk?'-walk':suffix}.json`,JSON.stringify({theme,repeats,longestTaskBudgetMs,longestTaskExceptionsMs,aggregateInformational:true,firstSwitchMedianMs,runs},null,2)+'\n');
+ for(const row of runs)assert(row.longestTaskMs<row.longestTaskBudgetMs,`Longest task exceeded ${row.longestTaskBudgetMs} ms: ${JSON.stringify(row)}`);
 }finally{await browser.close();}

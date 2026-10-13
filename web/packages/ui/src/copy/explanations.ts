@@ -15,7 +15,19 @@
 //   "a call"      — one `tool.called` event. Nothing else counts as a call.
 //   "estimated"   — derived from payload size, not measured; see the Cost screen.
 
-export type Explanations = Record<string, string>;
+/**
+ * What a card or tile may quote from the project it is being shown for. An entry that
+ * states a number a reader can change — an SLO target today — is a function of this, so
+ * the explanation cannot drift from the tile above it.
+ */
+export type ExplainContext = { sloTargets?: { read: number; mutate: number } };
+export type Explanation = string | ((context: ExplainContext) => string);
+export type Explanations = Record<string, Explanation>;
+
+// The collector's own defaults, for a host that has not fetched the project's targets yet.
+const DEFAULT_TARGETS = { read: 99.5, mutate: 98 };
+// Targets read as "99.5%" and "80%", never "99.50%": the saved value, as saved.
+const target = (n: number) => `${n}%`;
 
 export const explanations: Explanations = {
  /* ------------------------------------------------------------------ Overview */
@@ -25,22 +37,22 @@ export const explanations: Explanations = {
   'Distinct identities that sent any event in the window. An identity is the OAuth subject when there is one, otherwise the caller key, otherwise a hashed network address — so network-only identities are an approximation, not named people. A high network-only count means you cannot yet attribute usage; issue per-client keys or turn on OAuth.',
  'overview.tile.sessions':
   'Sessions whose first event falls in the window, and the average number of calls in each. Many sessions with very few calls each is a reconnect loop or a client that gives up after the handshake.',
- 'overview.tile.tool-success':
-  'Share of calls in the window that did not report an error. Each tool is judged against its own class target — 99.5% for read tools, 98% for anything that mutates — and the caption counts the tools currently below theirs. Anything below target is spending error budget; Reliability shows how fast.',
+ 'overview.tile.tool-success': ({ sloTargets: t = DEFAULT_TARGETS }) =>
+  `Share of calls in the window that did not report an error. Each tool is judged against its own class target — ${target(t.read)} for read tools, ${target(t.mutate)} for anything that mutates — and the caption counts the tools currently below theirs. Anything below target is spending error budget; Reliability shows how fast.`,
  'overview.tile.p95-latency':
   'The call duration that 95% of calls in the window beat. Percentiles come from log-spaced histograms, so the figure is accurate to within about 26%; windows under six hours are exact instead. The trend is the one series that follows the window -- hourly up to 48 hours, daily after -- and p95 far above p50 means a slow minority, which is what users actually notice.',
  'overview.tile.context-tokens':
   'Estimated tokens your tool responses added to the model context in the window. It is output characters where the SDK reports them, otherwise output bytes, divided by the project token divisor (4 by default) — an estimate, never a provider invoice. Rising tokens per call means responses are getting more expensive to read.',
  'overview.card.calls-by-client':
-  'Tool calls per UTC day, stacked by MCP client name, over the window. The collector serves this series by day on every range, so a 24-hour window is one column and a 90-day window is ninety. One client growing while the total is flat is a migration, not growth.',
+  'Tool calls per UTC day, stacked by MCP client name, over the window. The collector emits one point per UTC date that has calls and leaves out the dates with none, so a 24-hour window can span two dates and a 90-day window has as many columns as it has days with calls. One client growing while the total is flat is a migration, not growth.',
  'overview.card.client-mix':
   'Each client\'s share of tool calls in the window, to one decimal; session counts are independent of it. Arcs are drawn from raw call counts and a client with no calls gets no arc. Use it to see which client to test against first.',
  'overview.card.activation-funnel':
   'Of the identities first seen in this window, how many connected, listed your tools, made a first call, made five, and came back a week later. Day 7 counts only identities old enough to have had the chance, so it reads "waiting" on a young project rather than zero. The biggest drop is where to spend documentation effort.',
  'overview.card.weekly-retention':
   'Each row is a weekly cohort of identities, and each column is the share of that cohort still active N weeks later. Cohorts start on Monday in UTC, and an unfinished week is blank rather than low. Columns fading fast means first calls are not turning into habits.',
- 'overview.card.attention':
-  'Every tool that is failing its class target, within a point of it, or advertised but never called in the window. Read tools target 99.5% success, mutating tools 98%, and the class comes from your settings, then catalogue annotations, then the tool name. Start at the top: that row is burning the most error budget.',
+ 'overview.card.attention': ({ sloTargets: t = DEFAULT_TARGETS }) =>
+  `Every tool that is failing its class target, within a point of it, or advertised but never called in the window. Read tools target ${target(t.read)} success, mutating tools ${target(t.mutate)}, and the class comes from your settings, then catalogue annotations, then the tool name. Start at the top: that row is burning the most error budget.`,
 
  /* ------------------------------------------------------------------ Adoption */
  'adoption.tile.dau':
@@ -75,14 +87,14 @@ export const explanations: Explanations = {
   'Catalogue members with no calls in the window. It is only meaningful when the snapshot is complete — a truncated snapshot cannot prove a tool was unused, so this reads unknown. Tools that are never called are candidates for better descriptions or removal.',
  'tools.tile.retries':
   'Calls that repeated the same tool in the same session within 30 seconds of a failure. Other calls may come in between, and a retry that succeeds counts as self-corrected. A high count means the model is working around your tool rather than being served by it.',
- 'tools.tile.below-slo':
-  'Tools whose success rate in the window is under their class target: 99.5% for read tools, 98% for mutating ones. The class comes from your settings first, then catalogue read-only or destructive annotations, then the name prefix. Each tool here is spending error budget right now.',
+ 'tools.tile.below-slo': ({ sloTargets: t = DEFAULT_TARGETS }) =>
+  `Tools whose success rate in the window is under their class target: ${target(t.read)} for read tools, ${target(t.mutate)} for mutating ones. The class comes from your settings first, then catalogue read-only or destructive annotations, then the name prefix. Each tool here is spending error budget right now.`,
  'tools.tile.hallucinated':
   'Calls to tool names your server does not advertise, plus every explicit unknown-tool error. With a complete catalogue, any name outside it counts; with a truncated one, only the explicit errors do. Recurring invented names usually mean a prompt or description is promising a tool you do not have.',
  'tools.card.paths':
   'The most common consecutive runs of tool calls inside a single session — pairs and triples, top 20 by count. Shares use every observed pair and triple as the denominator, and runs that cross midnight are kept. These are the journeys worth making fast.',
- 'tools.card.health':
-  'Every tool\'s success rate against its class target, worst first, with its call volume. Read tools target 99.5%, mutating tools 98%, and a tool advertised but never called in the window reads dead. The bars below their tick are where your error budget is going.',
+ 'tools.card.health': ({ sloTargets: t = DEFAULT_TARGETS }) =>
+  `Every tool's success rate against its class target, worst first, with its call volume. Read tools target ${target(t.read)}, mutating tools ${target(t.mutate)}, and a tool advertised but never called in the window reads dead. The bars below their tick are where your error budget is going.`,
  'tools.card.latency':
   'Distribution of call durations across all tools in the window, in log-spaced buckets about 1.26 apart. Markers show p50, p95 and p99 from the same histogram, so each is accurate to within about 26%. A second hump to the right is a slow path, not noise.',
  'tools.card.catalogue':
@@ -93,8 +105,8 @@ export const explanations: Explanations = {
  /* --------------------------------------------------- Tool drawer (per tool) */
  'tool.tile.calls':
   'Calls to this one tool inside the selected window. Only `tool.called` events count. Compare it with the tool\'s share of the paths chart to see whether it is a destination or a step.',
- 'tool.tile.success':
-  'Share of this tool\'s calls that did not report an error, against its class target — 99.5% for read tools, 98% for mutating ones. The class shown beside it is the one actually in force, from your settings, the catalogue, or the name. Below target means this tool is the one spending budget.',
+ 'tool.tile.success': ({ sloTargets: t = DEFAULT_TARGETS }) =>
+  `Share of this tool's calls that did not report an error, against its class target — ${target(t.read)} for read tools, ${target(t.mutate)} for mutating ones. The class shown beside it is the one actually in force, from your settings, the catalogue, or the name. Below target means this tool is the one spending budget.`,
  'tool.tile.p95':
   'The duration 95% of this tool\'s calls beat, in milliseconds, from its own log-spaced histogram. Accuracy is within about 26% of the value; windows under six hours are computed exactly. Treat p95, not the average, as what callers feel.',
  'tool.card.calls-errors':
@@ -219,5 +231,11 @@ export const explanations: Explanations = {
   'The assumptions behind every number elsewhere: the success target for each SLO class, the divisor that turns output size into estimated tokens, the digest recipient, and the class of each tool. Changing the divisor rescales the whole Cost screen; changing a target moves error budget and the Tools below-SLO count. The tool list appears only when a complete catalogue has been seen.',
 };
 
-/** The copy for one card or tile, or undefined when that id has no explanation. */
-export function explain(id: string): string | undefined { return explanations[id]; }
+/**
+ * The copy for one card or tile, or undefined when that id has no explanation. An entry
+ * that quotes the project's own settings is a function of the context it is read in.
+ */
+export function explain(id: string, context: ExplainContext = {}): string | undefined {
+ const entry = explanations[id];
+ return typeof entry === 'function' ? entry(context) : entry;
+}

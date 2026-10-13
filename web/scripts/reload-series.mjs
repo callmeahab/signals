@@ -65,6 +65,9 @@ try {
       // offsetTop ignores transforms, so the entrance animation does not read as a shift.
       headingTop: document.querySelector('.page-heading h1')?.offsetTop ?? -1,
       stripHeight: Math.round(document.querySelector('.workspace-strip')?.offsetHeight ?? -1),
+      // The webfonts are fetched again on a hard reload and their metrics decide the
+      // strip's height, so a frame says whether it was taken before or after the swap.
+      fontsLoaded: document.fonts.status === 'loaded',
       old: !!globalThis.__preReload,
       content: document.querySelectorAll('.signals-ui .panel').length,
       text: (document.body.innerText || '').slice(0, 80),
@@ -92,14 +95,21 @@ try {
   // `headingTop` is recorded for the series, not asserted: while the heading runs its
   // entrance transform Chromium reports a transformed ancestor as its offsetParent.
   check(series.every(f => f.old || f.content === 0 || (f.topbar && f.strip && f.cards > 0 && f.heading)), 'a frame showed screen content without the shell and heading');
-  check(new Set(painted.map(f => f.stripHeight)).size === 1, `the workspace strip changed height during the reload: ${JSON.stringify([...new Set(painted.map(f => f.stripHeight))])}`);
+  // The claim is that the shell does not jump when the screen's content arrives, so the
+  // height is compared across the frames that have the webfonts the finished page uses.
+  // A frame taken mid-swap is font delivery, which the hard reload deliberately provokes
+  // and which the ordinary-reload shift assertion below is the real guard for; its
+  // heights are printed rather than asserted.
+  const settled = painted.filter(f => f.fontsLoaded);
+  check(settled.length >= 3, `the reloaded document painted only ${settled.length} frames with its webfonts loaded`);
+  check(new Set(settled.map(f => f.stripHeight)).size === 1, `the workspace strip changed height during the reload: ${JSON.stringify([...new Set(settled.map(f => f.stripHeight))])}`);
   check(warm.cls < 0.01, `cumulative layout shift after an ordinary reload was ${warm.cls.toFixed(4)}: ${JSON.stringify(warm.shifts.slice(0, 5))}`);
   check(warm.series.every(f => !f.connecting && !f.reading && !f.login), 'the ordinary reload showed a Connecting, Reading or login screen');
   writeFileSync(`${out}/series.json`, JSON.stringify({ base, frames, slowMs: slow, session: Boolean(email), hardReload: { cumulativeLayoutShift: cls, shifts, series }, ordinaryReload: { cumulativeLayoutShift: warm.cls, shifts: warm.shifts, series: warm.series }, failures }, null, 2) + '\n');
   console.log(`Cumulative layout shift: ${warm.cls.toFixed(4)} after an ordinary reload, ${cls.toFixed(4)} after a hard one${shifts.length ? ` (${JSON.stringify(shifts.map(entry => entry.sources).flat())}, the webfont swap)` : ''}`);
-  console.log(`Reload series: ${series.length} frames at ~100 ms into ${out}/`);
+  console.log(`Reload series: ${series.length} frames at ~100 ms into ${out}/, workspace strip ${JSON.stringify([...new Set(settled.map(f => f.stripHeight))])}px once the webfonts loaded${painted.length > settled.length ? ` (${painted.length - settled.length} earlier frame(s) mid-swap: ${JSON.stringify([...new Set(painted.filter(f => !f.fontsLoaded).map(f => f.stripHeight))])}px)` : ''}`);
   console.log(series.map(f => `${String(f.atMs).padStart(5)}ms ${f.old ? 'old ' : 'new '} shell=${f.topbar ? 'y' : 'n'} strip=${f.strip ? 'y' : 'n'}(${f.stripHeight}px) cards=${f.cards} headingTop=${f.headingTop} heading=${JSON.stringify(f.heading)} panels=${f.content} connecting=${f.connecting ? 'YES' : 'no'} reading=${f.reading ? 'YES' : 'no'}`).join('\n'));
   await context.close();
 } finally { await browser.close(); }
 if (failures.length) { console.error(failures.join('\n')); process.exit(1); }
-console.log('Reload series passed: no Connecting or Reading text screen, no login card, the shell and heading arrive with the content, the workspace strip holds its height, and an ordinary reload reports zero layout shift.');
+console.log('Reload series passed: no Connecting or Reading text screen, no login card, the shell and heading arrive with the content, the workspace strip holds its height once the webfonts have loaded, and an ordinary reload reports zero layout shift.');

@@ -265,6 +265,14 @@ try {
   const belowSlo=page.locator('.tile').filter({has:page.getByText('Below SLO',{exact:true})});
   await expect(belowSlo.locator('strong')).toHaveText('0');
   await expect(belowSlo.locator('.tile__meta')).toHaveText('read 80% · mutate 80%');
+  // The explanation a reader opens from the tile has to quote the target that tile is
+  // using, not the collector's default.
+  await belowSlo.locator('.info-button').click();
+  const explanation=(await page.locator('.info-pop').first().textContent())??'';
+  assert(explanation.includes('80%'),`the Below SLO explanation does not quote the saved target: ${JSON.stringify(explanation)}`);
+  assert(!explanation.includes('99.5%'),`the Below SLO explanation still quotes the default target: ${JSON.stringify(explanation)}`);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.info-pop')).toHaveCount(0);
   await expect(page.locator('.card').filter({has:page.getByRole('heading',{name:'Tool health',exact:true})}).locator('.card__sub')).toContainText('read 80% · mutate 80%');
   await visit('overview','analytics/overview');
   await expect(page.locator('.tile').filter({has:page.getByText('Tool success',{exact:true})}).locator('.tile__meta')).toHaveText('0 tools below SLO');

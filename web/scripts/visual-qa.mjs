@@ -462,7 +462,13 @@ try {
       check((await page.locator('.card').filter({has:page.getByRole('heading',{name:'Error budget',exact:true})}).locator('.card__sub').textContent())?.includes('3× alert line'),`${width}/${theme}: the error-budget subtitle still names a fixed burn`);
       await page.goto(`${base}/#tools`);
       await page.locator('.tile').first().waitFor();
-      check((await page.locator('.tile').filter({has:page.getByText('Below SLO',{exact:true})}).locator('.tile__meta').textContent())==='read 80% · mutate 98%',`${width}/${theme}: the Below SLO meta did not follow the saved read target`);
+      const savedSloTile=page.locator('.tile').filter({has:page.getByText('Below SLO',{exact:true})});
+      check((await savedSloTile.locator('.tile__meta').textContent())==='read 80% · mutate 98%',`${width}/${theme}: the Below SLO meta did not follow the saved read target`);
+      // And the explanation behind that tile's info button quotes the same targets.
+      await savedSloTile.locator('.info-button').click();
+      const sloCopy=(await page.locator('.info-pop').first().textContent())??'';
+      check(sloCopy.includes('80%')&&!sloCopy.includes('99.5%'),`${width}/${theme}: the Below SLO explanation does not quote the saved targets: ${JSON.stringify(sloCopy)}`);
+      await page.keyboard.press('Escape');
       await page.goto(`${base}/#settings`);
       await page.getByRole('heading',{name:'SLOs, alerts and digest',exact:true}).waitFor();
       await page.getByLabel('Key label').fill('QA key');
