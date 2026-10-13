@@ -27,6 +27,17 @@ try {
   await page.clock.fastForward(POLL_INTERVAL_MS - 5000);
   await page.waitForTimeout(150);
   check((await activity(page)).loads === before.loads, 'the screen refreshed before its interval was due');
+  // Since v5 every chart on the screen is painted, the ones below the fold included, and
+  // a poll re-renders only the parts whose data changed. So the elements the refresh
+  // rebuilds have to be told apart from the ones it leaves alone: an untouched chart
+  // keeps the classes from its own first paint, which is not motion. Tag what is on
+  // screen now; what is not tagged afterwards is what the refresh redrew.
+  const beforePoll = await page.evaluate(() => {
+    const marked = [...document.querySelectorAll('.plot,.stroke-draw,.growx,.growy,.popin')];
+    for (const el of marked) el.setAttribute('data-pre-poll', '');
+    return marked.length;
+  });
+  check(beforePoll > 0, 'no chart had painted before the poll was due');
   await page.clock.fastForward(6000);
   await page.waitForTimeout(250);
   const polled = await activity(page);
@@ -38,9 +49,10 @@ try {
   check(await page.locator('.signals-ui').evaluate(el => !el.classList.contains('signals-ui--enter')), 'a poll replayed the content fade');
   const motion = await page.evaluate(() => {
     const marked = [...document.querySelectorAll('.plot,.stroke-draw,.growx,.growy,.popin')];
-    return { total: marked.length, instant: marked.filter(n => n.classList.contains('nt')).length, running: document.getAnimations().filter(a => a.playState === 'running').length };
+    const redrawn = marked.filter(n => !n.hasAttribute('data-pre-poll'));
+    return { total: marked.length, redrawn: redrawn.length, instant: redrawn.filter(n => n.classList.contains('nt')).length, running: document.getAnimations().filter(a => a.playState === 'running').length };
   });
-  check(motion.total > 0 && motion.instant === motion.total, `charts redrew with draw-in motion: ${JSON.stringify(motion)}`);
+  check(motion.redrawn > 0 && motion.instant === motion.redrawn, `charts redrew with draw-in motion: ${JSON.stringify(motion)}`);
   check(motion.running === 0, `animations were still running after a refresh: ${motion.running}`);
 
   // 3. The strip ticks and says how long ago.
