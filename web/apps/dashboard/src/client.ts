@@ -5,7 +5,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   const response = await fetch(`/v1${path}`, { credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...options.headers } }).catch(error => { if (!options.signal?.aborted) recordProjectRead(path, true); throw error; });
   // The status travels with the error: only a rejected session may sign the shell out,
   // and a network blip must not.
-  if (!response.ok) { recordProjectRead(path, true); const body = await response.json().catch(() => ({})); throw Object.assign(new Error(body.message ?? body.error ?? `Request failed (${response.status})`), { status: response.status }); }
+  if (!response.ok) { if (response.status === 401 || response.status === 403 || response.status >= 500) recordProjectRead(path, true); const body = await response.json().catch(() => ({})); throw Object.assign(new Error(body.message ?? body.error ?? `Request failed (${response.status})`), { status: response.status }); }
   if (response.status === 204) return undefined as T;
   const data = await response.json();
   recordProjectRead(path, false, data);

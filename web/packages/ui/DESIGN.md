@@ -252,7 +252,8 @@
     Phones use a bottom sheet. Escape returns focus without reopening the panel.
 29. Project cards show a dot and 14 px state icon. Existing client reads feed a local
     status observer: any active identity in the overview window means receiving events,
-    an empty/unknown window is gold, a failed read is ember, and demo is muted. No
+    an empty/unknown window is gold, transport/auth/server failures are ember, and demo
+    is muted. Validation and rate-limit responses do not imply an unreachable collector. No
     project-status request is added; unvisited projects cannot assert observed activity.
 30. Theme, sign-out and mobile navigation controls use 22 px artwork and 40 px targets.
 31. The workspace freshness badge and collector pulse are removed. The activity store
