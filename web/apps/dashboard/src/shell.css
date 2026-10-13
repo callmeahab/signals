@@ -48,11 +48,11 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
 .project-card.is-selected .project-card__status{color:var(--primary-ink)}
 .updated-ago{white-space:nowrap}
 /* A short pulse of the collector dot each time a refresh lands. */
-.signal-dot.pulse{animation:dot-pulse 900ms var(--ease-out)}
+
 @keyframes dot-pulse{from{box-shadow:0 0 0 0 color-mix(in oklch,var(--chart-3) 60%,transparent)}to{box-shadow:0 0 0 8px color-mix(in oklch,var(--chart-3) 0%,transparent)}}
 .demo-badge{align-self:center;flex-shrink:0}
 @media(max-width:600px){.workspace-strip{flex-wrap:wrap}.project-cards{flex-direction:column;align-items:stretch}.project-card{max-width:none;width:100%}.project-strip--many .project-cards{flex-direction:row}.project-strip--many .project-card{width:auto;max-width:240px}.demo-badge{align-self:flex-start}}
-@media(prefers-reduced-motion:reduce){.project-card{transition:none}.signal-dot.pulse{animation:none}}
+@media(prefers-reduced-motion:reduce){.project-card{transition:none}}
 
 /* Navigation 2026-10-13 (v5): the tab group is centred on the bar, and bigger.
 
@@ -105,3 +105,12 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
    dialog open the bar drops the filter and paints its own background: the page
    behind the drawer stays sharp, and nothing on the page is filtered. */
 html:has(dialog[open]) .topbar{backdrop-filter:none;background:var(--background)}
+
+.topbar-actions .icon-button,.workspace-strip>.icon-button{width:40px;height:40px;display:inline-grid;place-items:center}
+
+.project-card{flex-direction:row;align-items:center;justify-content:space-between;gap:16px}
+.project-card .project-card__status{color:var(--muted-foreground);flex-shrink:0}
+.project-card .status-healthy{color:var(--chart-3)}
+.project-card .status-warn{color:var(--primary-ink)}
+.project-card .status-error{color:var(--destructive)}
+.project-status-dot{width:6px;height:6px;border-radius:50%;background:currentColor}

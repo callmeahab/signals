@@ -1,12 +1,15 @@
+import { recordProjectRead } from './project-status';
 import type { Caller, EventFilter, Key, Overview, Page, Point, Project, Range, Session, SignalEvent, SignalsClient, Tool, User } from '@mcpramen/signals-ui';
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`/v1${path}`, { credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
+  const response = await fetch(`/v1${path}`, { credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...options.headers } }).catch(error => { if (!options.signal?.aborted) recordProjectRead(path, true); throw error; });
   // The status travels with the error: only a rejected session may sign the shell out,
   // and a network blip must not.
-  if (!response.ok) { const body = await response.json().catch(() => ({})); throw Object.assign(new Error(body.message ?? body.error ?? `Request failed (${response.status})`), { status: response.status }); }
+  if (!response.ok) { recordProjectRead(path, true); const body = await response.json().catch(() => ({})); throw Object.assign(new Error(body.message ?? body.error ?? `Request failed (${response.status})`), { status: response.status }); }
   if (response.status === 204) return undefined as T;
-  return response.json();
+  const data = await response.json();
+  recordProjectRead(path, false, data);
+  return data;
 }
 // Legacy reads stop at 30 days; analytics keeps the requested 90-day window.
 const legacyRange = (range: Range) => range === '90d' ? '30d' : range;

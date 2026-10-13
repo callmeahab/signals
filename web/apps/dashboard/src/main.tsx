@@ -1,6 +1,7 @@
+import { projectStatus, statusLabel, watchProjectStatus } from './project-status';
 import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Glyph, Icon, SignalsDashboard, activityState, onActivity, sinceText, visualQa, type IconName, type Project, type Range, type Screen, type User } from '@mcpramen/signals-ui';
+import { Glyph, Icon, SignalsDashboard, type IconName, type Project, type Range, type Screen, type User } from '@mcpramen/signals-ui';
 import '@fontsource-variable/urbanist';
 import '@fontsource/krona-one';
 import '@fontsource/ibm-plex-mono/400.css';
@@ -70,45 +71,17 @@ function ProjectCards({projects,selectedId,onSelect}:{projects:Project[];selecte
   const observer=new ResizeObserver(measure);observer.observe(el);
   return()=>observer.disconnect();
  },[projects.length]);
- const status=isDemo?'Demo workspace':'Collector connected';
+ const [, setStatusRevision] = useState(0);
+ useEffect(() => watchProjectStatus(() => setStatusRevision(n => n + 1)), []);
  return <div className={`project-strip${projects.length>6?' project-strip--many':''}`}>
   {overflow&&<p className="table-scroll-hint">Scroll horizontally to see all projects ↔</p>}
   <div ref={scroller} className="project-cards" tabIndex={overflow?0:undefined} role={overflow?'region':'group'} aria-label="Project">
    {projects.map(p=><button key={p.id} type="button" data-project={p.id} className={`project-card${p.id===selectedId?' is-selected':''}`} aria-pressed={p.id===selectedId} onClick={()=>onSelect(p.id)}>
     <span className="project-card__name">{p.name}</span>
-    <span className="project-card__status">{p.id===selectedId&&<Icon name="healthy" size={13} target=".project-card"/>}{status}</span>
+    <span className={`project-card__status status-${projectStatus(p.id,isDemo)}`} title={statusLabel[projectStatus(p.id,isDemo)]} aria-label={statusLabel[projectStatus(p.id,isDemo)]}><i className="project-status-dot"/><Icon name={projectStatus(p.id,isDemo)} size={14} target=".project-card"/></span>
    </button>)}
   </div>
  </div>;
-}
-
-// "updated 12 s ago" and the collector-dot pulse are written straight into the DOM: the
-// strip ticks every second and must not re-render the screen to do it. Each card already
-// carries the connection status, so the badge says it only until the first refresh lands
-// -- on Setup, which loads nothing, that is the whole time.
-//
-// Under visual QA the badge is the one piece of wall-clock text on the page, and both its
-// value and the moment it replaces the status are timing-dependent, so the flag freezes
-// the text and drops the pulse: a capture must not depend on when it was taken.
-const FROZEN_FRESHNESS = 'updated just now';
-const badgeText = () => {
- if (visualQa()) return FROZEN_FRESHNESS;
- const at = activityState().updatedAt;
- return at === null ? (isDemo ? 'Demo workspace' : 'Collector connected') : `updated ${sinceText(at)} ago`;
-};
-function FreshnessBadge() {
- const dot=useRef<HTMLElement>(null), ago=useRef<HTMLSpanElement>(null);
- useEffect(()=>{
-  if(visualQa())return;
-  const paint=()=>{const el=ago.current;if(el)el.textContent=badgeText();};
-  const pulse=()=>{const el=dot.current;if(!el)return;el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');};
-  let loads=activityState().loads;
-  paint();
-  const off=onActivity(state=>{paint();if(state.loads>loads){loads=state.loads;pulse();}});
-  const timer=window.setInterval(paint,1000);
-  return()=>{off();clearInterval(timer);};
- },[]);
- return <span className="demo-badge"><i ref={dot} className="signal-dot"/><span ref={ago} className="updated-ago">{badgeText()}</span></span>;
 }
 
 function App(){
@@ -125,7 +98,7 @@ function App(){
   const [loginError,setLoginError]=useState('');
   const applyAccount=(next:Account|null)=>{setAccount(next);if(!isDemo)store(ACCOUNT_KEY,next?JSON.stringify(next):null);};
   useEffect(()=>{const nav=navRef.current;if(!nav)return;let frame=0;let disposed=false;const measure=()=>{if(disposed)return;cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{const active=nav.querySelector<HTMLElement>('[aria-current=page]');const thumb=nav.querySelector<HTMLElement>('.nav-thumb');if(active&&thumb){const left=active.offsetLeft,width=active.offsetWidth;thumb.style.transform=`translateX(${left}px) scaleX(${width})`;}});};const observer=new ResizeObserver(measure);observer.observe(nav);void document.fonts.ready.then(measure);measure();return()=>{disposed=true;cancelAnimationFrame(frame);observer.disconnect();};},[screen,account]);
-  useEffect(()=>{document.documentElement.classList.toggle('dark',dark);localStorage.setItem('signals-theme',dark?'dark':'light');},[dark]);
+  useEffect(()=>{document.documentElement.classList.toggle('dark',dark);document.documentElement.classList.toggle('light',!dark);localStorage.setItem('signals-theme',dark?'dark':'light');},[dark]);
   // A hash change carries a project only when someone opened a shared link; a nav click
   // leaves the project alone.
   useEffect(()=>{const listener=()=>{const next=readRoute();setRoute(next);setMobile(false);if(next.project&&next.project!==projectId)setProjectId(next.project);};window.addEventListener('hashchange',listener);return()=>window.removeEventListener('hashchange',listener);},[projectId]);
@@ -154,8 +127,8 @@ function App(){
   if(!account)return checked?<Login onLogin={applyAccount} error={loginError}/>:<div className="login-page"><Logo/><p>Connecting to Signals…</p></div>;
   const current=nav.find(n=>n.id===screen)!;
   return <div className="app-shell"><a className="skip-link" href="#main">Skip to content</a>
-    <header className="topbar"><div className="topbar-inner"><a className="brand-link" href="#overview" aria-label="mcpramen Signals overview"><Logo/></a><nav ref={navRef} className={mobile?'open':''} aria-label="Primary"><span className="nav-thumb"/>{nav.filter(n=>n.id!=='callers').map(n=><a key={n.id} href={`#${n.id}`} aria-current={screen===n.id?'page':undefined}><Icon name={n.id as IconName} size={22} target="a"/>{n.label}</a>)}</nav><div className="topbar-actions"><button className="icon-button" aria-label={dark?'Use light theme':'Use dark theme'} onClick={()=>setDark(v=>!v)}><Icon name={dark?'sun':'moon'} size={18} target="button"/></button><button className="icon-button mobile-menu" aria-label={mobile?'Close navigation':'Open navigation'} onClick={()=>setMobile(v=>!v)}><Glyph name={mobile?'cross':'menu'} size={19}/></button></div></div></header>
-    <main id="main"><div className="workspace-strip"><ProjectCards projects={projects} selectedId={selected?.id} onSelect={setProjectId}/><FreshnessBadge/>{!isDemo&&<button className="icon-button" aria-label="Log out" onClick={()=>void logout()}><Icon name="logout" size={17} target="button"/></button>}</div>
+    <header className="topbar"><div className="topbar-inner"><a className="brand-link" href="#overview" aria-label="mcpramen Signals overview"><Logo/></a><nav ref={navRef} className={mobile?'open':''} aria-label="Primary"><span className="nav-thumb"/>{nav.filter(n=>n.id!=='callers').map(n=><a key={n.id} href={`#${n.id}`} aria-current={screen===n.id?'page':undefined}><Icon name={n.id as IconName} size={22} target="a"/>{n.label}</a>)}</nav><div className="topbar-actions"><button className="icon-button" aria-label={dark?'Use light theme':'Use dark theme'} onClick={()=>setDark(v=>!v)}><Icon name={dark?'sun':'moon'} size={22} target="button"/></button><button className="icon-button mobile-menu" aria-label={mobile?'Close navigation':'Open navigation'} onClick={()=>setMobile(v=>!v)}><Glyph name={mobile?'cross':'menu'} size={22}/></button></div></div></header>
+    <main id="main"><div className="workspace-strip"><ProjectCards projects={projects} selectedId={selected?.id} onSelect={setProjectId}/>{!isDemo&&<button className="icon-button" aria-label="Log out" onClick={()=>void logout()}><Icon name="logout" size={22} target="button"/></button>}</div>
       <div className="page-heading"><div><div className="eyebrow">SIGNALS / {selected?.slug??'WORKSPACE'}</div><h1>{current.label}</h1><p>{current.description}</p></div>{!['settings','setup','live'].includes(screen)&&<div className="range-control" aria-label="Time range"><span className="range-thumb" style={{transform:`translateX(${(['24h','7d','30d','90d'].indexOf(range))*100}%)`}}/>{(['24h','7d','30d','90d'] as Range[]).map(r=><button key={r} aria-pressed={range===r} onClick={()=>setRange(r)}>{r==='24h'?'24 hours':r==='7d'?'7 days':r==='30d'?'30 days':'90 days'}</button>)}</div>}</div>
       {selected?<SignalsDashboard client={isDemo?demoClient:client} project={selected} screen={screen} range={range} onNavigate={navigate} readOnly={account.user.role==='viewer'} onProjectChange={p=>applyAccount({...account,projects:account.projects.map(old=>old.id===p.id?p:old)})}/>:<div className="empty-state"><p>Create a project using the Signals CLI to get started.</p></div>}
       <footer className="app-footer"><span>mcpramen / Signals</span><span>Your data. Your infrastructure.</span></footer>

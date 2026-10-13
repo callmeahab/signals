@@ -3,7 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#FBC118" />
+    <meta name="theme-color" content="#ebe7e0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#181512" media="(prefers-color-scheme: dark)" />
+    <style>
+      html,body{margin:0;min-height:100%;background:oklch(0.930 0.012 72);color-scheme:light}
+      @media(prefers-color-scheme:dark){html:not(.light),html:not(.light) body{background:oklch(0.188 0.013 70);color-scheme:dark}}
+      html.dark,html.dark body{background:oklch(0.188 0.013 70);color-scheme:dark}
+    </style>
+    <script>
+      (()=>{let theme;try{theme=localStorage.getItem('signals-theme')}catch{}const dark=theme==='dark'||(theme!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.add(dark?'dark':'light')})();
+    </script>
     <meta name="description" content="Signals — understand who connects to your MCP server and how your tools perform." />
     <title>Signals · MCP observability</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
