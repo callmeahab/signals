@@ -837,3 +837,7 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
 .tile__spark.card-pending{min-height:108px;height:108px}
 .tiles--compact .tile__spark.card-pending{min-height:38px;height:38px}
 .panel .loading-state>*{opacity:0}
+
+.support-error{min-height:108px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border);border-radius:10px;background:var(--muted);color:var(--muted-foreground);font-size:12px;padding:12px}
+.support-error--caption{min-height:0;justify-content:flex-start;padding:6px 8px}
+.tiles--compact .support-error{min-height:38px}

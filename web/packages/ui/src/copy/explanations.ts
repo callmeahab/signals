@@ -125,7 +125,7 @@ export const explanations: Explanations = {
  'reliability.tile.cancellations':
   { title: 'Cancellations', body: 'Calls the client abandoned before your server answered, and their share of all calls.', computed: 'A result that arrives after a cancellation is counted as a silent failure instead.', action: 'Rising cancellations usually mean calls are slower than the client is willing to wait.' },
  'reliability.tile.sessions-with-errors':
-  { title: 'Sessions with errors', body: 'It is the closest thing here to "how many conversations went wrong".', computed: 'Sessions in the window with at least one failed call, and their share of all sessions.', action: 'One bad tool can put an error in most sessions, so read it next to Tool health.' },
+  { title: 'Sessions with errors', body: 'Sessions with errors measures how many conversations included a failed call.', computed: 'Sessions in the window with at least one failed call, and their share of all sessions.', action: 'One bad tool can put an error in most sessions, so read it next to Tool health.' },
  'reliability.tile.silent-failures':
   { title: 'Silent failures', body: 'Calls that reported success with no output at all, plus results delivered after the client cancelled.', computed: 'The model cannot tell these from an empty answer, so they look like your tool had nothing to say.', action: 'Any number here is worth a look.' },
  'reliability.tile.hallucinated-tools':
@@ -139,7 +139,7 @@ export const explanations: Explanations = {
  'reliability.card.error-codes':
   { title: 'Error codes', body: 'JSON-RPC error codes behind the failed calls in the window, by count.', computed: 'It stays empty until the SDKs report codes, which is different from having no errors.', action: 'Invalid-params codes are usually a schema mismatch you own.' },
  'reliability.card.auth-failures':
-  { title: 'Authentication failures', body: 'These never appear as session or call errors, because there was no session yet.', computed: 'Requests rejected before a session existed, grouped by reason — invalid, expired, missing or out of scope.', action: 'A spike in one reason is a client misconfiguration, not an attack.' },
+  { title: 'Authentication failures', body: 'Authentication failures counts requests rejected before a session could begin.', computed: 'Requests rejected before a session existed, grouped by reason — invalid, expired, missing or out of scope.', action: 'A spike in one reason is a client misconfiguration, not an attack.' },
  'reliability.card.availability':
   { title: 'Availability', body: 'Share of synthetic probes in the window that succeeded, one dot per probe.', computed: 'Probing runs only once both a probe URL and key are set in Settings, and it performs initialize plus `tools/list`, never your tools.', action: 'Healthy tools stays blank because discovery does not execute anything.' },
 
@@ -153,9 +153,9 @@ export const explanations: Explanations = {
  'sessions.tile.streamable-http':
   { title: 'streamable-http', body: 'Sessions in the window that used the streamable HTTP transport — the remote path, and normally the majority.', computed: 'Transport is recorded per session at session start.', action: 'A sudden fall here with stdio rising means traffic moved to local clients.' },
  'sessions.tile.stdio':
-  { title: 'stdio', body: 'These sessions never traverse your network, so availability probes say nothing about them.', computed: 'Sessions in the window that used stdio, which means a locally launched server: desktop clients and development.' },
+  { title: 'stdio', body: 'Stdio sessions connect clients to a locally launched server, so network availability probes do not cover them.', computed: 'Sessions in the window that used stdio, which means a locally launched server: desktop clients and development.' },
  'sessions.tile.open':
-  { title: 'Open on this page', body: 'Long-lived clients legitimately sit here; so does a client that crashed without closing.', computed: 'Sessions on this page with no `session.ended` event yet.', action: 'Combine with the duration column before reading too much into it.' },
+  { title: 'Open on this page', body: 'Open sessions have no observed end event; they may be long-lived clients or clients that crashed without closing.', computed: 'Sessions on this page with no `session.ended` event yet.', action: 'Combine with the duration column before reading too much into it.' },
  'sessions.card.replay':
   { title: 'Session replay', body: 'The newest session, one lane per target, with every event placed at its offset from the session start. It is the fastest way to see which call blocked the rest.', computed: 'Bar length is the call\'s measured duration and red marks a reported error.' },
  'sessions.card.table':
@@ -173,7 +173,7 @@ export const explanations: Explanations = {
  'cost.tile.context-tokens':
   { title: 'Context tokens', body: 'Estimated tokens your responses added to model context in the window.', computed: 'Output characters are used where the SDK reports them, otherwise output bytes, divided by the project token divisor (4 by default).', action: 'Every figure on this screen is an estimate, not a provider bill.' },
  'cost.tile.per-call':
-  { title: 'Per call', body: 'It moves when responses get larger or when the token divisor is changed in Settings.', computed: 'Estimated tokens the average call adds to the context, that is total estimated tokens divided by calls.', action: 'Above roughly a thousand, one call is eating a noticeable part of the context window.' },
+  { title: 'Per call', body: 'Tokens per call estimates the context added by an average tool response.', computed: 'Estimated tokens the average call adds to the context, that is total estimated tokens divided by calls.', action: 'Above roughly a thousand, one call is eating a noticeable part of the context window.' },
  'cost.tile.heaviest-tool':
   { title: 'Heaviest tool', body: 'The single tool responsible for the largest share of estimated tokens in the window, and that share.', computed: 'Share is tokens, not calls, so a rarely called tool can top it with large responses.', action: 'This is the first place to trim an output schema.' },
  'cost.tile.tenants':
@@ -201,7 +201,7 @@ export const explanations: Explanations = {
  'protocol.tile.sampling':
   { title: 'Sampling', body: 'Server-to-client sampling requests observed in the window.', computed: 'It stays blank until the SDKs send sampling events, which is not the same as zero requests.', action: 'Once populated, rejection rate is the number to watch.' },
  'protocol.tile.elicitation':
-  { title: 'Elicitation', body: 'Blank means the SDKs have not reported accept, decline or cancel actions yet.', computed: 'Elicitation requests — your server asking the user for input — observed in the window.', action: 'High decline rates mean you are asking for the wrong thing.' },
+  { title: 'Elicitation', body: 'Elicitation counts requests for user input; a blank value means the SDKs have not reported elicitation actions yet.', computed: 'Elicitation requests — your server asking the user for input — observed in the window.', action: 'High decline rates mean you are asking for the wrong thing.' },
  'protocol.tile.tasks':
   { title: 'Tasks', body: 'Long-running tasks observed in the window, counted as distinct session and task id pairs.', computed: 'Status counts come from observed transitions, so they can lag creation.', action: 'Blank means the SDKs are not reporting task lifecycle events yet.' },
  'protocol.card.capability-matrix':
@@ -223,7 +223,7 @@ export const explanations: Explanations = {
  'live.card.errors-in-window':
   { title: 'Errors in window', body: 'How many of the last 200 streamed events were errors or failed calls.', computed: 'Counted from the stream, so it will not match Reliability, which uses the selected window.', action: 'A burst here is the earliest warning you get.' },
  'live.card.stream':
-  { title: 'Expand an event to inspect its payload. Pause to hold the view steady.', body: 'Live event stream', computed: 'Every event as it arrives, newest first, capped at the latest 200.', action: 'Expand one for its full payload; pause to hold the view still while you read. Filters apply to the buffer, so a quiet filter does not mean a quiet server.' },
+  { title: 'Expand an event to inspect its payload. Pause to hold the view steady.', body: 'The live event stream shows the latest activity reported by your server.', computed: 'Every event as it arrives, newest first, capped at the latest 200.', action: 'Expand one for its full payload; pause to hold the view still while you read. Filters apply to the buffer, so a quiet filter does not mean a quiet server.' },
 
  /* ------------------------------------------------------------------ Settings */
  'settings.card.alert-rules':

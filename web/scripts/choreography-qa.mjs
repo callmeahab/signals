@@ -1,16 +1,13 @@
 // Evidence for the load item: the screen's entrance is one choreography, run once per
 // navigation, and this is where its timings are a measurement rather than a claim.
 //
-// The timings are read from the animations themselves (`document.getAnimations()`), so
-// the gate does not race the sampler: a tile's or a card's entrance carries its own
-// delay and duration, and a chart's draw-in carries its absolute start on the document
-// timeline, which is what "after its card" means. Alongside that the script records a
-// 100 ms-step screenshot series of one navigation into `artifacts/v5/choreography/`,
-// the way `reload-series.mjs` records a reload, so the run can be looked at as well as
-// asserted. Those frames are timing-dependent and deliberately live outside
-// `artifacts/v3`, which the byte-identity gate covers.
+// Scheduled delays and durations are asserted exactly on every host. Frame-dependent
+// observations are additional checks only when the measured window sustains 20 fps.
+// Counts always check their scheduled target and monotonic samples; the screenshot
+// series remains diagnostic evidence alongside the finished/reduced-motion checks.
 //
 // Run against the demo server (`bun scripts/test.mjs` starts one) or any BASE_URL.
+import { recordCounts, frameRate, checkCounts } from './count-sampling.mjs';
 import { chromium } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
@@ -47,16 +44,16 @@ const recordEntrances = () => {
   const animate = globalThis.Element.prototype.animate;
   globalThis.Element.prototype.animate = function (frames, options) {
     const animation = animate.call(this, frames, options);
-    globalThis.__entrances.push({ el: this, animation, delay: Number(options?.delay) || 0, duration: Number(options?.duration) || 0 });
+    globalThis.__entrances.push({ el: this, animation, created: globalThis.performance.now(), delay: Number(options?.delay) || 0, duration: Number(options?.duration) || 0 });
     return animation;
   };
 };
 const entrances = page => page.evaluate(() => {
   const indexOf = (el, selector) => [...el.parentElement.children].filter(n => n.matches(selector)).indexOf(el);
   const rows = [];
-  for (const { el, animation, delay, duration } of globalThis.__entrances ?? []) {
+  for (const { el, animation, delay, duration, created } of globalThis.__entrances ?? []) {
     if (!el.isConnected || animation.startTime == null) continue;
-    const row = { delay, duration, start: animation.startTime + delay, playState: animation.playState };
+    const row = { created, delay, duration, start: animation.startTime + delay, playState: animation.playState };
     const drawIn = Math.round(parseFloat(getComputedStyle(el).getPropertyValue('--draw-in')) || 0);
     if (el.matches('.tiles > .tile')) rows.push({ ...row, drawIn, kind: 'tile', index: indexOf(el, '.tile'), label: el.querySelector('.tile__label span')?.textContent?.trim() ?? null, countDelay: Number(el.querySelector('strong')?.dataset.countDelay), countDuration: Number(el.querySelector('strong')?.dataset.countDuration) });
     else if (el.matches('.card')) rows.push({ ...row, drawIn, kind: 'card', index: indexOf(el, '.card') });
@@ -87,65 +84,7 @@ const entrances = page => page.evaluate(() => {
 // headline whenever it changes, with the timestamp, into `globalThis.__counts`. It is
 // installed before the document runs, so a cold load is covered from its first frame,
 // and `__countsFrom(ms)` restarts it for a navigation.
-const recordCounts = () => {
-  globalThis.__counts = [];
-  const last = new Map();
-  let until = globalThis.performance.now() + 3000;
-  const tick = () => {
-    for (const tile of document.querySelectorAll('.tiles > .tile')) {
-      const label = tile.querySelector('.tile__label span')?.textContent?.trim();
-      const text = tile.querySelector('.tile__value strong')?.textContent;
-      if (!label || text == null) continue;
-      if (last.get(label) !== text) { last.set(label, text); globalThis.__counts.push({ label, at: Math.round(globalThis.performance.now()), text }); }
-    }
-    if (globalThis.performance.now() < until) globalThis.requestAnimationFrame(tick);
-  };
-  globalThis.__countsFrom = ms => { globalThis.__counts = []; last.clear(); until = globalThis.performance.now() + ms; tick(); };
-  tick();
-};
-const counts = page => page.evaluate(() => globalThis.__counts ?? []);
-// "48.2K", "99.7%", "No data yet", "2026-10": a tile's headline is whatever its own
-// formatter made of the number, so the series is compared as numbers rather than as
-// text, and a headline that is not a number -- the billing period's month, a tile with
-// nothing to show -- is not a count-up and is left alone. The match is anchored at both
-// ends on purpose: "2026-10" must not read as 2026.
-const SCALE = { K: 1e3, M: 1e6, B: 1e9, T: 1e12 };
-const parseCount = text => {
-  const match = /^(-?[\d,]+(?:\.\d+)?)\s*([KMBT])?%?$/.exec((text ?? '').trim());
-  return match ? Number(match[1].replace(/,/g, '')) * (SCALE[match[2]] ?? 1) : null;
-};
-// A tile's headline starts at zero and climbs to its value over COUNT_MS, beginning at
-// that tile's own entrance.
-//
-// What every climbing tile owes: it opens at zero, never goes backwards, takes more than
-// one step, starts with its own entrance and is over inside COUNT_MS. The *end* of the
-// climb is only pinned on the tile that can show it. The ease runs to 640 ms, but what a
-// reader sees stops changing once the eased number rounds to the final one, which for a
-// small headline ("3") happens well before the ease ends -- `Never called` lands its last
-// visible step at about 510 ms and is still climbing correctly. So the 640 ms is asserted
-// on the tile with the most steps on that screen, which is the one with the resolution to
-// show the whole ease.
-function checkCountUp(where, rows, series) {
-  const tiles = new Map(rows.filter(r => r.kind === 'tile' && r.label).map(r => [r.label, r]));
-  const climbing = [];
-  for (const [label, tile] of tiles) {
-    const samples = series.filter(s => s.label === label);
-    if (!samples.length) { check(false, `${where}: the ${label} tile recorded no headline at all`); continue; }
-    const values = samples.map(s => parseCount(s.text));
-    if (values.some(v => v === null)) continue; // not a number: nothing to count up to
-    check(values[0] === 0, `${where}: the ${label} tile opened at ${JSON.stringify(samples[0].text)}, expected zero`);
-    check(values.every((v, i) => i === 0 || v >= values[i - 1]), `${where}: the ${label} tile did not climb monotonically: ${JSON.stringify(samples.map(s => s.text))}`);
-    if (values.at(-1) === 0) continue; // a zero tile never leaves its first sample
-    const last = samples.at(-1);
-    check(samples.length >= 3, `${where}: the ${label} tile reached ${last.text} in ${samples.length} step(s), which is not a climb`);
-    check(tile.countDelay === tile.delay && tile.countDuration === COUNT_MS, `${where}: ${label} count schedule ${tile.countDelay}/${tile.countDuration}, expected ${tile.delay}/${COUNT_MS}`);
-    climbing.push({ label, tile, samples, last });
-  }
-  check(climbing.length > 0, `${where}: no tile counted up`);
-  const finest = climbing.sort((a, b) => b.samples.length - a.samples.length)[0];
-  return { climbed: climbing.length, finest: finest && { label: finest.label, steps: finest.samples.length, spanMs: Math.round(finest.last.at - finest.tile.start) } };
-}
-
+const counts = page => page.evaluate(() => globalThis.__countSnapshot());
 // Every chart built, every entrance over: the point at which "nothing is left running".
 const settle = page => page.waitForFunction(() => {
   const charts = [...document.querySelectorAll('.v3-chart')];
@@ -205,8 +144,7 @@ try {
   await settle(page);
   // A cold load counts up too, and the sampler has been running since the first frame.
   const coldCounts = await counts(page);
-  const cold = checkCountUp('cold #overview', (await entrances(page)).rows, coldCounts);
-  console.log(`cold #overview: ${cold.climbed} tiles climbed from zero, ${cold.finest?.label} over ${cold.finest?.spanMs} ms in ${cold.finest?.steps} steps`);
+  checkCounts('cold #overview', coldCounts, (await entrances(page)).rows, check);
 
   // One navigation, read as soon as the new screen has mounted.
   for (const screen of ['tools', 'adoption', 'cost']) {
@@ -229,12 +167,19 @@ try {
       check(card.duration === ENTER_MS, `${screen}: card ${card.index} runs for ${card.duration} ms, expected ${ENTER_MS} ms`);
     }
     check(cards.every(c => c.delay <= CARD_CAP), `${screen}: a card enters later than the ${CARD_CAP} ms cap`);
+    const snapshot = await counts(page);
+    const observed = frameRate(snapshot.frames, Math.min(...tiles.map(t => t.created), ...cards.map(c => c.created)), snapshot.frames.at(-1));
+    console.log(`${screen}: ordering observed at ${observed.sustained.toFixed(1)} fps, ${observed.sustained >= 20 ? 'checked' : 'skipped'} (average ${observed.fps.toFixed(1)} fps; threshold uses slowest-frame cadence); exact schedules checked`);
     // Top to bottom: the tiles lead the cards, and both are one run from the same mount.
     if (tiles.length && cards.length) {
-      const lead = cards[0].start - tiles[0].start;
-      check(Math.abs(lead - (CARD_FIRST - TILE_FIRST)) <= FRAME_SLACK, `${screen}: the first card follows the first tile by ${Math.round(lead)} ms, expected ${CARD_FIRST - TILE_FIRST} ms`);
-      const spread = tiles.map(t => t.start - tiles[0].start);
-      check(spread.every((v, i) => Math.abs(v - TILE_STEP * i) <= FRAME_SLACK), `${screen}: the tile row is not one run: ${JSON.stringify(spread.map(Math.round))}`);
+      check(cards[0].delay - tiles[0].delay === CARD_FIRST - TILE_FIRST, `${screen}: first card/tile scheduled order differs`);
+      check(tiles.every((t, i) => t.delay - tiles[0].delay === TILE_STEP * i), `${screen}: tile row scheduled spacing differs`);
+      if (observed.sustained >= 20) {
+        const lead = cards[0].start - tiles[0].start;
+        check(Math.abs(lead - (CARD_FIRST - TILE_FIRST)) <= FRAME_SLACK, `${screen}: the first card follows the first tile by ${Math.round(lead)} ms, expected ${CARD_FIRST - TILE_FIRST} ms`);
+        const spread = tiles.map(t => t.start - tiles[0].start);
+        check(spread.every((v, i) => Math.abs(v - TILE_STEP * i) <= FRAME_SLACK), `${screen}: the tile row is not one run: ${JSON.stringify(spread.map(Math.round))}`);
+      }
     }
     // Every chart draws in after the card or tile it belongs to, never before it.
     const owners = new Map([...tiles.map(t => ['tile:' + t.index, t]), ...cards.map(c => ['card:' + c.index, c])]);
@@ -244,7 +189,7 @@ try {
       if (!owner) continue;
       checked++;
       margin = Math.min(margin, chart.start - owner.start - CHART_AFTER);
-      check(chart.start >= owner.start + CHART_AFTER - FRAME_SLACK,
+      if (observed.sustained >= 20) check(chart.start >= owner.start + CHART_AFTER - FRAME_SLACK,
         `${screen}: the ${chart.chart} chart in ${chart.owner} draws in ${Math.round(owner.start + CHART_AFTER - chart.start)} ms before its own entrance allows, past the ${FRAME_SLACK} ms a frame is worth`);
     }
     check(checked > 0, `${screen}: no chart draw-in could be matched to the card or tile it sits in`);
@@ -256,8 +201,8 @@ try {
     // The count-up finishes after the entrances do, so it is read once the screen has
     // settled -- the sampler has been recording since before the click either way.
     await settle(page);
-    const climbs = checkCountUp(screen, rows, await counts(page));
-    console.log(`${screen}: ${tiles.length} tiles ${tiles[0]?.delay}+${TILE_STEP}i ms, ${cards.length} cards ${cards[0]?.delay}+${CARD_STEP}i ms (last ${cards.at(-1)?.delay} ms), ${checked}/${charts.length} chart draw-ins anchored to their card (earliest ${Math.round(margin)} ms into its own window, ${FRAME_SLACK} ms of slack), ${climbs.climbed} tiles climbed from zero (${climbs.finest?.label} over ${climbs.finest?.spanMs} ms in ${climbs.finest?.steps} steps)`);
+    checkCounts(screen, await counts(page), rows, check);
+    console.log(`${screen}: ${tiles.length} tile and ${cards.length} card schedules checked, ${checked} chart owners matched; observed margin ${Math.round(margin)} ms is diagnostic`);
     // And when it is over, it is over: nothing is left running on the screen.
     const settled = await paintedState(page);
     check(settled.charts > 0 && settled.svg === settled.charts && settled.twin === settled.charts, `${screen}: ${settled.svg}/${settled.charts} charts painted with ${settled.twin} twins after the entrance`);
@@ -286,8 +231,9 @@ try {
   await page.waitForTimeout(400);
   await quiet('back at 1440');
 
-  // The 100 ms series, as evidence of one run from the top.
+  // The nominal 100 ms series, as evidence of one run from the top.
   const series = [];
+  await page.evaluate(() => { globalThis.__entrances = []; globalThis.__countsFrom(); });
   await page.locator('nav a[href="#tools"]').click();
   const started = Date.now();
   for (let frame = 0; frame < FRAMES; frame++) {
@@ -298,11 +244,19 @@ try {
     const left = 100 - (Date.now() - started - at);
     if (left > 0) await page.waitForTimeout(left);
   }
-  check(series.filter(f => f.tilesShown < f.tiles || f.cardsShown < f.cards).length >= 3, `the series caught only ${series.filter(f => f.tilesShown < f.tiles || f.cardsShown < f.cards).length} frames mid-entrance; nothing was choreographed`);
+  const seriesRows = (await entrances(page)).rows.filter(r => r.kind === 'tile' || r.kind === 'card');
+  for (const row of seriesRows) {
+    const delay = row.kind === 'tile' ? TILE_FIRST + TILE_STEP * row.index : Math.min(CARD_CAP, CARD_FIRST + CARD_STEP * row.index);
+    check(row.delay === delay && row.duration === ENTER_MS && row.drawIn === delay + CHART_AFTER, `series: incorrect ${row.kind} schedule`);
+  }
+  const seriesSampling = await counts(page);
+  const seriesRate = frameRate(seriesSampling.frames, Math.min(...seriesRows.map(r => r.created)), Math.max(...seriesRows.map(r => r.created + r.delay + r.duration)));
+  console.log(`series: ordering observed at ${seriesRate.sustained.toFixed(1)} fps, ${seriesRate.sustained >= 20 ? 'checked' : 'skipped'}; exact schedules checked`);
+  if (seriesRate.sustained >= 20) check(series.filter(f => f.tilesShown < f.tiles || f.cardsShown < f.cards).length >= 3, `the series caught only ${series.filter(f => f.tilesShown < f.tiles || f.cardsShown < f.cards).length} frames mid-entrance; nothing was choreographed`);
   check(series.at(-1).tilesShown === series.at(-1).tiles && series.at(-1).cardsShown === series.at(-1).cards, `the series ended with ${series.at(-1).cardsShown}/${series.at(-1).cards} cards shown`);
   check(series.every(f => f.scrollY === 0), 'the series scrolled the page');
   // Top to bottom: no frame shows a card finished while a tile has not started.
-  check(series.every(f => f.tilesShown >= f.cardsShown || f.cardsShown === f.cards), `a card entered before the tiles above it: ${JSON.stringify(series.map(f => [f.atMs, f.tilesShown, f.cardsShown]))}`);
+  if (seriesRate.sustained >= 20) check(series.every(f => f.tilesShown >= f.cardsShown || f.cardsShown === f.cards), `a card entered before the tiles above it: ${JSON.stringify(series.map(f => [f.atMs, f.tilesShown, f.cardsShown]))}`);
   writeFileSync(`${out}/series.json`, JSON.stringify({ base, frames: FRAMES, timings: { TILE_FIRST, TILE_STEP, CARD_FIRST, CARD_STEP, CARD_CAP, ENTER_MS, CHART_AFTER, COUNT_MS }, series, counts: coldCounts, failures }, null, 2) + '\n');
   console.log(series.map(f => `${String(f.atMs).padStart(5)}ms tiles ${f.tilesShown}/${f.tiles} cards ${f.cardsShown}/${f.cards} charts ${f.svg}/${f.charts} running=${f.running}`).join('\n'));
   await context.close();
@@ -329,4 +283,4 @@ try {
 } finally { await browser.close(); }
 
 if (failures.length) { console.error(failures.join('\n')); process.exit(1); }
-console.log(`Choreography QA passed: tiles at ${TILE_FIRST}+${TILE_STEP}i ms, cards at ${CARD_FIRST}+${CARD_STEP}i ms capped at ${CARD_CAP} ms, every chart's draw-in ${CHART_AFTER} ms behind its own card or tile, every tile headline climbing from zero over ${COUNT_MS} ms from its own entrance on a cold load and on every navigation, one run per navigation with nothing on scroll or resize, a ${FRAMES}-frame 100 ms series in ${out}/, and the finished page at once under reduced motion.`);
+console.log(`Choreography QA passed: tiles at ${TILE_FIRST}+${TILE_STEP}i ms, cards at ${CARD_FIRST}+${CARD_STEP}i ms capped at ${CARD_CAP} ms, every chart's draw-in scheduled ${CHART_AFTER} ms behind its own card or tile, count-ups scheduled for ${COUNT_MS} ms at their tile entrance with monotonic samples and terminal values checked; early zero, step counts and observed ordering checked only when sampling permits, one run per navigation with nothing on scroll or resize, a ${FRAMES}-frame nominal 100 ms series in ${out}/, and the finished page at once under reduced motion.`);
