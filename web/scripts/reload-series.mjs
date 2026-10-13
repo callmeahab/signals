@@ -54,7 +54,7 @@ try {
   const navigation = page.reload({ waitUntil: 'commit' });
   for (let frame = 0; frame < frames; frame++) {
     const at = Date.now() - started;
-    const facts = await page.evaluate(() => ({
+    const readFacts = () => page.evaluate(() => ({
       connecting: !!document.querySelector('.login-page'),
       reading: !!document.querySelector('.loading-state'),
       login: !!document.querySelector('.login-card'),
@@ -71,7 +71,12 @@ try {
       old: !!globalThis.__preReload,
       content: document.querySelectorAll('.signals-ui .panel').length,
       text: (document.body.innerText || '').slice(0, 80),
-    })).catch(() => null);
+    }));
+    // An execution context can disappear between reload() and evaluate(). Retry on
+    // the committed document instead of inventing a frame with no DOM facts, which
+    // falsely fails the shell assertion. Do not wait for fonts, content or animation;
+    // the layout-shift observer and every gate still see the full reload.
+    const facts = await readFacts().catch(async () => { await navigation; return readFacts(); });
     // A capture taken across the document swap can fail at the protocol level ("Unable to
     // capture screenshot") while the renderer replaces the document. The frame is
     // evidence; the facts recorded beside it are what the run asserts. So: one retry,

@@ -101,7 +101,7 @@ try {
   for (const route of ['overview', 'adoption']) {
     const { context, page } = await open('demo', route, false);
     const before = await tileValue(page, 'Tool calls');
-    await page.evaluate(() => { globalThis.__failRead = true; document.dispatchEvent(new Event('visibilitychange')); });
+    await page.evaluate(() => { globalThis.__failRead = true; document.dispatchEvent(new globalThis.Event('visibilitychange')); });
     await page.waitForTimeout(1200);
     check(await tileValue(page, 'Tool calls') === before, `${route}: failed refresh retains this view's headline`);
     const target = route === 'overview' ? page.locator('.tiles').first() : page.locator('.client-mix').locator('..');
