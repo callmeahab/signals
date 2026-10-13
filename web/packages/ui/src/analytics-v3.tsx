@@ -57,7 +57,12 @@ function Count({value,formatter=compact,delay=0}:{value:number|null|undefined;fo
  const shown=useRef<number|null>(null);
  const painted=useRef(false);
  useEffect(()=>{
-  if(value==null||!el.current||matchMedia('(prefers-reduced-motion: reduce)').matches){shown.current=value??null;painted.current=true;return;}
+  if(value==null||!el.current||matchMedia('(prefers-reduced-motion: reduce)').matches){
+   // A queued frame can run between React committing the new label and cleaning
+   // up the previous effect. Reassert the terminal text after that cleanup.
+   if(el.current)el.current.textContent=value==null?'No data yet':format.current(value);
+   shown.current=value??null;painted.current=true;return;
+  }
   const text=el.current.firstChild!;
   const first=!painted.current;
   const from=first?0:shown.current??0;
