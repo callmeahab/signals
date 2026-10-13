@@ -5,12 +5,15 @@ report and review out of the public repo"). Brief: `briefs/v5/fix-dash-v5-countu
 Review should-fix: `reviews/dash-v5-r1.md` in the syncup evidence, "Count-up is part of the
 approved choreography and is not what the gate measures, and the Vite dev server skips it".
 
-Two commits:
+Commits:
 
 | sha | what |
 |---|---|
 | `7bd6f95` | `Count` survives React's development double-invoke; `choreography-qa.mjs` asserts the climb |
 | `4f57835` | the poll check in `live-qa.mjs` reads the charts that had painted, not every marked element |
+| `de821d2` | this report |
+| `04f0c01` | the gate separates what was scheduled from what was observed, after the GitHub CI failure |
+| `6752de3` | the gate prints how close the earliest draw-in came to its own window |
 
 ## 1 · Why the dev server showed no climb
 
@@ -124,12 +127,85 @@ poll:  9 charts had painted,  9 of them still on screen, 19 redrawn parts, all 1
 
 Two runs, different points in the build queue, the same claim held.
 
+## 4 · The same gate on GitHub CI
+
+Remote CI (`main` at `ce332b3`, job `check`, step `bun run test`) failed inside
+`choreography-qa.mjs` with
+
+```
+adoption: the donut chart in card:1 draws in 17 ms before its own entrance allows
+```
+
+after every tile, card and chart count on that screen was already complete. The check it
+failed compared two clocks that are only aligned to a rendering update: an animation's
+`startTime` is the frame it was created in, and `performance.now()` inside an effect is
+some way into that frame's work. A chart's `--cd` is computed on the second clock and
+asserted on the first. On a shared runner that gap is a frame or more, and the check
+allowed two milliseconds.
+
+The gate now keeps the two apart.
+
+**What was scheduled is exact, on any host.** Delays and durations are read off the
+animation objects and compared for equality, as before — and a new check covers the same
+draw-in claim from the schedule rather than from a clock. Every tile and card publishes
+`--draw-in`, the instant its charts may begin, and it must equal that owner's own entrance
+delay plus 180 ms:
+
+```
+tiles --draw-in  310 365 420 475 530 585 ms   (130 + 55i, + 180)
+cards --draw-in  480 565 650 735 820 ms       (300 + 85i, + 180)
+```
+
+**What was observed carries one frame at 30 fps.** Comparisons between two animations'
+absolute starts — a chart against its card, the first card against the first tile, the
+tile row against itself — now allow 60 ms. The sampled count-up bounds are loosened to
+match: the climb may start up to 60 ms before its tile's recorded entrance and must be
+over inside the ease plus 300 ms, and the finest climb on the screen has to span at least
+0.6 of the 640 ms, which a 300 ms tween or a jump cannot reach.
+
+**The margin is printed**, so the tolerance is evidence rather than a guess. Three runs of
+the gate with sixteen busy cores alongside it (`nproc` is 16, one spinner each):
+
+```
+=== loaded choreography run 1: exit 0
+tools:    earliest -34 ms into its own window, 60 ms of slack
+adoption: earliest   0 ms into its own window
+cost:     earliest  -3 ms into its own window
+=== loaded choreography run 2: exit 0
+tools:    earliest -38 ms    adoption: 0 ms    cost: -19 ms
+=== loaded choreography run 3: exit 0
+tools:    earliest -34 ms    adoption: 0 ms    cost: -36 ms
+```
+
+The worst case measured is −38 ms, which is the clock gap CI reported as −17 ms; the old
+±2 ms was never going to hold on a shared runner, and 60 ms leaves about 22 ms of headroom
+at the worst observed point. The exact `--draw-in` half passed in every one of those runs.
+
+And three runs of the whole suite under the same load:
+
+```
+loaded run 1: bun run test exit 0 (load: 16 spinners)
+  poll: 19 charts had painted, 19 of them still on screen, 19 redrawn parts, all 19 finished
+  cold #overview: 4 tiles climbed from zero, Active users over 617 ms in 10 steps
+  Choreography QA passed: …
+loaded run 2: bun run test exit 0 (load: 16 spinners)
+  cold #overview: 4 tiles climbed from zero, Active users over 616 ms in 10 steps
+loaded run 3: bun run test exit 0 (load: 16 spinners)
+  cold #overview: 4 tiles climbed from zero, Active users over 666 ms in 10 steps
+```
+
+Count-up spans across the loaded runs: 553–672 ms, every one inside the window, and still
+far above the 384 ms a 300 ms tween would have to clear.
+
+With the box quiet the same margin is positive — `tools` +15 ms, `adoption` 0 ms, `cost`
+0 ms — which is why nothing caught this locally and CI did.
+
 ## Files changed
 
 | file | change |
 |---|---|
 | `web/packages/ui/src/analytics-v3.tsx` | `Count` marks `painted`/`shown` when the climb starts; the cleanup reverts them when it never did; `shown` tracks the number on screen |
-| `web/scripts/choreography-qa.mjs` | samples every tile headline and asserts the climb on a cold load and on each navigation; tile entrances carry their label |
+| `web/scripts/choreography-qa.mjs` | samples every tile headline and asserts the climb on a cold load and on each navigation; tile entrances carry their label; schedules asserted exactly and orderings given one frame at 30 fps, with the margin printed |
 | `web/scripts/live-qa.mjs` | the poll check is scoped to the figures that had painted, and prints its counts |
 | `web/packages/ui/DESIGN.md` | note 23 corrected (the gate does assert the count-up, and how); new note 26 for the double-invoke |
 
@@ -221,7 +297,8 @@ round-1 review recorded.
 
 ## What is not done
 
-Nothing from the brief is outstanding. Two notes for the record:
+Nothing from the brief or the coordinator's CI follow-up is outstanding. Three notes for
+the record:
 
 - **The `live-qa.mjs` change was not asked for.** It is a consequence of the v5 pass that
   this run surfaced: the old assertion read every marked element on the page, which under
@@ -230,3 +307,7 @@ Nothing from the brief is outstanding. Two notes for the record:
 - **`artifacts/v5/choreography/` stays outside the byte-identity gate**, as the v5 report
   already recorded: a 100 ms screenshot series of a running animation cannot be identical
   between runs. `series.json` now also carries the cold load's count-up samples.
+- **The four byte-identical capture runs were taken before the CI-robustness commits**
+  (`04f0c01`, `6752de3`), which touch only `scripts/choreography-qa.mjs` and print a
+  number. `git status --porcelain web/artifacts/v3` is still clean at `HEAD`, so those
+  commits moved no pixel; `visual-qa.mjs` is untouched by them.
