@@ -72,8 +72,16 @@ try {
       content: document.querySelectorAll('.signals-ui .panel').length,
       text: (document.body.innerText || '').slice(0, 80),
     })).catch(() => null);
-    await page.screenshot({ path: `${out}/frame-${String(frame).padStart(2, '0')}.png`, animations: 'disabled' });
-    series.push({ frame, atMs: at, ...(facts ?? { detached: true }) });
+    // A capture taken across the document swap can fail at the protocol level ("Unable to
+    // capture screenshot") while the renderer replaces the document. The frame is
+    // evidence; the facts recorded beside it are what the run asserts. So: one retry,
+    // then a recorded miss rather than a failed run, and the count is checked below.
+    let captured = true;
+    for (let attempt = 0; ; attempt++) {
+      try { await page.screenshot({ path: `${out}/frame-${String(frame).padStart(2, '0')}.png`, animations: 'disabled' }); break; }
+      catch { if (attempt === 1) { captured = false; break; } await page.waitForTimeout(30); }
+    }
+    series.push({ frame, atMs: at, captured, ...(facts ?? { detached: true }) });
     const left = 100 - (Date.now() - started - at);
     if (left > 0) await page.waitForTimeout(left);
   }
@@ -85,6 +93,10 @@ try {
 
   const warm = await reloadSeries(false);
   const { series, shifts, cls } = await reloadSeries(true);
+  for (const [label, run] of [['ordinary', warm], ['hard', { series }]]) {
+    const missed = run.series.filter(f => f.captured === false);
+    check(missed.length <= 1, `${label} reload: ${missed.length} frames could not be captured across the document swap: ${JSON.stringify(missed.map(f => f.atMs))}`);
+  }
   const painted = series.filter(f => f.heading && !f.old);
   check(painted.length >= 3, `the reloaded document painted its heading in ${painted.length} frames`);
   check(series.every(f => !f.connecting), `a "Connecting to Signals" screen appeared: ${JSON.stringify(series.filter(f => f.connecting).map(f => f.atMs))}`);
