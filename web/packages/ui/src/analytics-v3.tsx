@@ -41,6 +41,15 @@ function scheduleCount(tick:(now:number)=>boolean){countJobs.add(tick);if(!count
 // 300 ms instead of dropping to zero and climbing again. The formatter and the stagger
 // delay are read through refs, so re-rendering with a fresh inline formatter cannot
 // restart the animation; only the value can.
+//
+// `painted` and `shown` move only once the climb has actually started. React's
+// development double-invoke runs this effect, tears it down and runs it again before
+// anything is painted, so marking the first paint as done up front made the second run
+// treat the climb as already spent: it took the final value as its own starting point
+// and landed on it over 300 ms with nothing to see. The production bundle climbed and
+// the dev server did not. A climb torn down before its timer fired never happened, so
+// the cleanup puts both refs back, and `shown` then tracks the number on screen rather
+// than the one being climbed towards.
 function Count({value,formatter=compact,delay=0}:{value:number|null|undefined;formatter?:(n:number)=>string;delay?:number}){
  const el=useRef<HTMLElement>(null);
  const format=useRef(formatter);format.current=formatter;
@@ -54,12 +63,12 @@ function Count({value,formatter=compact,delay=0}:{value:number|null|undefined;fo
   const from=first?0:shown.current??0;
   const duration=first?640:300;
   const wait=first?stagger.current:0;
-  painted.current=true;
+  const wasPainted=painted.current,wasShown=shown.current;
+  let started=false;
   let previous=format.current(from);text.nodeValue=previous;
   let cancel:(()=>void)|undefined;const start=performance.now()+wait;let last=0;
-  const timer=setTimeout(()=>{cancel=scheduleCount(now=>{const k=Math.max(0,Math.min(1,(now-start)/duration));if(now-last>=80||k===1){const eased=first?1-(1-k)**3:k<.5?2*k*k:1-(1-k)**2/2;const next=format.current(from+(value-from)*eased);if(next!==previous){text.nodeValue=next;previous=next;}last=now;}return k<1;});},wait);
-  shown.current=value;
-  return()=>{clearTimeout(timer);cancel?.();};
+  const timer=setTimeout(()=>{started=true;painted.current=true;shown.current=from;cancel=scheduleCount(now=>{const k=Math.max(0,Math.min(1,(now-start)/duration));if(now-last>=80||k===1){const eased=first?1-(1-k)**3:k<.5?2*k*k:1-(1-k)**2/2;const at=from+(value-from)*eased;shown.current=at;const next=format.current(at);if(next!==previous){text.nodeValue=next;previous=next;}last=now;}return k<1;});},wait);
+  return()=>{clearTimeout(timer);cancel?.();if(!started){painted.current=wasPainted;shown.current=wasShown;}};
  },[value]);
  return <strong ref={el}>{value==null?'No data yet':(typeof window!=='undefined'&&!matchMedia('(prefers-reduced-motion: reduce)').matches?formatter(0):formatter(value))}</strong>;
 }

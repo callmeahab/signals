@@ -209,8 +209,12 @@
     card's entrance at that moment; the boxes that are in the markup from the first
     render -- a tile's sparkline wrapper, the stacked area's and the donut's own box --
     carry `--draw-in`, the same instant measured from the mount. Reduced motion shows the
-    finished page at once. `scripts/choreography-qa.mjs` asserts every timing from the
-    animations themselves and records a 100 ms-step series into `artifacts/v5/`.
+    finished page at once. `scripts/choreography-qa.mjs` asserts every timing: the
+    entrances and draw-ins from the animations themselves, and the count-up by sampling
+    each tile's headline on a frame loop -- it opens at zero, never goes backwards, starts
+    with its own tile's entrance and is over inside the 640 ms ease, with the end of the
+    ease pinned on the tile with the most steps, since a small headline ("3") stops
+    changing before the ease ends. It records a 100 ms-step series into `artifacts/v5/`.
 
 24. **The drawer header carries no divider.** Under the drawer's title a border-bottom
     read as a rule drawn across the top of the three tiles; nothing else in this design
@@ -226,3 +230,12 @@
     behind a drawer stays sharp and nothing on it is filtered. That also removes the
     non-deterministic rasterisation the capture scripts used to mask: the drawer captures
     no longer mask the top bar.
+
+26. **The count-up survives React's development double-invoke.** `Count` marked the first
+    paint as spent before its timer, so under `StrictMode` -- which runs an effect, tears
+    it down and runs it again before anything is painted -- the second run took the final
+    value as its own starting point and landed on it with nothing to see. The production
+    bundle climbed and the dev server did not, and the gate was not looking. `painted` and
+    `shown` now move only once the climb's timer has fired, the cleanup puts them back
+    when it has not, and `shown` tracks the number on screen rather than the one being
+    climbed towards.
