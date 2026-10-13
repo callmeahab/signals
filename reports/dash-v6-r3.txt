@@ -1,0 +1,24 @@
+Dashboard v6 fix round 3
+
+Changes:
+- web/packages/ui/src/copy/explanations.ts: MAU, Silent failures and Error codes now have standalone definitions, the existing derivation in computed, and the existing interpretation preserved in action.
+- web/scripts/test.mjs: imports the reviewer's unchanged 89-entry copy sweep before starting browser tests.
+- Implementation commit: fd36f4f.
+
+Verification (run from web with ~/.bun/bin on PATH):
+1. bun test/review-v6-r3/copy-sweep.mjs — exit 0; every check ok.
+   Last line: review-v6-r3 copy-sweep probe passed
+2. bun run check — exit 0; UI build, TypeScript and ESLint passed.
+   Last emitted command: $ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+3. VITE_DEMO=1 bun run dev --port 23336 --strictPort
+   Started the owned demo server; stopped after verification.
+   BASE_URL=http://127.0.0.1:23336 PLAYWRIGHT_CHANNEL=chromium bun scripts/visual-qa.mjs — exit 0.
+   Last line:
+Visual QA passed: v3 chart SVG/table twins on every screen with nothing scrolled, no unpainted card in any capture, unmasked drawer captures, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, 390/1280/1440 widths, three-column tiles, 108px sparklines, full-row entity lists, 27-client legend, zero-call arcs, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+
+4. git status --short after visual QA emitted nothing: regenerated static captures are byte-identical to the committed captures.
+5. git diff --check passed before the implementation commit.
+
+The existing hover-card captures in scripts/v6-qa.mjs show Tool calls (desktop and mobile), whose text did not change. They were not regenerated; the brief's conditional two-run requirement for changed hover-card captures does not apply.
+The full bun run test suite was not requested or rerun; its runner now includes the copy sweep, which passed directly.
+Nothing remains unfinished; no contract or design divergence was found. No push was performed.
