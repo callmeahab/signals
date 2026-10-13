@@ -143,7 +143,7 @@ try {
        await trigger.scrollIntoViewIfNeeded();
        await trigger.focus();
        const pop=page.locator('.info-pop');
-       check(await pop.count()===1,`${screen}: Enter did not open an explanation`);
+       check(await pop.count()===1,`${screen}: focus did not open an explanation`);
        check(await trigger.getAttribute('aria-expanded')==='true',`${screen}: aria-expanded is not set while open`);
        check(await pop.evaluate(el=>document.activeElement===el),`${screen}: focus did not move into the explanation`);
        check(await pop.evaluate(el=>{const id=el.getAttribute('aria-labelledby');return !!document.getElementById(id??'')?.textContent?.trim();}),`${screen}: the explanation is not labelled by its card title`);
@@ -153,6 +153,9 @@ try {
        await page.keyboard.press('Escape');
        check(await page.locator('.info-pop').count()===0,`${screen}: Escape did not close the explanation`);
        check(await trigger.evaluate(el=>document.activeElement===el),`${screen}: focus did not return to the button`);
+       await page.keyboard.press('Enter');
+       check(await page.locator('.info-pop').count()===1,`${screen}: Enter did not reopen the explanation`);
+       await page.keyboard.press('Escape');
        await trigger.click();
        check(await page.locator('.info-pop').count()===1,`${screen}: a click did not open the explanation`);
        await page.locator('h1').click();

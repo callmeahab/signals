@@ -23,7 +23,7 @@ try {
  await assert.rejects(request('/projects/status-qa'));assert.equal(projectStatus('status-qa',false),'error');
  globalThis.fetch=async()=>globalThis.Response.json({tiles:{active_users:{value:2}}});
  await request(overview);assert.equal(projectStatus('status-qa',false),'healthy');
- assert.equal(projectStatus('status-qa',false,'24h'),'warn');
+ assert.equal(projectStatus('status-qa',false,'24h'),'unknown');
  console.log('Project status QA passed: existing reads drive active/quiet/error states; validation, missing resources and rate limits do not falsely mark the collector unreachable; auth, server and network failures do; recovery and range scoping work.');
 } finally {
  globalThis.fetch=originalFetch;

@@ -252,7 +252,7 @@
     Phones use a bottom sheet. Escape returns focus without reopening the panel.
 29. Project cards show a dot and 14 px state icon. Existing client reads feed a local
     status observer: any active identity in the overview window means receiving events,
-    an empty/unknown window is gold, transport/auth/server failures are ember, and demo
+    an observed empty window is gold; an unread window is muted (Not checked yet), transport/auth/server failures are ember, and demo
     is muted. Validation and rate-limit responses do not imply an unreachable collector. No
     project-status request is added; unvisited projects cannot assert observed activity.
 30. Theme, sign-out and mobile navigation controls use 22 px artwork and 40 px targets.
@@ -273,3 +273,14 @@
     The explicit light class overrides a dark OS preference. The body background also
     covers Safari's initial canvas and overscroll before the React bundle has painted;
     browser measurements here use Chromium.
+
+34. Round 1: a failed dependency change clears the held answer; only a failed refresh
+    of the same dependency version keeps it, dimmed and labelled. Supporting reads
+    report failures inside every card or tile they feed, with an empty frame when
+    no answer belongs to the current selection. The shell reserves the view height
+    before its first answer so the footer stays outside the viewport during loading.
+35. Hover-card chips have their own `infoUnit`, independent of trend/table formatting.
+    Computation sections describe counts, windows or derivations; advice stays in the
+    action or context fields. Pointer release, cancellation and blur clear focus suppression.
+36. The browser suite checks actual Enter reopening after Escape and includes all three
+    demo review probes; backend QA also runs the real collector project-state probe.

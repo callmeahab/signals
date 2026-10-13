@@ -33,7 +33,7 @@ const target = (n: number) => `${n}%`;
 export const explanations: Explanations = {
  /* ------------------------------------------------------------------ Overview */
  'overview.tile.tool-calls':
-  { title: 'Tool calls', body: 'Every tool call in the window — `tool.called` events only, not protocol requests or resource reads.', computed: 'The chip compares the same length of time immediately before.', action: 'Calls falling while sessions hold steady usually means clients connect but find nothing worth calling.' },
+  { title: 'Tool calls', body: 'Tool activity in the selected window. The chip compares the same length of time immediately before.', computed: 'Every tool call in the window — `tool.called` events only, not protocol requests or resource reads.', action: 'Calls falling while sessions hold steady usually means clients connect but find nothing worth calling.' },
  'overview.tile.active-users':
   { title: 'Active users', body: 'Distinct identities that sent any event in the window.', computed: 'An identity is the OAuth subject when there is one, otherwise the caller key, otherwise a hashed network address — so network-only identities are an approximation, not named people.', action: 'A high network-only count means you cannot yet attribute usage; issue per-client keys or turn on OAuth.' },
  'overview.tile.sessions':
@@ -65,7 +65,7 @@ export const explanations: Explanations = {
  'adoption.tile.stickiness':
   { title: 'Stickiness', body: 'Daily actives divided by monthly actives, as a percentage — how much of your audience shows up on an average day.', computed: 'Both counts use the same identity rules.', action: 'Under about 10% means an occasional tool; above 25% means something people keep open.' },
  'adoption.tile.new-users':
-  { title: 'New users', body: 'Identities whose first ever event falls inside this window, summed across its buckets.', computed: 'They are the input to the activation funnel, so compare this with how many reached a first call.', action: 'New users arriving but not converting is a setup problem, not a demand problem.' },
+  { title: 'New users', body: 'New identities in the selected window.', computed: 'Identities whose first ever event falls inside this window, summed across its buckets.', action: 'They are the input to the activation funnel, so compare this with how many reached a first call. New users arriving but not converting is a setup problem, not a demand problem.' },
  'adoption.tile.d7-retention':
   { title: 'D7 retention', body: 'Share of daily cohorts that came back exactly seven UTC days after they were first seen.', computed: 'Only identities old enough to have had that day are counted, so the figure never dips just because the project is young.', action: 'The chip shows day 1 and day 30 next to it for shape.' },
  'adoption.card.active-identities':
@@ -89,7 +89,7 @@ export const explanations: Explanations = {
  'tools.tile.retries':
   { title: 'Retries', body: 'Calls that repeated the same tool in the same session within 30 seconds of a failure.', computed: 'Other calls may come in between, and a retry that succeeds counts as self-corrected.', action: 'A high count means the model is working around your tool rather than being served by it.' },
  'tools.tile.below-slo': ({ sloTargets: t = DEFAULT_TARGETS }) =>
-  ({ title: 'Below SLO', body: `Tools whose success rate in the window is under their class target: ${target(t.read)} for read tools, ${target(t.mutate)} for mutating ones.`, computed: `The class comes from your settings first, then catalogue read-only or destructive annotations, then the name prefix.`, action: `Each tool here is spending error budget right now.` }),
+  ({ title: 'Below SLO', body: `Tools whose success rate in the window is under their class target: ${target(t.read)} for read tools, ${target(t.mutate)} for mutating ones. Each tool here is spending error budget right now.`, computed: `The class comes from your settings first, then catalogue read-only or destructive annotations, then the name prefix.` }),
  'tools.tile.hallucinated':
   { title: 'Hallucinated', body: 'Calls to tool names your server does not advertise, plus every explicit unknown-tool error.', computed: 'With a complete catalogue, any name outside it counts; with a truncated one, only the explicit errors do.', action: 'Recurring invented names usually mean a prompt or description is promising a tool you do not have.' },
  'tools.card.paths':
@@ -125,7 +125,7 @@ export const explanations: Explanations = {
  'reliability.tile.cancellations':
   { title: 'Cancellations', body: 'Calls the client abandoned before your server answered, and their share of all calls.', computed: 'A result that arrives after a cancellation is counted as a silent failure instead.', action: 'Rising cancellations usually mean calls are slower than the client is willing to wait.' },
  'reliability.tile.sessions-with-errors':
-  { title: 'Sessions with errors', body: 'Sessions in the window with at least one failed call, and their share of all sessions.', computed: 'One bad tool can put an error in most sessions, so read it next to Tool health.', action: 'It is the closest thing here to "how many conversations went wrong".' },
+  { title: 'Sessions with errors', body: 'It is the closest thing here to "how many conversations went wrong".', computed: 'Sessions in the window with at least one failed call, and their share of all sessions.', action: 'One bad tool can put an error in most sessions, so read it next to Tool health.' },
  'reliability.tile.silent-failures':
   { title: 'Silent failures', body: 'Calls that reported success with no output at all, plus results delivered after the client cancelled.', computed: 'The model cannot tell these from an empty answer, so they look like your tool had nothing to say.', action: 'Any number here is worth a look.' },
  'reliability.tile.hallucinated-tools':
@@ -139,7 +139,7 @@ export const explanations: Explanations = {
  'reliability.card.error-codes':
   { title: 'Error codes', body: 'JSON-RPC error codes behind the failed calls in the window, by count.', computed: 'It stays empty until the SDKs report codes, which is different from having no errors.', action: 'Invalid-params codes are usually a schema mismatch you own.' },
  'reliability.card.auth-failures':
-  { title: 'Authentication failures', body: 'Requests rejected before a session existed, grouped by reason — invalid, expired, missing or out of scope.', computed: 'These never appear as session or call errors, because there was no session yet.', action: 'A spike in one reason is a client misconfiguration, not an attack.' },
+  { title: 'Authentication failures', body: 'These never appear as session or call errors, because there was no session yet.', computed: 'Requests rejected before a session existed, grouped by reason — invalid, expired, missing or out of scope.', action: 'A spike in one reason is a client misconfiguration, not an attack.' },
  'reliability.card.availability':
   { title: 'Availability', body: 'Share of synthetic probes in the window that succeeded, one dot per probe.', computed: 'Probing runs only once both a probe URL and key are set in Settings, and it performs initialize plus `tools/list`, never your tools.', action: 'Healthy tools stays blank because discovery does not execute anything.' },
 
@@ -147,17 +147,17 @@ export const explanations: Explanations = {
  'sessions.tile.sessions':
   { title: 'Sessions', body: 'Sessions whose first event falls inside the window, and the average calls in each.', computed: 'Per-bucket counts add up exactly to this number.', action: 'Depth near one call per session means clients connect and leave.' },
  'sessions.tile.with-errors':
-  { title: 'With errors', body: 'Sessions in the window containing at least one failed call.', computed: 'One failing tool can appear in most sessions, so compare it with Tool health before blaming the transport.' },
+  { title: 'With errors', body: 'Sessions containing failed calls.', computed: 'Sessions in the window containing at least one failed call.', action: 'One failing tool can appear in most sessions, so compare it with Tool health before blaming the transport.' },
  'sessions.tile.cancelled':
-  { title: 'Cancelled', body: 'Calls the client abandoned mid-flight in the window.', computed: 'Cancellations are the client\'s decision, usually about how long it was prepared to wait.', action: 'Read them next to p95 latency.' },
+  { title: 'Cancelled', body: 'Cancellations are the client\'s decision, usually about how long it was prepared to wait.', computed: 'Calls the client abandoned mid-flight in the window.', action: 'Read them next to p95 latency.' },
  'sessions.tile.streamable-http':
   { title: 'streamable-http', body: 'Sessions in the window that used the streamable HTTP transport — the remote path, and normally the majority.', computed: 'Transport is recorded per session at session start.', action: 'A sudden fall here with stdio rising means traffic moved to local clients.' },
  'sessions.tile.stdio':
-  { title: 'stdio', body: 'Sessions in the window that used stdio, which means a locally launched server: desktop clients and development.', computed: 'These sessions never traverse your network, so availability probes say nothing about them.' },
+  { title: 'stdio', body: 'These sessions never traverse your network, so availability probes say nothing about them.', computed: 'Sessions in the window that used stdio, which means a locally launched server: desktop clients and development.' },
  'sessions.tile.open':
-  { title: 'Open on this page', body: 'Sessions on this page with no `session.ended` event yet.', computed: 'Long-lived clients legitimately sit here; so does a client that crashed without closing.', action: 'Combine with the duration column before reading too much into it.' },
+  { title: 'Open on this page', body: 'Long-lived clients legitimately sit here; so does a client that crashed without closing.', computed: 'Sessions on this page with no `session.ended` event yet.', action: 'Combine with the duration column before reading too much into it.' },
  'sessions.card.replay':
-  { title: 'Session replay', body: 'The newest session, one lane per target, with every event placed at its offset from the session start.', computed: 'Bar length is the call\'s measured duration and red marks a reported error.', action: 'It is the fastest way to see which call blocked the rest.' },
+  { title: 'Session replay', body: 'The newest session, one lane per target, with every event placed at its offset from the session start. It is the fastest way to see which call blocked the rest.', computed: 'Bar length is the call\'s measured duration and red marks a reported error.' },
  'sessions.card.table':
   { title: 'The story of a connection', body: 'Newest sessions first, with client, identity, duration, call depth, errors and how the session ended.', computed: 'Identity follows the usual precedence: OAuth subject, then caller key, then hashed network address.', action: 'Select a row to replay that one connection event by event.' },
  'sessions.card.by-client':
@@ -173,7 +173,7 @@ export const explanations: Explanations = {
  'cost.tile.context-tokens':
   { title: 'Context tokens', body: 'Estimated tokens your responses added to model context in the window.', computed: 'Output characters are used where the SDK reports them, otherwise output bytes, divided by the project token divisor (4 by default).', action: 'Every figure on this screen is an estimate, not a provider bill.' },
  'cost.tile.per-call':
-  { title: 'Per call', body: 'Estimated tokens the average call adds to the context, that is total estimated tokens divided by calls.', computed: 'It moves when responses get larger or when the token divisor is changed in Settings.', action: 'Above roughly a thousand, one call is eating a noticeable part of the context window.' },
+  { title: 'Per call', body: 'It moves when responses get larger or when the token divisor is changed in Settings.', computed: 'Estimated tokens the average call adds to the context, that is total estimated tokens divided by calls.', action: 'Above roughly a thousand, one call is eating a noticeable part of the context window.' },
  'cost.tile.heaviest-tool':
   { title: 'Heaviest tool', body: 'The single tool responsible for the largest share of estimated tokens in the window, and that share.', computed: 'Share is tokens, not calls, so a rarely called tool can top it with large responses.', action: 'This is the first place to trim an output schema.' },
  'cost.tile.tenants':
@@ -197,11 +197,11 @@ export const explanations: Explanations = {
  'protocol.tile.client-capabilities':
   { title: 'Client capabilities', body: 'How many distinct capabilities clients declared to you during the window, such as sampling or roots.', computed: 'Each is counted once per session that declared it.', action: 'These are the features you may rely on when a client is present.' },
  'protocol.tile.server-capabilities':
-  { title: 'Server capabilities', body: 'How many distinct capabilities your own server declared during the window.', computed: 'Advertising something no client uses is harmless; advertising something you do not implement is not.', action: 'Compare with the matrix below.' },
+  { title: 'Server capabilities', body: 'Capabilities advertised by your server.', computed: 'How many distinct capabilities your own server declared during the window.', action: 'Advertising something no client uses is harmless; advertising something you do not implement is not. Compare with the matrix below.' },
  'protocol.tile.sampling':
   { title: 'Sampling', body: 'Server-to-client sampling requests observed in the window.', computed: 'It stays blank until the SDKs send sampling events, which is not the same as zero requests.', action: 'Once populated, rejection rate is the number to watch.' },
  'protocol.tile.elicitation':
-  { title: 'Elicitation', body: 'Elicitation requests — your server asking the user for input — observed in the window.', computed: 'Blank means the SDKs have not reported accept, decline or cancel actions yet.', action: 'High decline rates mean you are asking for the wrong thing.' },
+  { title: 'Elicitation', body: 'Blank means the SDKs have not reported accept, decline or cancel actions yet.', computed: 'Elicitation requests — your server asking the user for input — observed in the window.', action: 'High decline rates mean you are asking for the wrong thing.' },
  'protocol.tile.tasks':
   { title: 'Tasks', body: 'Long-running tasks observed in the window, counted as distinct session and task id pairs.', computed: 'Status counts come from observed transitions, so they can lag creation.', action: 'Blank means the SDKs are not reporting task lifecycle events yet.' },
  'protocol.card.capability-matrix':
@@ -217,13 +217,13 @@ export const explanations: Explanations = {
 
  /* ---------------------------------------------------------------------- Live */
  'live.card.events-per-second':
-  { title: 'Events per second', body: 'Events arriving in each of the last 40 seconds, from the live stream rather than the analytics rollups.', computed: 'The headline is the most recent full second.', action: 'It is a liveness check, not a usage metric — use Overview for volume.' },
+  { title: 'Events per second', body: 'Events arriving in each of the last 40 seconds, from the live stream rather than the analytics rollups. It is a liveness check, not a usage metric — use Overview for volume.', computed: 'The headline is the most recent full second.' },
  'live.card.event-mix':
   { title: 'Event mix', body: 'The last 200 streamed events grouped by type, so you can see what your server is mostly doing right now.', computed: 'It is a rolling buffer, not a window, and pausing freezes it.', action: 'Nothing but session events means clients connect and never call.' },
  'live.card.errors-in-window':
   { title: 'Errors in window', body: 'How many of the last 200 streamed events were errors or failed calls.', computed: 'Counted from the stream, so it will not match Reliability, which uses the selected window.', action: 'A burst here is the earliest warning you get.' },
  'live.card.stream':
-  { title: 'Expand an event to inspect its payload. Pause to hold the view steady.', body: 'Every event as it arrives, newest first, capped at the latest 200.', computed: 'Expand one for its full payload; pause to hold the view still while you read.', action: 'Filters apply to the buffer, so a quiet filter does not mean a quiet server.' },
+  { title: 'Expand an event to inspect its payload. Pause to hold the view steady.', body: 'Live event stream', computed: 'Every event as it arrives, newest first, capped at the latest 200.', action: 'Expand one for its full payload; pause to hold the view still while you read. Filters apply to the buffer, so a quiet filter does not mean a quiet server.' },
 
  /* ------------------------------------------------------------------ Settings */
  'settings.card.alert-rules':

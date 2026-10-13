@@ -97,7 +97,7 @@ export function InfoPopover({ titleId, label, size = 24, children }: { titleId: 
   };
  }, [open, close]);
 
- return <><button ref={button} type="button" className="info-button" aria-label={`About ${label}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? panelId : undefined} onMouseEnter={hover} onMouseLeave={leave} onPointerDown={() => { pointerFocus.current = true; }} onFocus={() => { if (!suppressFocus.current && !pointerFocus.current) { sticky.current = true; setOpen(true); } }} onClick={() => { cancelHover(); pointerFocus.current = false; if (open && sticky.current) close(true); else { sticky.current = true; setOpen(true); panel.current?.focus(); } }}><Icon name="info" size={size} target="button"/></button>
+ return <><button ref={button} type="button" className="info-button" aria-label={`About ${label}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? panelId : undefined} onMouseEnter={hover} onMouseLeave={leave} onPointerDown={() => { pointerFocus.current = true; }} onPointerUp={() => { pointerFocus.current = false; }} onPointerCancel={() => { pointerFocus.current = false; }} onBlur={() => { pointerFocus.current = false; }} onFocus={() => { if (!suppressFocus.current && !pointerFocus.current) { sticky.current = true; setOpen(true); } }} onClick={() => { cancelHover(); pointerFocus.current = false; if (open && sticky.current) close(true); else { sticky.current = true; setOpen(true); panel.current?.focus(); } }}><Icon name="info" size={size} target="button"/></button>
   {open && <div ref={panel} popover="manual" id={panelId} className="info-pop" role="dialog" aria-labelledby={titleId} onMouseEnter={cancelHover} onMouseLeave={leave} tabIndex={-1}>{children}</div>}</>;
 }
 

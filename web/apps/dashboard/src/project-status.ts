@@ -1,14 +1,14 @@
 // Observe existing reads; status never causes a request of its own.
-export type ProjectStatus = 'healthy' | 'warn' | 'error' | 'dead';
+export type ProjectStatus = 'healthy' | 'warn' | 'error' | 'dead' | 'unknown';
 type Snapshot = { failed: boolean; active?: boolean; range?: string };
 const snapshots = new Map<string, Snapshot>();
 const listeners = new Set<() => void>();
 export const watchProjectStatus = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
 export function projectStatus(id: string, demo: boolean, range = '7d'): ProjectStatus {
  const value = snapshots.get(id);
- return demo ? 'dead' : value?.failed ? 'error' : value?.active && value.range === range ? 'healthy' : 'warn';
+ return demo ? 'dead' : value?.failed ? 'error' : value?.range !== range || value.active === undefined ? 'unknown' : value.active ? 'healthy' : 'warn';
 }
-export const statusLabel: Record<ProjectStatus, string> = { healthy: 'Connected · receiving events in this window', warn: 'Connected · no events observed in this window', error: 'Unreachable or authentication failing', dead: 'Demo workspace' };
+export const statusLabel: Record<ProjectStatus, string> = { unknown: 'Not checked yet', healthy: 'Connected · receiving events in this window', warn: 'Connected · no events observed in this window', error: 'Unreachable or authentication failing', dead: 'Demo workspace' };
 export function recordProjectRead(path: string, failed: boolean, data?: unknown) {
  const match = path.match(/^\/projects\/([^/?]+)/); if (!match) return;
  const id = decodeURIComponent(match[1]), previous = snapshots.get(id);

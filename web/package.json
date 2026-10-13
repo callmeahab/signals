@@ -12,7 +12,7 @@
     "build": "bun run build:ui && bun --bun tsc --noEmit && bun --bun vite build --config apps/dashboard/vite.config.ts",
     "check": "bun run build:ui && bun --bun tsc --noEmit && bun --bun eslint .",
     "qa": "bun scripts/visual-qa.mjs",
-    "qa:backend": "bun scripts/backend-qa.mjs",
+    "qa:backend": "bun scripts/backend-qa.mjs && bun test/review-v6-r1/project-status-backend.mjs",
     "build:ui": "bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs",
     "test": "bun scripts/test.mjs",
     "test:next": "bun scripts/test-next-host.mjs"

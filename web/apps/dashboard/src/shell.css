@@ -121,3 +121,7 @@ html:has(dialog[open]) .topbar{backdrop-filter:none;background:var(--background)
 .project-card .project-card__status.status-healthy{color:var(--chart-3)}
 .project-card .project-card__status.status-warn{color:var(--primary-ink)}
 .project-card .project-card__status.status-error{color:var(--chart-2)}
+
+/* Reserve the view before its first answer, keeping the footer below the fold. */
+#main > .signals-ui{min-height:calc(100dvh - 64px - 68px)}
+.project-card .project-card__status.status-unknown{color:var(--muted-foreground)}

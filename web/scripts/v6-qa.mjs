@@ -63,7 +63,7 @@ try {
   assert.equal(await page.locator('.card .info-button lord-icon').first().evaluate(el=>el.getBoundingClientRect().width),24);
   // These assertions exercise the same observer fed by the client's existing reads.
   const statuses=await page.evaluate(async()=>{const m=await import('/src/project-status.ts');const path='/projects/qa/analytics/overview?range=7d';const values=[];m.recordProjectRead(path,false,{tiles:{active_users:{value:2}}});values.push(m.projectStatus('qa',false));values.push(m.projectStatus('qa',false,'24h'));m.recordProjectRead(path,false,{tiles:{active_users:{value:0}}});values.push(m.projectStatus('qa',false));m.recordProjectRead(path,true);values.push(m.projectStatus('qa',false));return values;});
-  assert.deepEqual(statuses,['healthy','warn','warn','error']);
+  assert.deepEqual(statuses,['healthy','unknown','warn','error']);
   await page.locator('.project-card').nth(1).click();await series(`switch-${theme}`);
   await page.locator('.project-card').nth(2).click();
   await page.waitForFunction(()=>[...document.querySelectorAll('.tile')].find(el=>el.querySelector('.tile__label span')?.textContent==='Tool success')?.querySelector('strong')?.textContent==='No data yet');

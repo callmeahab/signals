@@ -34,6 +34,7 @@ export function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unk
   // count-ups and chart draw-ins alone, so the kind of load travels with the request.
   const held = useRef<T | undefined>(undefined);
   const lastVersion = useRef(-1);
+  const answerVersion = useRef(-1);
   useEffect(() => {
     const kind: LoadKind = lastVersion.current === dependencyVersion ? 'refresh' : held.current === undefined ? 'first' : 'change';
     lastVersion.current = dependencyVersion;
@@ -43,12 +44,13 @@ export function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unk
     setState(old => ({ value: old.value, loading: true, stale: old.value !== undefined }));
     beginLoad(kind);
     Promise.resolve().then(() => loader.current(controller.signal)).then(
-      value => { if (!controller.signal.aborted) { held.current = value; setState({ value, loading: false, stale: false }); } finish(!controller.signal.aborted); },
+      value => { if (!controller.signal.aborted) { held.current = value; answerVersion.current = dependencyVersion; setState({ value, loading: false, stale: false }); } finish(!controller.signal.aborted); },
       error => {
-        // Keep the last painted content on failure; the error remains available to
-        // the caller and stale marks that this is not a successful new answer.
+        // Only an answer for these exact dependencies may survive a failed refresh.
         if (!controller.signal.aborted) {
-          setState(old => ({ value: old.value, error: error instanceof Error ? error.message : 'Could not load data.', loading: false, stale: old.value !== undefined }));
+          const keep = answerVersion.current === dependencyVersion;
+          if (!keep) held.current = undefined;
+          setState(old => ({ value: keep ? old.value : undefined, error: error instanceof Error ? error.message : 'Could not load data.', loading: false, stale: keep && old.value !== undefined }));
         }
         finish(false);
       });

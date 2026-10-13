@@ -78,7 +78,7 @@ function ProjectCards({projects,selectedId,onSelect,range}:{projects:Project[];s
   <div ref={scroller} className="project-cards" tabIndex={overflow?0:undefined} role={overflow?'region':'group'} aria-label="Project">
    {projects.map(p=><button key={p.id} type="button" data-project={p.id} className={`project-card${p.id===selectedId?' is-selected':''}`} aria-pressed={p.id===selectedId} onClick={()=>onSelect(p.id)}>
     <span className="project-card__name">{p.name}</span>
-    <span className={`project-card__status status-${projectStatus(p.id,isDemo,range)}`} title={statusLabel[projectStatus(p.id,isDemo,range)]} aria-label={statusLabel[projectStatus(p.id,isDemo,range)]}><i className="project-status-dot"/><Icon name={projectStatus(p.id,isDemo,range)} size={14} target=".project-card"/></span>
+    <span className={`project-card__status status-${projectStatus(p.id,isDemo,range)}`} title={statusLabel[projectStatus(p.id,isDemo,range)]} aria-label={statusLabel[projectStatus(p.id,isDemo,range)]}><i className="project-status-dot"/><Icon name={projectStatus(p.id,isDemo,range)==='unknown'?'dead':projectStatus(p.id,isDemo,range) as IconName} size={14} target=".project-card"/></span>
    </button>)}
   </div>
  </div>;
