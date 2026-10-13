@@ -141,7 +141,7 @@ try {
       if(infoCount){
        const trigger=infoButtons.first();
        await trigger.scrollIntoViewIfNeeded();
-       await trigger.focus();await page.keyboard.press('Enter');
+       await trigger.focus();
        const pop=page.locator('.info-pop');
        check(await pop.count()===1,`${screen}: Enter did not open an explanation`);
        check(await trigger.getAttribute('aria-expanded')==='true',`${screen}: aria-expanded is not set while open`);

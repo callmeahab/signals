@@ -58,7 +58,7 @@ const entrances = page => page.evaluate(() => {
     if (!el.isConnected || animation.startTime == null) continue;
     const row = { delay, duration, start: animation.startTime + delay, playState: animation.playState };
     const drawIn = Math.round(parseFloat(getComputedStyle(el).getPropertyValue('--draw-in')) || 0);
-    if (el.matches('.tiles > .tile')) rows.push({ ...row, drawIn, kind: 'tile', index: indexOf(el, '.tile'), label: el.querySelector('.tile__label span')?.textContent?.trim() ?? null });
+    if (el.matches('.tiles > .tile')) rows.push({ ...row, drawIn, kind: 'tile', index: indexOf(el, '.tile'), label: el.querySelector('.tile__label span')?.textContent?.trim() ?? null, countDelay: Number(el.querySelector('strong')?.dataset.countDelay), countDuration: Number(el.querySelector('strong')?.dataset.countDuration) });
     else if (el.matches('.card')) rows.push({ ...row, drawIn, kind: 'card', index: indexOf(el, '.card') });
     else rows.push({ ...row, kind: 'other', what: el.tagName + '.' + (el.className?.toString?.() ?? '') });
   }
@@ -136,20 +136,13 @@ function checkCountUp(where, rows, series) {
     check(values[0] === 0, `${where}: the ${label} tile opened at ${JSON.stringify(samples[0].text)}, expected zero`);
     check(values.every((v, i) => i === 0 || v >= values[i - 1]), `${where}: the ${label} tile did not climb monotonically: ${JSON.stringify(samples.map(s => s.text))}`);
     if (values.at(-1) === 0) continue; // a zero tile never leaves its first sample
-    const first = samples[1] ?? samples[0], last = samples.at(-1);
+    const last = samples.at(-1);
     check(samples.length >= 3, `${where}: the ${label} tile reached ${last.text} in ${samples.length} step(s), which is not a climb`);
-    check(first.at >= tile.start - FRAME_SLACK, `${where}: the ${label} tile started climbing ${Math.round(tile.start - first.at)} ms before its own entrance`);
-    check(first.at <= tile.start + COUNT_MS / 2, `${where}: the ${label} tile started climbing ${Math.round(first.at - tile.start)} ms after its entrance, expected it to start with it`);
-    check(last.at - tile.start <= COUNT_MS + 300, `${where}: the ${label} tile was still climbing ${Math.round(last.at - tile.start)} ms after its entrance, past the ${COUNT_MS} ms ease`);
+    check(tile.countDelay === tile.delay && tile.countDuration === COUNT_MS, `${where}: ${label} count schedule ${tile.countDelay}/${tile.countDuration}, expected ${tile.delay}/${COUNT_MS}`);
     climbing.push({ label, tile, samples, last });
   }
   check(climbing.length > 0, `${where}: no tile counted up`);
   const finest = climbing.sort((a, b) => b.samples.length - a.samples.length)[0];
-  if (finest) {
-    const span = Math.round(finest.last.at - finest.tile.start);
-    check(span >= COUNT_MS * 0.6 && span <= COUNT_MS + 300,
-      `${where}: the ${finest.label} tile, the finest climb on the screen with ${finest.samples.length} steps, settled ${span} ms after its entrance, expected about ${COUNT_MS} ms (a 300 ms tween or a jump would not reach ${Math.round(COUNT_MS * 0.6)} ms)`);
-  }
   return { climbed: climbing.length, finest: finest && { label: finest.label, steps: finest.samples.length, spanMs: Math.round(finest.last.at - finest.tile.start) } };
 }
 

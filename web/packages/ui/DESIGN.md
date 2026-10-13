@@ -239,3 +239,36 @@
     `shown` now move only once the climb's timer has fired, the cleanup puts them back
     when it has not, and `shown` tracks the number on screen rather than the one being
     climbed towards.
+
+## Dashboard polish 2026-10-13 (v6)
+
+27. Info controls sit in the upper-right corner of each card and tile, with 40 px
+    targets and Lordicon artwork at 24 px in cards and 20 px in tiles. Titles reserve
+    the corner so labels can wrap without colliding with the control.
+28. Explanations have title, body, computation and optional action fields. Hover waits
+    120 ms; click and keyboard focus make the panel sticky until Escape, outside click
+    or a second click. The top-layer surface resets label typography to Urbanist,
+    normal case and wrapping, adds a unit chip when supplied, and points to its trigger.
+    Phones use a bottom sheet. Escape returns focus without reopening the panel.
+29. Project cards show a dot and 14 px state icon. Existing client reads feed a local
+    status observer: any active identity in the overview window means receiving events,
+    an empty/unknown window is gold, a failed read is ember, and demo is muted. No
+    project-status request is added; unvisited projects cannot assert observed activity.
+30. Theme, sign-out and mobile navigation controls use 22 px artwork and 40 px targets.
+31. The workspace freshness badge and collector pulse are removed. The activity store
+    still tracks successful loads for polling and the range/project dim; no clock text
+    or pulse is rendered.
+32. Queries retain painted content through refreshes and dependency changes. Once
+    content has painted a query cannot show its initial skeleton again. Primary
+    analytics and supporting reads run independently; overview cards can paint before
+    client mix, whose frame holds a quiet shimmer until its data arrives. The screen
+    fade belongs to navigation, while project/range changes retain the 70% dim.
+    An initial-error retry cannot spend a second skeleton episode. Count-ups explicitly
+    restore null text after cancelling their old frame, so an empty project cannot
+    inherit a percentage from the previous project.
+33. The HTML document paints the light/dark ground before external styles or JavaScript
+    load. A blocking script reads stored theme safely and falls back to the media query;
+    both html and body paint the ground, with color-scheme and theme-color metadata.
+    The explicit light class overrides a dark OS preference. The body background also
+    covers Safari's initial canvas and overscroll before the React bundle has painted;
+    browser measurements here use Chromium.

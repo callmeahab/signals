@@ -200,12 +200,12 @@ try {
     await page.waitForTimeout(200);
   };
 
-  // (a) theme-color meta: the bowl yellow, not a different literal.
+  // (a) theme-color follows the document ground before the bundle paints.
   {
     const { context, page } = await open(1440, 'light');
     await page.goto(base);
-    const themeColor = await page.getAttribute('meta[name="theme-color"]', 'content');
-    check(themeColor?.toUpperCase() === '#FBC118', `theme-color is ${themeColor}, expected #FBC118`);
+    const themeColor = await page.getAttribute('meta[name="theme-color"][media="(prefers-color-scheme: light)"]', 'content');
+    check(themeColor?.toUpperCase() === '#EBE7E0', `theme-color is ${themeColor}, expected themed light background`);
     await context.close();
   }
 

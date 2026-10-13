@@ -59,12 +59,7 @@ try {
   console.log(`poll: ${beforePoll} charts had painted, ${motion.figures} of them still on screen, ${motion.redrawn} redrawn parts, all ${motion.instant} finished`);
   check(motion.running === 0, `animations were still running after a refresh: ${motion.running}`);
 
-  // 3. The strip ticks and says how long ago.
-  const stamp = await page.locator('.updated-ago').textContent();
-  check(/^updated \d+ s ago$/.test(stamp ?? ''), `freshness stamp reads ${JSON.stringify(stamp)}`);
-  await page.clock.fastForward(12000);
-  await page.waitForTimeout(120);
-  check(/updated 1[0-9] s ago/.test(await page.locator('.updated-ago').textContent() ?? ''), 'the freshness stamp did not tick');
+  check(await page.locator('.updated-ago,.signal-dot').count() === 0, 'freshness badge remains');
 
   // 4. A hidden tab polls nothing, and coming back refreshes at once.
   const beforeHidden = (await activity(page)).loads;
@@ -149,4 +144,4 @@ try {
   await context.close();
 } finally { await browser.close(); }
 if (failures.length) { console.error(failures.join('\n')); process.exit(1); }
-console.log(`Live QA passed: ${POLL_INTERVAL_MS} ms refresh observed on the active screen, skeleton held ${SKELETON_DELAY_MS}/${SKELETON_MIN_MS} ms, nothing while the tab is hidden, an immediate refresh on return and on a range change, no dim, no replayed entrance, no count-up from zero, a ticking freshness stamp, and no polling under __SIGNALS_VISUAL_QA__.`);
+console.log(`Live QA passed: ${POLL_INTERVAL_MS} ms refresh observed on the active screen, skeleton held ${SKELETON_DELAY_MS}/${SKELETON_MIN_MS} ms, nothing while the tab is hidden, an immediate refresh on return and on a range change, no dim, no replayed entrance, no count-up from zero, no freshness badge, and no polling under __SIGNALS_VISUAL_QA__.`);
