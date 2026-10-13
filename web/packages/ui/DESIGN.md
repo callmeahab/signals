@@ -173,3 +173,56 @@
     readout is a separate element (`.chart-key-tooltip--pointer`) with its own 120 ms
     delay, so a check about clicking has to take the pointer off the plot first or it
     races that delay.
+
+## Nav, load and drawers 2026-10-13 (v5)
+
+22. **The tab group is centred on the bar, and the tabs are bigger.** The wordmark and
+    the action group are both `flex:1 1 0` with a `max-content` floor, so the free space
+    is split equally between them and the two side groups come out the same width --
+    which is what puts the tab group's centre on the bar's centre rather than merely
+    between the groups. Measured delta at 1920, 1680, 1600, 1440, 1366, 1280 and 1279 px:
+    0.0 px. Neither side group may shrink past its own content, so once ten tabs no
+    longer fit the tab row is the only thing that gives: it spans the whole gap between
+    the groups, an equal gutter from each, and scrolls -- which happens below 1014 px and
+    nowhere above it. The icon is 22 px and the tab is the bar's full 64 px at every
+    width. Ten tabs cost 699.8 px before any padding at a 15 px label, so the bar sheds
+    in a fixed order as it narrows: the app name beside the wordmark (below 1680 px), the
+    wordmark's height, the bar's padding, the gap between groups, and last the tab's own
+    padding (14 px → 12 px below 1680 px → 8 px below 1440 px). Below 1280 px not even a
+    padless row of 15 px tabs fits beside a legible wordmark at 1024 px, so the label
+    keeps its previous 13 px there and ten tabs still fit with nothing scrolling. The
+    mobile menu keeps its stacked list, now hung off the 64 px bar.
+
+23. **The whole page loads and animates at mount; nothing waits for scrolling.** A card's
+    entrance and a chart's SVG were both keyed to an `IntersectionObserver`, so anything
+    below the fold sat unbuilt and unanimated until the reader scrolled it into view --
+    and then ran its entrance under the pointer, mid-read. Both observers are gone
+    (`src/motion.ts`). Every chart is built at mount and the screen runs one choreography
+    from the top: context/heading/range at 40/90/140 ms, tiles at 130 + i·55 ms, cards at
+    300 + i·85 ms capped at 1.1 s, each chart's draw-in 180 ms behind the card or tile it
+    belongs to, count-ups 640 ms. One run per navigation: nothing on scroll, nothing on
+    resize, nothing on a poll refresh. The longest-task gate is kept by queuing chart SVG
+    construction one card per animation frame in document order, which leaves the visual
+    order exactly the document's -- the card is still invisible while its chart is built.
+    A chart's entrance takes two forms and so two clocks: the parts a renderer builds are
+    marked `on` some frames after the mount and carry `--cd`, what is left of their
+    card's entrance at that moment; the boxes that are in the markup from the first
+    render -- a tile's sparkline wrapper, the stacked area's and the donut's own box --
+    carry `--draw-in`, the same instant measured from the mount. Reduced motion shows the
+    finished page at once. `scripts/choreography-qa.mjs` asserts every timing from the
+    animations themselves and records a 100 ms-step series into `artifacts/v5/`.
+
+24. **The drawer header carries no divider.** Under the drawer's title a border-bottom
+    read as a rule drawn across the top of the three tiles; nothing else in this design
+    separates a title from its own content with a line. The header keeps its spacing and
+    loses the border, in the tool drawer and the session drawer alike -- both share it.
+
+25. **No dialog blurs the page behind it.** The drawer `::backdrop` is a plain
+    translucent scrim, the hard ink at 28 % in light and at 40 % in dark, with no filter;
+    `.dark` remaps `--ink-hard` to the gold accent it draws focal-card edges with, so the
+    dark rule names the same hard ink the light theme resolves `--ink-hard` to rather
+    than that accent. The top bar drops its own `backdrop-filter` and paints its
+    background opaque while a dialog is open (`html:has(dialog[open])`), so the page
+    behind a drawer stays sharp and nothing on it is filtered. That also removes the
+    non-deterministic rasterisation the capture scripts used to mask: the drawer captures
+    no longer mask the top bar.

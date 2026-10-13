@@ -3,22 +3,15 @@ import { chromium } from '@playwright/test';
 const iconsReady=async page=>{await page.mouse.move(0,0);await page.waitForFunction(()=>[...document.querySelectorAll('lord-icon')].every(e=>e.shadowRoot&&e.shadowRoot.querySelector('svg')),null,{timeout:15000}).catch(()=>{});await page.waitForFunction(()=>document.getAnimations().every(a=>a.playState!=='running'),null,{timeout:5000}).catch(()=>{});};
 import { mkdirSync } from 'node:fs';
 
+// Since v5 nothing is built on a viewport trigger: every chart on the page, in a drawer
+// included, is built at mount, one card per animation frame. So there is nothing to
+// scroll into view before a capture -- waiting for the queue to reach the last card is
+// the whole of it, and the page stays where the reader left it.
 async function settleCharts(page) {
-  // Exercise the same viewport trigger as a reader, including scrollable drawers. The
-  // list is re-read on a detached handle: content now arrives after a quiet window, so
-  // a chart collected a moment too early can be replaced while this runs.
-  for(let attempt=0;;attempt++){
-    try {
-      for(const chart of await page.locator('.v3-chart').all()){
-        await chart.scrollIntoViewIfNeeded();
-        await chart.locator('svg[role=img]').waitFor();
-      }
-      break;
-    } catch (error) {
-      if(attempt===2||!/not attached to the DOM/.test(String(error)))throw error;
-      await page.waitForTimeout(250);
-    }
-  }
+  await page.waitForFunction(()=>{
+    const charts=[...document.querySelectorAll('.v3-chart')];
+    return charts.every(chart=>chart.querySelector('svg[role=img]')&&chart.querySelector('table.sr-only'));
+  },null,{timeout:15000});
   await page.evaluate(async()=>{
     await document.fonts.ready;
     for(const el of document.querySelectorAll('.drawer,.table-scroll')){el.scrollTop=0;el.scrollLeft=0;}
@@ -26,6 +19,12 @@ async function settleCharts(page) {
     await new Promise(resolve=>globalThis.requestAnimationFrame(()=>globalThis.requestAnimationFrame(resolve)));
   });
 }
+// Nothing on the captured page may still be waiting to be drawn.
+const unpainted = page => page.evaluate(()=>({
+  charts: [...document.querySelectorAll('.v3-chart')].filter(c=>!c.querySelector('svg[role=img]')).map(c=>c.dataset.chart??'?'),
+  cards: [...document.querySelectorAll('.signals-ui .card, .signals-ui .panel')].filter(c=>Number(getComputedStyle(c).opacity)<0.99).map(c=>c.querySelector('h2')?.textContent??'?'),
+  scrollY: Math.round(globalThis.scrollY),
+}));
 
 // The workspace selector is a row of cards, so a test picks a project the way a reader
 // does, and waits for the selection to settle before reading the screen.
@@ -109,7 +108,12 @@ try {
         await page.evaluate(() => document.fonts.ready);
         check(await page.locator('.brand svg[aria-label="mcpramen"]').count() === 1, `${screen}: wordmark present`);
         await page.evaluate(() => document.fonts.ready);
-      await page.evaluate(async()=>{for(let y=0;y<document.body.scrollHeight;y+=600){globalThis.scrollTo(0,y);await new Promise(r=>setTimeout(r,40));}globalThis.scrollTo(0,0);});
+      // The whole screen is painted at mount: every chart below the fold has its SVG and
+      // its table twin with the page still at the top and nothing scrolled.
+      await settleCharts(page);
+      const atTop=await unpainted(page);
+      check(atTop.scrollY===0,`${screen}/${width}: the page scrolled before the charts were read`);
+      check(atTop.charts.length===0,`${screen}/${width}: ${atTop.charts.length} charts were unpainted with no scrolling: ${JSON.stringify(atTop.charts)}`);
       await page.waitForFunction(()=>{const all=[...document.querySelectorAll('lord-icon')];return all.length>0&&all.every(e=>e.shadowRoot&&e.shadowRoot.querySelector('svg'));},null,{timeout:15000});check(await page.locator('.topbar nav lord-icon svg').count()===10,`${screen}/${width}: ten animated nav icons rendered`);
       const charts=page.locator('.v3-chart');
       for(const chart of await charts.all()){check(await chart.locator('svg[role=img]').count()===1,`${screen}: chart SVG`);check(await chart.locator('table.sr-only').count()===1,`${screen}: chart table twin`);check(await chart.getAttribute('tabindex')==='0',`${screen}: keyboard inspection`);}
@@ -211,6 +215,8 @@ try {
       await settleCharts(page);
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
+      const beforeCapture=await unpainted(page);
+      check(beforeCapture.charts.length===0&&beforeCapture.cards.length===0,`${screen}/${width}/${theme}: the full-page capture would show unpainted cards ${JSON.stringify(beforeCapture)}`);
       await iconsReady(page);await page.screenshot({path:`artifacts/v3/${screen}-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
         const layout = await page.evaluate(() => ({
           krona: [...document.querySelectorAll('body *')].filter(el => getComputedStyle(el).fontFamily.includes('Krona One')).every(el => getComputedStyle(el).fontWeight === '400' && getComputedStyle(el).fontSynthesis === 'none'),
@@ -422,7 +428,7 @@ try {
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await scanSurface(page,`tool-drawer/${width}/${theme}`);
-      await iconsReady(page);await page.screenshot({path:`artifacts/v3/tool-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled',mask:[page.locator('.topbar')]}); // the dialog backdrop blur over the top bar rasterises non-deterministically
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/tool-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.keyboard.press('Escape');
       await page.goto(`${base}/#sessions`);
       await page.locator('.table-scroll tbody .row-button').first().click();
@@ -432,7 +438,7 @@ try {
       await page.mouse.move(0,0);
       await page.waitForTimeout(500);
       await scanSurface(page,`session-drawer/${width}/${theme}`);
-      await iconsReady(page);await page.screenshot({path:`artifacts/v3/session-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled',mask:[page.locator('.topbar')]}); // the dialog backdrop blur over the top bar rasterises non-deterministically
+      await iconsReady(page);await page.screenshot({path:`artifacts/v3/session-drawer-${width}-${theme}.png`,fullPage:true,animations:'disabled'});
       await page.keyboard.press('Escape');
       await page.goto(`${base}/#callers`);
       await page.locator('.table-scroll tbody .row-button').first().click();
@@ -516,4 +522,4 @@ try {
   await context.close();
 } finally { await browser.close(); }
 if(failures.length) { console.error(failures.join('\n')); process.exit(1); }
-console.log('Visual QA passed: v3 chart SVG/table twins, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, 390/1280/1440 widths, three-column tiles, 108px sparklines, full-row entity lists, 27-client legend, zero-call arcs, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.');
+console.log('Visual QA passed: v3 chart SVG/table twins on every screen with nothing scrolled, no unpainted card in any capture, unmasked drawer captures, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, 390/1280/1440 widths, three-column tiles, 108px sparklines, full-row entity lists, 27-client legend, zero-call arcs, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.');
