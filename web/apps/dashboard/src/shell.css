@@ -96,7 +96,9 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
  .brand svg{height:15px}
  .topbar nav a{padding:0 14px;gap:7px}
 }
-@media(max-width:1250px){.topbar nav.open{top:64px}}
+/* The open mobile menu is a stacked list hung off the bar, so it is the one place the
+   tab row is not the bar's own 64 px tall and not a scroller. */
+@media(max-width:1250px){.topbar nav.open{top:64px;height:auto;max-height:calc(100dvh - 64px);overflow:auto;row-gap:4px}}
 
 /* The top bar's own backdrop-filter samples the page under it, and while a dialog
    is open that sampling is what rasterised differently from run to run. With a
