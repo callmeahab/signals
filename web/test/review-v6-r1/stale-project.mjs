@@ -61,7 +61,7 @@ try {
     const selected = await page.locator('.project-card.is-selected .project-card__name').textContent();
     const after = await legendRows(page);
     const notice = await page.locator('.signals-ui .notice[role=alert]').count();
-    check(after !== before || notice > 0,
+    check(after === 0 && notice === 3,
       `${selected}: its client mix is not the previous project's ${before} rows (got ${after}) or the screen says so (${notice} notices) — a failed adoption read keeps the old project's donut and legend silently`);
     await context.close();
   }
@@ -94,6 +94,23 @@ try {
     console.log(`     range=${JSON.stringify(pressed)} tool calls ${before} -> ${after}`);
     check(after !== before,
       `range ${pressed}: the Tool calls tile does not still read the 7-day answer ${before}`);
+    await context.close();
+  }
+  // Same-dependency refresh failures preserve and dim the right answer, including
+  // supporting feeds; changing range afterwards must discard it on another failure.
+  for (const route of ['overview', 'adoption']) {
+    const { context, page } = await open('demo', route, false);
+    const before = await tileValue(page, 'Tool calls');
+    await page.evaluate(() => { globalThis.__failRead = true; document.dispatchEvent(new Event('visibilitychange')); });
+    await page.waitForTimeout(1200);
+    check(await tileValue(page, 'Tool calls') === before, `${route}: failed refresh retains this view's headline`);
+    const target = route === 'overview' ? page.locator('.tiles').first() : page.locator('.client-mix').locator('..');
+    check(await target.evaluate(el => getComputedStyle(el).opacity) === '0.7', `${route}: failed refresh dims its retained answer`);
+    check(await page.locator('[role=alert]').count() > 0, `${route}: failed refresh has a notice`);
+    await page.getByRole('button', { name: '90 days' }).click();
+    await page.waitForTimeout(1200);
+    check(route === 'overview' ? await tileValue(page, 'Tool calls') === undefined : await legendRows(page) === 0,
+      `${route}: another failure after changing range discards the held answer`);
     await context.close();
   }
 } finally { await browser.close(); }

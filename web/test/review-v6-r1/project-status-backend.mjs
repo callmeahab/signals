@@ -74,7 +74,7 @@ try {
   // project nobody has selected yet has had no overview read, so it is gold whatever its
   // data says — here while `/analytics/overview` for it reports five tool calls.
   const unvisited = await state(busy.id);
-  check(!unvisited.cls.includes('status-warn'),
+  check(unvisited.cls.includes('status-unknown') && unvisited.title === 'Not checked yet',
     `a project with five tool calls in the window is not shown as gold before it is selected: ${JSON.stringify(unvisited)} — gold means "connected but no events in the window", which is not what is known here`);
 
   // teal: connected and receiving events in the window.
