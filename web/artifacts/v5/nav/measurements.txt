@@ -1,0 +1,105 @@
+
+== 1920px ==
+bar {"l":0,"r":1920,"w":1920,"h":64} brand {"l":24,"r":421,"w":397,"h":21} btns [{"l":1862,"r":1896,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":435,"r":1485,"w":1050,"h":64} scrollW=1050 clientW=1050 tabsSum=1049.7
+navCentre=960 barCentre=960 delta=0.0
+label=15px tabH=64 pad=14px icon={"l":449,"r":471,"w":22,"h":22} mobileMenu=none doc=1920/1920
+tabs=[121,117,91,119,113,87,110,83,96,111]
+
+== 1680px ==
+bar {"l":0,"r":1680,"w":1680,"h":64} brand {"l":24,"r":301,"w":277,"h":21} btns [{"l":1622,"r":1656,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":315,"r":1365,"w":1050,"h":64} scrollW=1050 clientW=1050 tabsSum=1049.7
+navCentre=840 barCentre=840 delta=0.0
+label=15px tabH=64 pad=14px icon={"l":329,"r":351,"w":22,"h":22} mobileMenu=none doc=1680/1680
+tabs=[121,117,91,119,113,87,110,83,96,111]
+
+== 1600px ==
+bar {"l":0,"r":1600,"w":1600,"h":64} brand {"l":20,"r":288,"w":268,"h":18} btns [{"l":1546,"r":1580,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":300,"r":1300,"w":1000,"h":64} scrollW=1000 clientW=1000 tabsSum=999.7
+navCentre=800 barCentre=800 delta=0.0
+label=15px tabH=64 pad=12px icon={"l":312,"r":334,"w":22,"h":22} mobileMenu=none doc=1600/1600
+tabs=[116,112,86,114,108,82,105,78,91,106]
+
+== 1440px ==
+bar {"l":0,"r":1440,"w":1440,"h":64} brand {"l":20,"r":208,"w":188,"h":18} btns [{"l":1386,"r":1420,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":220,"r":1220,"w":1000,"h":64} scrollW=1000 clientW=1000 tabsSum=999.7
+navCentre=720 barCentre=720 delta=0.0
+label=15px tabH=64 pad=12px icon={"l":232,"r":254,"w":22,"h":22} mobileMenu=none doc=1440/1440
+tabs=[116,112,86,114,108,82,105,78,91,106]
+
+== 1439px ==
+bar {"l":0,"r":1439,"w":1439,"h":64} brand {"l":16,"r":255,"w":239,"h":17} btns [{"l":1389,"r":1423,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":265,"r":1174,"w":910,"h":64} scrollW=910 clientW=910 tabsSum=909.7
+navCentre=719.5 barCentre=719.5 delta=0.0
+label=15px tabH=64 pad=8px icon={"l":273,"r":295,"w":22,"h":22} mobileMenu=none doc=1439/1439
+tabs=[107,103,77,105,99,73,96,69,82,97]
+
+== 1366px ==
+bar {"l":0,"r":1366,"w":1366,"h":64} brand {"l":16,"r":218,"w":202,"h":17} btns [{"l":1316,"r":1350,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":228,"r":1138,"w":910,"h":64} scrollW=910 clientW=910 tabsSum=909.7
+navCentre=683 barCentre=683 delta=0.0
+label=15px tabH=64 pad=8px icon={"l":236,"r":258,"w":22,"h":22} mobileMenu=none doc=1366/1366
+tabs=[107,103,77,105,99,73,96,69,82,97]
+
+== 1280px ==
+bar {"l":0,"r":1280,"w":1280,"h":64} brand {"l":16,"r":175,"w":159,"h":17} btns [{"l":1230,"r":1264,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":185,"r":1095,"w":910,"h":64} scrollW=910 clientW=910 tabsSum=909.7
+navCentre=640 barCentre=640 delta=0.0
+label=15px tabH=64 pad=8px icon={"l":193,"r":215,"w":22,"h":22} mobileMenu=none doc=1280/1280
+tabs=[107,103,77,105,99,73,96,69,82,97]
+
+== 1279px ==
+bar {"l":0,"r":1279,"w":1279,"h":64} brand {"l":16,"r":232,"w":216,"h":17} btns [{"l":1229,"r":1263,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":242,"r":1037,"w":796,"h":64} scrollW=796 clientW=796 tabsSum=795.8
+navCentre=639.5 barCentre=639.5 delta=0.0
+label=13px tabH=64 pad=6px icon={"l":248,"r":270,"w":22,"h":22} mobileMenu=none doc=1279/1279
+tabs=[93,90,68,92,87,64,84,61,72,85]
+
+== 1024px ==
+bar {"l":0,"r":1024,"w":1024,"h":64} brand {"l":16,"r":148,"w":132,"h":17} btns [{"l":974,"r":1008,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":158,"r":954,"w":796,"h":64} scrollW=796 clientW=796 tabsSum=795.8
+navCentre=556 barCentre=512 delta=44.0
+label=13px tabH=64 pad=6px icon={"l":164,"r":186,"w":22,"h":22} mobileMenu=none doc=1024/1024
+tabs=[93,90,68,92,87,64,84,61,72,85]
+
+== 1014px ==
+bar {"l":0,"r":1014,"w":1014,"h":64} brand {"l":16,"r":148,"w":132,"h":17} btns [{"l":964,"r":998,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":158,"r":954,"w":796,"h":64} scrollW=796 clientW=796 tabsSum=795.8
+navCentre=556 barCentre=507 delta=49.0
+label=13px tabH=64 pad=6px icon={"l":164,"r":186,"w":22,"h":22} mobileMenu=none doc=1014/1014
+tabs=[93,90,68,92,87,64,84,61,72,85]
+
+== 1013px ==
+bar {"l":0,"r":1013,"w":1013,"h":64} brand {"l":16,"r":148,"w":132,"h":17} btns [{"l":963,"r":997,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":158,"r":953,"w":795,"h":64} scrollW=796 clientW=795 tabsSum=795.8
+navCentre=555.5 barCentre=506.5 delta=49.0
+label=13px tabH=64 pad=6px icon={"l":164,"r":186,"w":22,"h":22} mobileMenu=none doc=1013/1013
+tabs=[93,90,68,92,87,64,84,61,72,85]
+
+== 820px ==
+bar {"l":0,"r":820,"w":820,"h":64} brand {"l":16,"r":148,"w":132,"h":17} btns [{"l":770,"r":804,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":158,"r":760,"w":602,"h":64} scrollW=796 clientW=602 tabsSum=795.8
+navCentre=459 barCentre=410 delta=49.0
+label=13px tabH=64 pad=6px icon={"l":164,"r":186,"w":22,"h":22} mobileMenu=none doc=820/820
+tabs=[93,90,68,92,87,64,84,61,72,85]
+
+== 560px ==
+bar {"l":16,"r":544,"w":528,"h":64} brand {"l":32,"r":164,"w":132,"h":17} btns [{"l":494,"r":528,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":174,"r":484,"w":310,"h":64} scrollW=796 clientW=310 tabsSum=795.8
+navCentre=329 barCentre=280 delta=49.0
+label=13px tabH=64 pad=6px icon={"l":180,"r":202,"w":22,"h":22} mobileMenu=none doc=560/560
+tabs=[93,90,68,92,87,64,84,61,72,85]
+
+== 390px ==
+bar {"l":16,"r":374,"w":358,"h":64} brand {"l":32,"r":164,"w":132,"h":17} btns [{"l":324,"r":358,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":174,"r":314,"w":140,"h":64} scrollW=796 clientW=140 tabsSum=795.8
+navCentre=244 barCentre=195 delta=49.0
+label=13px tabH=64 pad=6px icon={"l":180,"r":202,"w":22,"h":22} mobileMenu=none doc=390/390
+tabs=[93,90,68,92,87,64,84,61,72,85]
+
+== 320px ==
+bar {"l":16,"r":304,"w":288,"h":64} brand {"l":32,"r":164,"w":132,"h":17} btns [{"l":254,"r":288,"w":34,"h":34,"vis":"grid"},{"l":0,"r":0,"w":0,"h":0,"vis":"none"}]
+nav {"l":174,"r":244,"w":70,"h":64} scrollW=796 clientW=70 tabsSum=795.8
+navCentre=209 barCentre=160 delta=49.0
+label=13px tabH=64 pad=6px icon={"l":180,"r":202,"w":22,"h":22} mobileMenu=none doc=320/320
+tabs=[93,90,68,92,87,64,84,61,72,85]
