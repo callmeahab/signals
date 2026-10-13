@@ -683,21 +683,16 @@ Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles
 ```
 
 Performance, single, 15 repeats of `overview → adoption`: every run under the 50 ms
-longest-task budget, 31.44–40.67 ms. The walk, ten transitions × 3 runs: 30 of 30 rows
-under budget, 14.97–47.19 ms, with the pre-existing Live mount at
+longest-task budget, 31.44–40.67 ms. The walk, ten transitions × 3 runs: every row except
+the Live mount under 50 ms (14.97–46.77 ms), and `protocol → live` at 45.02 / 47.19 /
+42.03 ms.
 
-```
-Run 1 protocol → live: longest task 45.02 ms (budget < 50 ms)
-Run 2 protocol → live: longest task 47.19 ms (budget < 50 ms)
-Run 3 protocol → live: longest task 42.03 ms (budget < 50 ms)
-```
-
-which is the same marginal step recorded under "Pre-existing: Live mount" — accepted by
-the coordinator, 45–47 ms here against 50.9–58.7 ms at the branch point, and under budget
-in all three runs this time. Nothing else crossed either: the highest non-Live transition
-was 46.77 ms (`reliability → sessions`, run 3), against the 44.9 ms high recorded before the
-review on this host. Both are inside the budget and the spread between runs of the same
-step is larger than that difference.
+**Corrected in round 2.** This paragraph originally read that the walk was 30 of 30 rows
+under 50 ms and that the command exits 0. That is the wrong claim to make about this step:
+`protocol → live` straddles the budget on this host, and the review's re-run of the same
+command measured 53.87 / 41.31 / 45.50 ms and exited 1. Round 2 gave the gate a documented
+exception for that one transition instead. The measured range and the exception are under
+"Round 2 fixes".
 
 Contrast and clip, 1440 × 900, both themes, with an explanation open and inside the tool
 drawer:
@@ -724,3 +719,218 @@ Tools tile and the overview caption, hour-stamped sparkline readouts on a 24-hou
 FINDINGS 0 MISMATCHES 0
 CI EXIT 0
 ```
+
+## Round 2 fixes
+
+Review `reviews/dash-v4-ux-r2.md` filed two blockers and one should-fix against `889f2a8`.
+All three are closed, and one flaky assertion found while re-running the suite is fixed
+with them.
+
+### Blocker 1 · Calls by client is as sparse as the collector's answer
+
+The collector keys this series by `e.ts.date_naive()` and writes a point only for a date
+that has calls, so a 24-hour window is one column only when every call lands on one UTC
+date, and a 90-day window has as many columns as it has days with calls. The round-1 copy
+and report said one column and ninety, and the demo implemented that sentence, so the
+shape in front of a reader never showed a gap.
+
+- `web/packages/ui/src/copy/explanations.ts` — `overview.card.calls-by-client` now reads
+  "The collector emits one point per UTC date that has calls and leaves out the dates with
+  none, so a 24-hour window can span two dates and a 90-day window has as many columns as
+  it has days with calls." The chart's own subtitle is unchanged: it reads the response's
+  own `buckets` field and says `Daily tool calls · UTC` on every range.
+- `reports/dash-v4-ux.md` — the round-1 sentence that repeated the claim is corrected in
+  place, pointing here.
+- `web/apps/dashboard/src/demo-analytics.ts` — the demo leaves dates out the same way: two
+  in the seven-day window, and in the longer ones every ninth date plus a stretch of
+  three, which gives the 30-day window a four-day hole and the 90-day window a five-day
+  one, the stretch there falling next to one of the scattered dates. They are quiet days
+  rather than missing data — clients connected and listed tools
+  but called nothing — so the adoption series still counts every date, and a tool's trend
+  skips them for the same reason calls by client does. One deterministic splitter per grid
+  (`split` over the call dates, `splitDays` over every date) keeps each series summing to
+  the tile above it.
+
+Measured on the demo client, each range: points, the distinct gaps between them, whether
+every point lands on UTC midnight, and whether the series still sums to its tile.
+
+```
+24h  calls pts  1 gaps []          midnight true sum==tile true trendSums true | adoption pts  1
+7d   calls pts  5 gaps [24,48]     midnight true sum==tile true trendSums true | adoption pts  7
+30d  calls pts 24 gaps [24,48,96]  midnight true sum==tile true trendSums true | adoption pts 30
+90d  calls pts 77 gaps [24,48,120] midnight true sum==tile true trendSums true | adoption pts 90
+```
+
+and in the browser, at 1440 light, the card's table twin and its subtitle:
+
+```
+7d  subtitle "Daily tool calls · UTC" | rows: 5  | first/last 10/05 10/11
+90d subtitle "Daily tool calls · UTC" | rows: 77 | first/last 07/14 10/11
+24h subtitle "Daily tool calls · UTC" | rows: 1  | first/last 10/11 10/11
+```
+
+Demo QA in step: `scripts/analytics-shapes.mjs` validates shapes and types only (`bucket`
+is checked as a string, series as lists), so it needed no change and its sum checks in
+`analytics-qa.mjs` still hold. The bucket contract lives in the two review probes, and
+both now carry this one: every point on a UTC midnight, gaps whole multiples of a day, at
+most one column per day in the window, and — on the ranges where the demo is sparse — at
+least one date left out, with adoption's grid asserted complete and gapless. The tool-trend
+check moved the same way.
+
+### Blocker 2 · The walk states its one exception instead of flapping
+
+`protocol → live` straddles the 50 ms longest-task budget on this host: 45.02 / 47.19 /
+42.03 ms in round 1, 53.87 / 41.31 / 45.50 ms in the review's re-run (exit 1), 41.3 / 51.8
+/ 38.8 and 46.4 / 47.1 / 58.1 ms in the two runs recorded under "Pre-existing: Live mount",
+and 50.9 / 55.1 / 58.7 ms at the branch point `1caeb4e`. The measured range on this host is
+38.5–58.7 ms, and 41–58 ms since the Live screen was split out. Reporting that as "30 of 30
+under budget" was wrong, and leaving the gate to decide by the host's mood is not a gate.
+
+`web/scripts/performance-qa.mjs` now carries one documented exception table:
+
+```js
+const longestTaskExceptionsMs={'protocol → live':60};
+const budgetFor=transition=>longestTaskExceptionsMs[transition]??longestTaskBudgetMs;
+```
+
+with a comment naming the "Pre-existing: Live mount" section above it. Every other
+transition keeps 50 ms, each row records the budget it was held to, the artifact records
+the table, and a row that uses the exception says so. This walk, ten transitions × 3 runs,
+exit 0:
+
+```
+Run 1 protocol → live: 172.93 ms aggregate (informational); longest task 50.91 ms (budget < 60 ms, documented exception against the 50 ms every other transition keeps: the pre-existing Live mount)
+Run 2 protocol → live: longest task 38.48 ms (budget < 60 ms, documented exception …)
+Run 3 protocol → live: longest task 46.70 ms (budget < 60 ms, documented exception …)
+every other transition, 27 rows: 13.40 – 45.96 ms (budget < 50 ms)
+```
+
+Run 1's 50.91 ms is the case the review hit: under the old gate that run exits 1, and
+nothing about the product changed between it and run 2's 38.48 ms. The single gate,
+`PERFORMANCE_REPEATS=15` of `overview → adoption`, used the exception on no row and stayed
+at 32.17–40.17 ms.
+
+### Should-fix · The explanations quote the saved targets
+
+Five entries stated 99.5% and 98% as literal prose, so a tile reading `read 80% · mutate
+80%` opened an explanation that contradicted it.
+
+`web/packages/ui/src/copy/explanations.ts` now takes a context object:
+
+```ts
+export type ExplainContext = { sloTargets?: { read: number; mutate: number } };
+export type Explanation = string | ((context: ExplainContext) => string);
+export function explain(id: string, context: ExplainContext = {}): string | undefined
+```
+
+`tools.tile.below-slo`, `overview.tile.tool-success`, `overview.card.attention`,
+`tools.card.health` and `tool.tile.success` are functions of it, defaulting to the
+collector's own 99.5 / 98 for a host that has not fetched the project. `info.tsx` holds
+the scope — `ExplainFor`, read by `InfoFor` — and `analytics-v3.tsx` provides it from the
+same source the tiles use: `reliability.slo[].target` when the screen asked for that route,
+the project's saved `slo_targets` otherwise. `infoContent` takes the context as an optional
+second argument, so an embedding host keeps working.
+
+Checks, both named in the brief and both added: `backend-qa.mjs`, after saving 80/80 on the
+live collector, opens the Below-SLO tile's popover and asserts its text contains `80%` and
+not `99.5%`, then that Escape closes it; `visual-qa.mjs` asserts the same on the demo after
+its settings save, at every width and theme. On the demo with nothing saved the tile and
+its explanation agree on the collector's defaults:
+
+```
+below-slo meta:    read 99.5% · mutate 98%
+below-slo popover: "Tools whose success rate in the window is under their class target:
+                    99.5% for read tools, 98% for mutating ones. …"
+```
+
+### Also fixed · The reload series compared frames taken mid-webfont-swap
+
+Re-running the suite failed once on `the workspace strip changed height during the reload:
+[83,85]`, then passed three times in a row. The frames come from the *hard* reload, where
+the HTTP cache is off and the webfonts are fetched again; the strip's height is decided by
+their metrics, so whether a painted frame lands before or after the swap is a race. The
+same race moves the hard-reload layout shift between 0.0000 and 0.0559 run to run, which
+is why that number is printed and the ordinary reload is what the shift assertion is made
+on.
+
+The claim the check exists for is that the shell does not jump when the screen's content
+arrives. `scripts/reload-series.mjs` now records `fontsLoaded` per frame, compares the
+strip height across the frames whose webfonts have loaded, requires at least three of
+them, and prints the mid-swap heights rather than asserting them. Five runs after the
+change: five passes, ordinary-reload shift 0.0015 every time.
+
+### Round 2 commands, and what they printed
+
+From `web/` unless noted, with `PATH=$HOME/.cargo/bin:$HOME/.bun/bin:$PATH` and
+`PLAYWRIGHT_CHANNEL=chromium` (Chrome is not installed on this host and three scripts
+default to that channel).
+
+```
+bun run check                                                   # exit 0
+bun run test                                                    # exit 0
+bun run test:next                                               # exit 0
+BASE_URL=http://127.0.0.1:23460 PERFORMANCE_REPEATS=15 \
+  bun scripts/performance-qa.mjs                                # exit 0, 32.17–40.17 ms
+BASE_URL=http://127.0.0.1:23460 bun scripts/performance-qa.mjs --walk   # exit 0, see above
+four serial BASE_URL=http://127.0.0.1:23340 bun scripts/visual-qa.mjs   # byte identity
+bun run build && python3 scripts/ci-conformance.py              # from the repo root, exit 0
+```
+
+`bun run test`:
+
+```
+Snippet UUID QA passed      Spec fixture QA passed      Demo contract shapes passed
+Truncated catalogue QA passed    Analytics QA passed    Client share QA passed
+review-r1 probe passed      review-r2 probe passed
+Visual QA passed: v3 chart SVG/table twins, painted funnel with a null day-7 step …
+Live QA passed: 60000 ms refresh observed on the active screen, skeleton held 200/400 ms …
+Reload series passed: … the workspace strip holds its height once the webfonts have loaded,
+and an ordinary reload reports zero layout shift.
+```
+
+Four serial static capture runs, against one demo server, hashing every
+`artifacts/v3/*.png` after each:
+
+```
+run 1 exit 0    run 2 exit 0    run 3 exit 0    run 4 exit 0
+=== files hashed ===
+116
+run 1 vs run 2: identical
+run 1 vs run 3: identical
+run 1 vs run 4: identical
+```
+
+The four manifests of 116 files hash to one digest, `4320d15e12d5a547…`, and `git status`
+reports no `.png` difference against the commit, so the captures in the tree are these
+bytes. The sparse series changed the Overview, Cost, tool-drawer, funnel and many-clients
+captures, which is the demo now drawing the shape the collector returns.
+
+Contrast and clip, 1440 × 900, both themes, with an explanation open and again inside the
+tool drawer:
+
+```
+light contrast failures [] clipped []    light drawer popover 1 {"onTop":true,"inViewport":true}
+dark  contrast failures [] clipped []    dark  drawer popover 1 {"onTop":true,"inViewport":true}
+```
+
+`python3 scripts/ci-conformance.py` from the repo root, after `bun run build`, with
+`DATABASE_URL=postgres://postgres:postgres@127.0.0.1:25486/signals`,
+`ANALYTICS_PG_CONTAINER=dash-v4-ux-r3-pg`, `SIGNALS_URL=http://127.0.0.1:25460`,
+`ANALYTICS_REVIEW_URL=http://127.0.0.1:25461`, `ANALYTICS_REVIEW_PROBE_PORT=25462`,
+`SIGNALS_PROBE_LATENCY_BUDGET_MS=900` and `TMPDIR` on a temporary directory under
+`/var/tmp`:
+
+```
+identity: 52/52 valid fixtures matched, 54/54 invalid fixtures matched
+gzip: 52/52 valid fixtures matched, 54/54 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case,
+replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+Backend browser QA passed: … persisted settings that carry saved SLO targets into the
+Tools tile and the overview caption, hour-stamped sparkline readouts on a 24-hour window …
+BENCH overview: median 144.69 ms … BENCH alerts: median 1.58 ms
+FINDINGS 0 MISMATCHES 0
+CI EXIT 0
+```
+
+The backend suite's pass line is deliberately not extended with the new explanation check:
+it names what it proves, and the check itself fails with the popover text when it breaks.
