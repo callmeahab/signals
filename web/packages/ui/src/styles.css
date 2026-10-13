@@ -830,6 +830,10 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
 
 .info-pop__title{display:flex;align-items:center;gap:10px}.info-pop__unit{font:500 11px var(--sans);padding:2px 7px;border-radius:6px;background:var(--secondary);color:var(--secondary-foreground)}
 
-.card-pending{min-height:180px;border-radius:8px;background:linear-gradient(100deg,var(--surface-sunken) 25%,var(--card) 45%,var(--surface-sunken) 65%);background-size:200% 100%;animation:pending-shimmer 1.8s ease-in-out infinite}
+.card-pending,.panel .loading-state{min-height:180px;border-radius:8px;background:linear-gradient(100deg,var(--surface-sunken) 25%,var(--card) 45%,var(--surface-sunken) 65%);background-size:200% 100%;animation:pending-shimmer 1.8s ease-in-out infinite}
 @keyframes pending-shimmer{to{background-position:-200% 0}}
-@media(prefers-reduced-motion:reduce){.card-pending{animation:none}}
+@media(prefers-reduced-motion:reduce){.card-pending,.panel .loading-state{animation:none}}
+
+.tile__spark.card-pending{min-height:108px;height:108px}
+.tiles--compact .tile__spark.card-pending{min-height:38px;height:38px}
+.panel .loading-state>*{opacity:0}

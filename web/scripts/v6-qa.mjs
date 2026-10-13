@@ -32,7 +32,8 @@ try {
    const start=Date.now(),frames=[];
    for(let i=0;i<18;i++){
     await page.waitForTimeout(Math.max(0,start+i*100-Date.now()));
-    const facts=await page.evaluate(()=>({at:Math.round(globalThis.performance.now()),html:getComputedStyle(document.documentElement).backgroundColor,body:document.body&&getComputedStyle(document.body).backgroundColor,skeleton:{...globalThis.__skeleton},cards:document.querySelectorAll('.tile,.card').length}));
+    const facts=await page.evaluate(()=>({at:Math.round(globalThis.performance.now()),html:getComputedStyle(document.documentElement).backgroundColor,body:document.body&&getComputedStyle(document.body).backgroundColor,skeleton:{...globalThis.__skeleton},cards:document.querySelectorAll('.tile,.card').length,pending:[...document.querySelectorAll('.tile__spark.card-pending')].map(el=>({height:getComputedStyle(el).height,compact:!!el.closest('.tiles--compact')}))}));
+    for(const pending of facts.pending)assert.equal(pending.height,pending.compact?'38px':'108px','pending sparkline changed the chart frame height');
     assert.notEqual(facts.html,'rgb(255, 255, 255)');assert.notEqual(facts.body,'rgb(255, 255, 255)');
     const png=await page.screenshot({path:`${out}/${name}-${String(i*100).padStart(4,'0')}.png`});
     const corner=await page.evaluate(async src=>{const img=new globalThis.Image();img.src=src;await img.decode();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);return [...ctx.getImageData(0,img.height-1,1,1).data];},`data:image/png;base64,${png.toString('base64')}`);
