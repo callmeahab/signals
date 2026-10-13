@@ -1,6 +1,7 @@
 'use client';
 import { Icon } from '../icons/index.js';
 import { useEffect, useLayoutEffect, useId, useRef, useState } from 'react';
+import { drawInDelay, queuePaint } from '../motion.js';
 import * as render from './renderers.js';
 import type { Cohort, FunnelStep, TimelineAnalytics } from '../analytics-types.js';
 
@@ -54,7 +55,7 @@ export function Chart({label,kind,draw,headers,rows,height=220}:{label:string;ki
  // land finished (`nt`), so nothing re-animates and nothing moves.
  const painted=useRef(false);
  useEffect(()=>{watchInput();return()=>clearTimeout(timer.current);},[]);
- useLayoutEffect(()=>{const el=host.current;if(!el)return;let frame=0;let resizeFrame=0;let width=0;let visible=false;let pendingWidth=0;let disposed=false;let detach:(()=>void)|void;
+ useLayoutEffect(()=>{const el=host.current;if(!el)return;let frame=0;let resizeFrame=0;let width=0;let pendingWidth=0;let disposed=false;let detach:(()=>void)|void;let queued:(()=>void)|undefined;
  const paint=(w:number)=>{if(disposed||w<=0||w===width)return;detach?.();cancelAnimationFrame(frame);width=w;const result=draw(w);const out=typeof result==='string'?{html:result}:result;el.innerHTML=out.html;el.querySelectorAll('svg').forEach(svg=>{svg.setAttribute('role','img');svg.setAttribute('aria-label',label);svg.removeAttribute('aria-hidden');if(!svg.hasAttribute('viewBox'))svg.setAttribute('viewBox',`0 0 ${svg.getAttribute('width')} ${svg.getAttribute('height')}`);});
  el.querySelectorAll<SVGPathElement>('.stroke-draw').forEach(p=>{p.setAttribute('pathLength','1');p.style.setProperty('--len','1');});
  // Give each staggered bar its own SVG root so its transform can composite.
@@ -62,8 +63,21 @@ export function Chart({label,kind,draw,headers,rows,height=220}:{label:string;ki
  if(bars.length){const original=el.querySelector('svg')!;const gridlines=original.querySelectorAll('.gridline');if(gridlines.length){const grid=original.cloneNode(false) as SVGSVGElement;grid.removeAttribute('role');grid.removeAttribute('aria-label');grid.setAttribute('aria-hidden','true');grid.style.cssText='position:absolute;z-index:1;left:0;top:0;z-index:0';gridlines.forEach(line=>grid.append(line));el.append(grid);}}
  bars.forEach(rect=>{const layer=document.createElementNS('http://www.w3.org/2000/svg','svg');const x=rect.getAttribute('x')??'0',y=rect.getAttribute('y')??'0',w=rect.getAttribute('width')??'0',h=rect.getAttribute('height')??'0';layer.setAttribute('class',rect.getAttribute('class')!);layer.setAttribute('aria-hidden','true');layer.setAttribute('width',w);layer.setAttribute('height',h);layer.style.cssText=`position:absolute;z-index:1;left:${x}px;top:${y}px;overflow:visible;pointer-events:none;will-change:transform;transform-origin:left ${rect.classList.contains('growy')?'bottom':'top'};--pd:${rect.style.getPropertyValue('--pd')||'0ms'}`;rect.removeAttribute('class');rect.removeAttribute('style');rect.setAttribute('x','0');rect.setAttribute('y','0');layer.append(rect);el.append(layer);});
  const instant=painted.current;painted.current=true;
+ // The draw-in belongs to the card, not to the frame that happened to build the SVG:
+ // `--cd` is what is left of that card's entrance, and the keyframes add it to the
+ // renderer's own per-element stagger. A redraw lands finished, so it carries none.
+ if(instant)el.style.removeProperty('--cd');else{const after=drawInDelay(el);if(after>0)el.style.setProperty('--cd',`${Math.round(after)}ms`);}
  detach=out.after?.(el);frame=requestAnimationFrame(()=>el.querySelectorAll('.plot,.stroke-draw,.growx,.growy,.popin').forEach(n=>{if(instant)n.classList.add('nt');n.classList.add('on');}));};
- const observer=new ResizeObserver(entries=>{pendingWidth=Math.round(entries[0].contentRect.width);if(visible){cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>paint(pendingWidth));}});observer.observe(el);const intersection=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){visible=true;resizeFrame=requestAnimationFrame(()=>paint(pendingWidth));intersection.disconnect();}},{rootMargin:'0px'});intersection.observe(el.parentElement!);return()=>{disposed=true;intersection.disconnect();observer.disconnect();cancelAnimationFrame(frame);cancelAnimationFrame(resizeFrame);detach?.();el.replaceChildren();};},[draw,label]);
+ // Every chart is built at mount, wherever it sits on the page: the queue only
+ // decides which animation frame builds it, one card per frame in document order, so
+ // no single task carries a whole screen's SVG construction and nothing waits for a
+ // reader to scroll. A later width (a resize) or a later `draw` (a poll refresh)
+ // repaints straight away and lands finished.
+ const observer=new ResizeObserver(entries=>{pendingWidth=Math.round(entries[0].contentRect.width);
+  if(painted.current){cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>paint(pendingWidth));return;}
+  if(!queued)queued=queuePaint(el,()=>{queued=undefined;paint(pendingWidth);});});
+ observer.observe(el);
+ return()=>{disposed=true;queued?.();observer.disconnect();cancelAnimationFrame(frame);cancelAnimationFrame(resizeFrame);detach?.();el.replaceChildren();};},[draw,label]);
  // Keep the pointer readout inside the plot box, so it cannot clip at any width.
  useLayoutEffect(()=>{const el=tip.current,box=figure.current;if(!el||!box||!hover)return;
   const {width:bw,height:bh}=box.getBoundingClientRect();

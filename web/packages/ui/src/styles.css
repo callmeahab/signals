@@ -686,15 +686,15 @@ td .mono{font-size:12.5px}
 /* Animate the sparkline's HTML layer once, not every SVG geometry node. */
 .chart-sparkline .plot.on{animation:none}
 @keyframes v3-spark-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.tile__spark{animation:v3-spark-reveal 560ms var(--ease-out) backwards}
+.tile__spark{animation:v3-spark-reveal 560ms var(--ease-out) backwards;animation-delay:var(--draw-in,0ms)}
 @media(prefers-reduced-motion:reduce){.tile__spark{animation:none}}
 
 /* Composite the complete area layer; SVG path geometry remains static during entry. */
-.chart-stacked-area>div:first-child{transform-origin:left center;animation:v3-draw 560ms var(--ease-out) backwards;will-change:transform}
+.chart-stacked-area>div:first-child{transform-origin:left center;animation:v3-draw 560ms var(--ease-out) backwards;animation-delay:var(--draw-in,0ms);will-change:transform}
 .chart-stacked-area .plot.on,.chart-stacked-area .stroke-draw.on{animation:none}
 @media(prefers-reduced-motion:reduce){.chart-stacked-area>div:first-child{animation:none}}
 
-.chart-donut>div:first-child{animation:v3-rise 620ms var(--ease-out) backwards}
+.chart-donut>div:first-child{animation:v3-rise 620ms var(--ease-out) backwards;animation-delay:var(--draw-in,0ms)}
 .chart-donut .stroke-draw.on{animation:none}
 @media(prefers-reduced-motion:reduce){.chart-donut>div:first-child{animation:none}}
 
@@ -718,7 +718,10 @@ td .mono{font-size:12.5px}
 .signals-ui>.tiles .tile,.signals-ui>.grid>.card{animation:none}
 
 
-.plot.on,.stroke-draw.on,.growx.on,.growy.on{animation-delay:var(--pd,0ms)}
+/* A chart's draw-in waits for the card it sits in (`--cd`, set by the chart component
+   from that card's remaining entrance) and then keeps the renderer's own per-element
+   stagger (`--pd`), so a staggered bar chart still staggers inside its card. */
+.plot.on,.stroke-draw.on,.growx.on,.growy.on{animation-delay:calc(var(--cd,0ms) + var(--pd,0ms))}
 
 .chartbox>div:first-child{position:relative}
 
