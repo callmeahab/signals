@@ -1,0 +1,7 @@
+ok   the primary 90-day answer painted (Active users reads "14,066")
+     before: {"Tool calls":"48.2K","Active users":"1,094","Sessions":"6.5K","Tool success":"99.1%","p95 latency":"640 ms","Context tokens":"≈ 25.2M"}
+     after : {"Tool calls":"619.9K","Active users":"14,066","Sessions":"83.3K","Tool success":"99.1%","p95 latency":"640 ms","Context tokens":"≈ 323.7M"}
+ok   Tool calls: the headline the primary overview answer carries survives a failed supporting `tools` read; got "619.9K"
+ok   Tool success: the headline the primary overview answer carries survives a failed supporting `tools` read; got "99.1%"
+ok   Context tokens: the headline the primary overview answer carries survives a failed supporting `tools` read; got "≈ 323.7M"
+review-v6-r2 supporting-blanking probe passed

@@ -1,0 +1,67 @@
+$ bun run build:ui && bun --bun tsc --noEmit && bun --bun vite build --config apps/dashboard/vite.config.ts
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+vite v8.3.2 building client environment for production...
+transforming...
+✓ 74 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                     1.50 kB │ gzip:   0.71 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-C8zxqsMH.woff       5.61 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-DDuiU_S-.woff       5.62 kB
+dist/assets/ibm-plex-mono-cyrillic-ext-500-normal-BIfNGwUT.woff     5.77 kB
+dist/assets/ibm-plex-mono-cyrillic-ext-400-normal-DMdlQ8Kv.woff     5.82 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2      5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2      6.04 kB
+dist/assets/ibm-plex-mono-cyrillic-ext-400-normal-xuaO2J-f.woff2    6.91 kB
+dist/assets/ibm-plex-mono-cyrillic-ext-500-normal-BqneJy0T.woff2    6.97 kB
+dist/assets/ibm-plex-mono-cyrillic-400-normal-CEL4l2ZJ.woff         7.20 kB
+dist/assets/ibm-plex-mono-cyrillic-500-normal-Ael50iVv.woff         7.20 kB
+dist/assets/krona-one-latin-ext-400-normal-Dxkupn2B.woff2           7.97 kB
+dist/assets/ibm-plex-mono-cyrillic-400-normal-BSMlKf0J.woff2        8.35 kB
+dist/assets/ibm-plex-mono-cyrillic-500-normal-Bq9vWWag.woff2        8.46 kB
+dist/assets/krona-one-latin-ext-400-normal-CRTB3kuu.woff            9.42 kB
+dist/assets/krona-one-latin-400-normal-lxbkZ9Cr.woff2              10.41 kB
+dist/assets/ibm-plex-mono-latin-ext-400-normal-D3D2R8hC.woff       11.76 kB
+dist/assets/ibm-plex-mono-latin-ext-500-normal-CZ70TYgx.woff       11.76 kB
+dist/assets/krona-one-latin-400-normal-Bq1MwVf6.woff               12.63 kB
+dist/assets/ibm-plex-mono-latin-400-normal-CvHOgSBP.woff           13.14 kB
+dist/assets/ibm-plex-mono-latin-500-normal-CB9ihrfo.woff           13.15 kB
+dist/assets/ibm-plex-mono-latin-ext-400-normal-BmRBH3aV.woff2      13.34 kB
+dist/assets/ibm-plex-mono-latin-ext-500-normal-CAhNIIs5.woff2      13.43 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2          14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2          14.88 kB
+dist/assets/urbanist-latin-ext-wght-normal-Bdxck5Au.woff2          16.60 kB
+dist/assets/urbanist-latin-wght-normal-D69JTELx.woff2              27.75 kB
+dist/assets/index-BAyJmDBN.css                                     79.80 kB │ gzip:  15.80 kB
+dist/assets/copied-CPCYtjy_.js                                      3.75 kB │ gzip:   1.11 kB
+dist/assets/plus-BMGwYWD8.js                                        3.86 kB │ gzip:   1.04 kB
+dist/assets/chevron-BYsIYQNN.js                                     4.08 kB │ gzip:   1.09 kB
+dist/assets/dead-CrJrPjwc.js                                        4.44 kB │ gzip:   1.10 kB
+dist/assets/pause-2f1XJRAs.js                                       4.59 kB │ gzip:   1.11 kB
+dist/assets/adoption-ChrSq4ky.js                                    4.88 kB │ gzip:   1.21 kB
+dist/assets/reliability-Cg8n_JOS.js                                 4.89 kB │ gzip:   1.25 kB
+dist/assets/search-Do39T0Oc.js                                      5.03 kB │ gzip:   1.31 kB
+dist/assets/overview-rAFavSCu.js                                    5.27 kB │ gzip:   1.29 kB
+dist/assets/healthy-BZy4Bdek.js                                     5.37 kB │ gzip:   1.34 kB
+dist/assets/logout-DoVzRy_b.js                                      5.66 kB │ gzip:   1.27 kB
+dist/assets/play-CMIJ7dPL.js                                        6.11 kB │ gzip:   1.18 kB
+dist/assets/settings-4VnRzhKI.js                                    6.42 kB │ gzip:   1.91 kB
+dist/assets/waiting-B7DiS4rH.js                                     6.43 kB │ gzip:   1.45 kB
+dist/assets/error-BFYfenu6.js                                       7.74 kB │ gzip:   1.67 kB
+dist/assets/info-BEk8H8yN.js                                        7.77 kB │ gzip:   1.47 kB
+dist/assets/file-plus-aJEPe2jX.js                                   8.59 kB │ gzip:   1.47 kB
+dist/assets/streaming-D-Yx-u5f.js                                   8.77 kB │ gzip:   1.45 kB
+dist/assets/sessions-DN6d0kIO.js                                   11.74 kB │ gzip:   1.74 kB
+dist/assets/moon-C4STIGo4.js                                       14.16 kB │ gzip:   1.76 kB
+dist/assets/live-DTNCbsiI.js                                       14.87 kB │ gzip:   2.02 kB
+dist/assets/trash-D5YYXWo-.js                                      15.16 kB │ gzip:   2.37 kB
+dist/assets/key-pYHICicS.js                                        20.10 kB │ gzip:   2.25 kB
+dist/assets/tools-BhBaxNTi.js                                      20.71 kB │ gzip:   2.07 kB
+dist/assets/sun-Dt6U5zuS.js                                        22.13 kB │ gzip:   1.95 kB
+dist/assets/protocol-Dv-PUbh-.js                                   34.82 kB │ gzip:   6.33 kB
+dist/assets/warn-DI7FFp10.js                                       38.56 kB │ gzip:   3.27 kB
+dist/assets/cost-DerNPMGU.js                                       74.43 kB │ gzip:   5.43 kB
+dist/assets/dist-Dg2aeH12.js                                      213.54 kB │ gzip:  60.65 kB
+dist/assets/index-BxbYg0p8.js                                     397.82 kB │ gzip: 122.73 kB
+
+✓ built in 195ms

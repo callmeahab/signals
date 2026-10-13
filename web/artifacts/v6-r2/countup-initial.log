@@ -1,0 +1,119 @@
+ok   1x: Tool calls count schedule 130/640, expected 130/640
+ok   1x: Tool calls has no samples
+ok   1x: Tool calls early sample was 0, expected zero
+ok   1x: Tool calls samples are not monotonic: 0,1.2K,17.4K,29.4K,37.7K,43.2K,46.3K,47.8K,48.2K
+ok   1x: Tool calls terminal value 48.2K, expected 48.2K
+ok   1x: Tool calls reached 48.2K in 9 steps at 46.3 fps
+1x: Tool calls 9 steps, 46.3 fps (average 60.0); step count checked; schedule, monotonicity and terminal checked
+ok   1x: Active users count schedule 185/640, expected 185/640
+ok   1x: Active users has no samples
+ok   1x: Active users early sample was 0, expected zero
+ok   1x: Active users samples are not monotonic: 0,1.5,375.5,652.4,847,974.1,1,047.7,1,082.6,1,093.3,1,094
+ok   1x: Active users terminal value 1,094, expected 1,094
+ok   1x: Active users reached 1,094 in 10 steps at 46.3 fps
+1x: Active users 10 steps, 46.3 fps (average 60.0); step count checked; schedule, monotonicity and terminal checked
+ok   1x: Sessions count schedule 240/640, expected 240/640
+ok   1x: Sessions has no samples
+ok   1x: Sessions early sample was 0, expected zero
+ok   1x: Sessions samples are not monotonic: 0,354.8,2.5K,4.1K,5.1K,5.8K,6.2K,6.4K,6.5K
+ok   1x: Sessions terminal value 6.5K, expected 6.5K
+ok   1x: Sessions reached 6.5K in 9 steps at 45.2 fps
+1x: Sessions 9 steps, 45.2 fps (average 60.0); step count checked; schedule, monotonicity and terminal checked
+ok   1x: Tool success count schedule 295/640, expected 295/640
+ok   1x: Tool success has no samples
+ok   1x: Tool success early sample was 0%, expected zero
+ok   1x: Tool success samples are not monotonic: 0%,3.2%,36.3%,60.8%,77.9%,88.9%,95.3%,98.2%,99.1%
+ok   1x: Tool success terminal value 99.1%, expected 99.1%
+ok   1x: Tool success reached 99.1% in 9 steps at 40.0 fps
+1x: Tool success 9 steps, 40.0 fps (average 60.0); step count checked; schedule, monotonicity and terminal checked
+ok   1x: p95 latency count schedule 350/640, expected 350/640
+ok   1x: p95 latency has no samples
+ok   1x: p95 latency early sample was 0 ms, expected zero
+ok   1x: p95 latency samples are not monotonic: 0 ms,5.7 ms,223.1 ms,384.3 ms,497.3 ms,570.9 ms,613.5 ms,633.6 ms,639.6 ms,640 ms
+ok   1x: p95 latency terminal value 640 ms, expected 640 ms
+ok   1x: p95 latency reached 640 ms in 10 steps at 40.0 fps
+1x: p95 latency 10 steps, 40.0 fps (average 59.5); step count checked; schedule, monotonicity and terminal checked
+ok   1x: Context tokens count schedule 405/640, expected 405/640
+ok   1x: Context tokens has no samples
+ok   1x: Context tokens early sample was ≈ 0, expected zero
+ok   1x: Context tokens samples are not monotonic: ≈ 0,≈ 1.6M,≈ 9.8M,≈ 15.8M,≈ 20M,≈ 22.8M,≈ 24.3M,≈ 25M,≈ 25.2M
+ok   1x: Context tokens terminal value ≈ 25.2M, expected ≈ 25.2M
+ok   1x: Context tokens reached ≈ 25.2M in 9 steps at 40.0 fps
+1x: Context tokens 9 steps, 40.0 fps (average 60.0); step count checked; schedule, monotonicity and terminal checked
+ok   1x: no numeric count schedules found
+ok   8x: Tool calls count schedule 130/640, expected 130/640
+ok   8x: Tool calls has no samples
+ok   8x: Tool calls early sample was 0, expected zero
+ok   8x: Tool calls samples are not monotonic: 0,10.2K,30.6K,38.5K,43.7K,46.6K,47.9K,48.2K
+ok   8x: Tool calls terminal value 48.2K, expected 48.2K
+8x: Tool calls 8 steps, 5.1 fps (average 24.4); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   8x: Active users count schedule 185/640, expected 185/640
+ok   8x: Active users has no samples
+ok   8x: Active users early sample was 0, expected zero
+ok   8x: Active users samples are not monotonic: 0,530.9,763.1,920.7,1,018.1,1,069.8,1,090.3,1,094
+ok   8x: Active users terminal value 1,094, expected 1,094
+8x: Active users 8 steps, 5.1 fps (average 26.6); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   8x: Sessions count schedule 240/640, expected 240/640
+ok   8x: Sessions has no samples
+ok   8x: Sessions early sample was 0, expected zero
+ok   8x: Sessions samples are not monotonic: 0,3.7K,4.9K,5.7K,6.2K,6.4K,6.5K
+ok   8x: Sessions terminal value 6.5K, expected 6.5K
+8x: Sessions 7 steps, 7.7 fps (average 35.9); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   8x: Tool success count schedule 295/640, expected 295/640
+ok   8x: Tool success has no samples
+ok   8x: Tool success early sample was 0%, expected zero
+ok   8x: Tool success samples are not monotonic: 0%,39.7%,63.2%,79.5%,89.9%,95.8%,98.4%,99.1%
+ok   8x: Tool success terminal value 99.1%, expected 99.1%
+8x: Tool success 8 steps, 7.7 fps (average 37.6); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   8x: p95 latency count schedule 350/640, expected 350/640
+ok   8x: p95 latency has no samples
+ok   8x: p95 latency early sample was 0 ms, expected zero
+ok   8x: p95 latency samples are not monotonic: 0 ms,126.8 ms,313.7 ms,448.6 ms,540.1 ms,596.4 ms,626.2 ms,637.9 ms,640 ms
+ok   8x: p95 latency terminal value 640 ms, expected 640 ms
+8x: p95 latency 9 steps, 11.5 fps (average 45.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   8x: Context tokens count schedule 405/640, expected 405/640
+ok   8x: Context tokens has no samples
+ok   8x: Context tokens early sample was ≈ 0, expected zero
+ok   8x: Context tokens samples are not monotonic: ≈ 0,≈ 12M,≈ 17.4M,≈ 21.1M,≈ 23.4M,≈ 24.6M,≈ 25.1M,≈ 25.2M
+ok   8x: Context tokens terminal value ≈ 25.2M, expected ≈ 25.2M
+8x: Context tokens 8 steps, 11.5 fps (average 49.9); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   8x: no numeric count schedules found
+ok   20x: Tool calls count schedule 130/640, expected 130/640
+ok   20x: Tool calls has no samples
+ok   20x: Tool calls early sample was 0, expected zero
+ok   20x: Tool calls samples are not monotonic: 0,48.2K
+ok   20x: Tool calls terminal value 48.2K, expected 48.2K
+20x: Tool calls 2 steps, 1.5 fps (average 2.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   20x: Active users count schedule 185/640, expected 185/640
+ok   20x: Active users has no samples
+ok   20x: Active users early sample was 0, expected zero
+ok   20x: Active users samples are not monotonic: 0,1,094
+ok   20x: Active users terminal value 1,094, expected 1,094
+20x: Active users 2 steps, 1.5 fps (average 2.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   20x: Sessions count schedule 240/640, expected 240/640
+ok   20x: Sessions has no samples
+ok   20x: Sessions early sample was 0, expected zero
+ok   20x: Sessions samples are not monotonic: 0,6.5K
+ok   20x: Sessions terminal value 6.5K, expected 6.5K
+20x: Sessions 2 steps, 1.5 fps (average 2.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   20x: Tool success count schedule 295/640, expected 295/640
+ok   20x: Tool success has no samples
+ok   20x: Tool success early sample was 0%, expected zero
+ok   20x: Tool success samples are not monotonic: 0%,99.1%
+ok   20x: Tool success terminal value 99.1%, expected 99.1%
+20x: Tool success 2 steps, 1.5 fps (average 2.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   20x: p95 latency count schedule 350/640, expected 350/640
+ok   20x: p95 latency has no samples
+ok   20x: p95 latency early sample was 0 ms, expected zero
+ok   20x: p95 latency samples are not monotonic: 0 ms,639.6 ms,640 ms
+ok   20x: p95 latency terminal value 640 ms, expected 640 ms
+20x: p95 latency 3 steps, 1.5 fps (average 2.6); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   20x: Context tokens count schedule 405/640, expected 405/640
+ok   20x: Context tokens has no samples
+ok   20x: Context tokens early sample was ≈ 0, expected zero
+ok   20x: Context tokens samples are not monotonic: ≈ 0,≈ 25M,≈ 25.2M
+ok   20x: Context tokens terminal value ≈ 25.2M, expected ≈ 25.2M
+20x: Context tokens 3 steps, 1.5 fps (average 2.6); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+ok   20x: no numeric count schedules found
+[{"rate":1,"rows":[{"label":"Tool calls","steps":9,"fps":46.29629598968804,"average":60.006000587182825},{"label":"Active users","steps":10,"fps":46.29629598968804,"average":60.006000587182825},{"label":"Sessions","steps":9,"fps":45.248868973541555,"average":60.036945799586896},{"label":"Tool success","steps":9,"fps":40,"average":59.953881629515756},{"label":"p95 latency","steps":10,"fps":40,"average":59.53266856454267},{"label":"Context tokens","steps":9,"fps":40,"average":59.990770637468465}]},{"rate":8,"rows":[{"label":"Tool calls","steps":8,"fps":5.055611724144179,"average":24.431014528526475},{"label":"Active users","steps":8,"fps":5.055611724144179,"average":26.598960217863606},{"label":"Sessions","steps":7,"fps":7.71604938839398,"average":35.91438012271953},{"label":"Tool success","steps":8,"fps":7.71604938839398,"average":37.56876425840792},{"label":"p95 latency","steps":9,"fps":11.547344123570907,"average":45.065344746659335},{"label":"Context tokens","steps":8,"fps":11.547344123570907,"average":49.88308651597818}]},{"rate":20,"rows":[{"label":"Tool calls","steps":2,"fps":1.487209993840227,"average":2.1054847876610228},{"label":"Active users","steps":2,"fps":1.487209993840227,"average":2.1054847876610228},{"label":"Sessions","steps":2,"fps":1.487209993840227,"average":2.1054847876610228},{"label":"Tool success","steps":2,"fps":1.487209993840227,"average":2.1054847876610228},{"label":"p95 latency","steps":3,"fps":1.487209993840227,"average":2.633426966181907},{"label":"Context tokens","steps":3,"fps":1.487209993840227,"average":2.633426966181907}]}]
+review-v6-r2 countup-frames probe passed

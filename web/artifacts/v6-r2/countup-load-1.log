@@ -1,0 +1,8 @@
+1x: Tool calls 7 steps, 15.7 fps (slowest-frame cadence 5.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+1x: Active users 8 steps, 17.2 fps (slowest-frame cadence 5.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+1x: Sessions 7 steps, 18.2 fps (slowest-frame cadence 5.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+1x: Tool success 9 steps, 23.6 fps (slowest-frame cadence 9.4); step count checked; schedule, monotonicity and terminal checked
+1x: p95 latency 10 steps, 25.9 fps (slowest-frame cadence 9.4); step count checked; schedule, monotonicity and terminal checked
+1x: Context tokens 9 steps, 31.3 fps (slowest-frame cadence 10.4); step count checked; schedule, monotonicity and terminal checked
+[{"rate":1,"rows":[{"label":"Tool calls","steps":7,"sustained":5.136106829764208,"fps":15.709797199729932},{"label":"Active users","steps":8,"sustained":5.136106829764208,"fps":17.207147584381204},{"label":"Sessions","steps":7,"sustained":5.136106829764208,"fps":18.226002430133658},{"label":"Tool success","steps":9,"sustained":9.407337727644185,"fps":23.550191350263294},{"label":"p95 latency","steps":10,"sustained":9.407337727644185,"fps":25.931486290359},{"label":"Context tokens","steps":9,"sustained":10.416666666666666,"fps":31.34328358208955}]}]
+review-v6-r2 countup-frames probe passed

@@ -1,0 +1,32 @@
+{'name': 'suite-1', 'command': ['bun', 'run', 'test'], 'environment': {}, 'exit': 0}
+Static capture 1: 116 PNGs; identical to run 1.
+{'name': 'suite-2', 'command': ['bun', 'run', 'test'], 'environment': {}, 'exit': 0}
+Static capture 2: 116 PNGs; identical to run 1.
+{'name': 'countup-load-1', 'command': ['bun', 'test/review-v6-r2/countup-frames.mjs'], 'environment': {'THROTTLE_RATES': '1'}, 'exit': 0}
+{'name': 'choreography-load-1', 'command': ['bun', 'scripts/choreography-qa.mjs'], 'environment': {'CHOREOGRAPHY_OUT': 'artifacts/v6-r2/choreography-load-1'}, 'exit': 0}
+Live busy loops: 64
+{'name': 'countup-load-2', 'command': ['bun', 'test/review-v6-r2/countup-frames.mjs'], 'environment': {'THROTTLE_RATES': '1'}, 'exit': 0}
+{'name': 'choreography-load-2', 'command': ['bun', 'scripts/choreography-qa.mjs'], 'environment': {'CHOREOGRAPHY_OUT': 'artifacts/v6-r2/choreography-load-2'}, 'exit': 0}
+Live busy loops: 64
+{'name': 'countup-load-3', 'command': ['bun', 'test/review-v6-r2/countup-frames.mjs'], 'environment': {'THROTTLE_RATES': '1'}, 'exit': 0}
+{'name': 'choreography-load-3', 'command': ['bun', 'scripts/choreography-qa.mjs'], 'environment': {'CHOREOGRAPHY_OUT': 'artifacts/v6-r2/choreography-load-3'}, 'exit': 0}
+Live busy loops: 64
+{'name': 'suite-3-load', 'command': ['bun', 'run', 'test'], 'environment': {}, 'exit': 0}
+Static capture 3: 116 PNGs; identical to run 1.
+Suite 3 completed with all 64 busy loops live.
+Stopped and reaped all 64 owned busy loops.
+{'name': 'countup-throttled-1', 'command': ['bun', 'test/review-v6-r2/countup-frames.mjs'], 'environment': {'THROTTLE_RATES': '1,8,20'}, 'exit': 0}
+{'name': 'countup-throttled-2', 'command': ['bun', 'test/review-v6-r2/countup-frames.mjs'], 'environment': {'THROTTLE_RATES': '1,8,20'}, 'exit': 0}
+{'name': 'countup-throttled-3', 'command': ['bun', 'test/review-v6-r2/countup-frames.mjs'], 'environment': {'THROTTLE_RATES': '1,8,20'}, 'exit': 0}
+{'name': 'visual-4', 'command': ['bun', 'scripts/visual-qa.mjs'], 'environment': {}, 'exit': 0}
+Static capture 4: 116 PNGs; identical to run 1.
+{'name': 'performance-single', 'command': ['bun', 'scripts/performance-qa.mjs'], 'environment': {'PERFORMANCE_REPEATS': '15'}, 'exit': 0}
+{'name': 'performance-walk', 'command': ['bun', 'scripts/performance-qa.mjs', '--walk'], 'environment': {}, 'exit': 1}
+Traceback (most recent call last):
+  File "/home/vuk/orca/workspaces/signals-collector/dash-v2/web/artifacts/v6-r2/run-acceptance.py", line 51, in <module>
+    run('performance-walk',['bun','scripts/performance-qa.mjs','--walk'])
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vuk/orca/workspaces/signals-collector/dash-v2/web/artifacts/v6-r2/run-acceptance.py", line 20, in run
+    assert result.returncode == 0, name
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: performance-walk

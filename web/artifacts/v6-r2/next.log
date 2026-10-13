@@ -1,0 +1,122 @@
+$ bun scripts/test-next-host.mjs
+$ bun --bun tsc -p packages/ui/tsconfig.build.json && bun scripts/copy-ui.mjs
+bun pack v1.4.2 (744846f84)
+
+packed 0.70KB package.json
+packed 11.36KB LICENSE
+packed 1.39KB dist/activity.d.ts
+packed 2.32KB dist/activity.js
+packed 9.80KB dist/analytics-types.d.ts
+packed 11B dist/analytics-types.js
+packed 1.30KB dist/analytics-v3.d.ts
+packed 39.38KB dist/analytics-v3.js
+packed 2.80KB dist/analytics.d.ts
+packed 32.0KB dist/analytics.js
+packed 310B dist/charts.d.ts
+packed 4.36KB dist/charts.js
+packed 4.18KB dist/charts/index.d.ts
+packed 25.16KB dist/charts/index.js
+packed 1.88KB dist/charts/renderers.d.ts
+packed 37.30KB dist/charts/renderers.js
+packed 0.95KB dist/copy/explanations.d.ts
+packed 34.72KB dist/copy/explanations.js
+packed 1.85KB dist/dashboard.d.ts
+packed 52.46KB dist/dashboard.js
+packed 1.58KB dist/icons/index.d.ts
+packed 5.31KB dist/icons/index.js
+packed 7.43KB dist/icons/lordicon/adoption.json
+packed 6.26KB dist/icons/lordicon/chevron.json
+packed 5.62KB dist/icons/lordicon/copied.json
+packed 112.50KB dist/icons/lordicon/cost.json
+packed 6.79KB dist/icons/lordicon/dead.json
+packed 11.84KB dist/icons/lordicon/error.json
+packed 13.37KB dist/icons/lordicon/file-plus.json
+packed 8.1KB dist/icons/lordicon/healthy.json
+packed 12.29KB dist/icons/lordicon/info.json
+packed 29.0KB dist/icons/lordicon/key.json
+packed 23.82KB dist/icons/lordicon/live.json
+packed 8.55KB dist/icons/lordicon/logout.json
+packed 22.0KB dist/icons/lordicon/moon.json
+packed 7.94KB dist/icons/lordicon/overview.json
+packed 6.98KB dist/icons/lordicon/pause.json
+packed 9.48KB dist/icons/lordicon/play.json
+packed 5.93KB dist/icons/lordicon/plus.json
+packed 48.53KB dist/icons/lordicon/protocol.json
+packed 7.50KB dist/icons/lordicon/reliability.json
+packed 7.75KB dist/icons/lordicon/search.json
+packed 18.43KB dist/icons/lordicon/sessions.json
+packed 9.15KB dist/icons/lordicon/settings.json
+packed 13.42KB dist/icons/lordicon/streaming.json
+packed 35.43KB dist/icons/lordicon/sun.json
+packed 32.78KB dist/icons/lordicon/tools.json
+packed 23.74KB dist/icons/lordicon/trash.json
+packed 9.70KB dist/icons/lordicon/waiting.json
+packed 58.95KB dist/icons/lordicon/warn.json
+packed 0.74KB dist/index.d.ts
+packed 0.63KB dist/index.js
+packed 1.45KB dist/info.d.ts
+packed 8.1KB dist/info.js
+packed 1.66KB dist/motion.d.ts
+packed 4.39KB dist/motion.js
+packed 45B dist/snippet-id.d.ts
+packed 0.75KB dist/snippet-id.js
+packed 74.96KB dist/styles.css
+packed 235B dist/table-scroll.d.ts
+packed 1.50KB dist/table-scroll.js
+packed 7.76KB dist/theme.css
+packed 400B dist/time.d.ts
+packed 1.13KB dist/time.js
+packed 5.78KB dist/types.d.ts
+packed 11B dist/types.js
+
+/home/vuk/orca/workspaces/signals-collector/dash-v2/web/artifacts/next-host/signals-ui-pack-G7TrN0/signals-ui.tgz
+
+Total files: 66
+Shasum: 9bb027e88985ed266b04ef6528a5e8a587d20f68
+Integrity: sha512-Nm6zOAZTiz2IH[...]UzQC9B1+CEX6A==
+Unpacked size: 0.94MB
+Packed size: 135.47KB
+bun install v1.4.2 (744846f84)
+Resolving dependencies
+Resolved, downloaded and extracted [4]
+Saved lockfile
+
+Saved bun.lock (65 packages) [1480.00ms]
+bun install v1.4.2 (744846f84)
+
++ @types/node@26.6.4
++ @types/react@19.3.0
++ typescript@6.0.3
++ @mcpramen/signals-ui@/home/vuk/orca/workspaces/signals-collector/dash-v2/web/artifacts/next-host/signals-ui-pack-G7TrN0/signals-ui.tgz
++ lucide-react@1.50.0
++ next@16.3.8
++ react@19.3.0
++ react-dom@19.3.0
+
+35 packages installed [84.00ms]
+$ bun --bun next build
+▲ Next.js 16.3.8 (Turbopack)
+✓ Running next.config.mjs took 7ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.1s
+  Running TypeScript ...
+  Finished TypeScript in 917ms ...
+  Collecting page data using 4 workers ...
+  Generating static pages using 4 workers (0/3) ...
+✓ Generating static pages using 4 workers (3/3) in 197ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+└ ○ /_not-found
+
+
+○  (Static)  prerendered as static content
+
+▲ Next.js 16.3.8
+- Local:         http://127.0.0.1:23331
+- Network:       http://127.0.0.1:23331
+✓ Ready in 54ms
+✓ Running next.config.mjs took 7ms
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.

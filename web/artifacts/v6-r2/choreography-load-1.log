@@ -1,0 +1,48 @@
+cold #overview: Tool calls 7 steps, 11.9 fps (slowest-frame cadence 5.7); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+cold #overview: Active users 7 steps, 12.6 fps (slowest-frame cadence 5.7); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+cold #overview: Sessions 6 steps, 14.4 fps (slowest-frame cadence 6.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+cold #overview: Tool success 7 steps, 16.0 fps (slowest-frame cadence 6.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+cold #overview: p95 latency 7 steps, 18.6 fps (slowest-frame cadence 6.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+cold #overview: Context tokens 8 steps, 19.7 fps (slowest-frame cadence 6.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+tools: ordering observed at 2.4 fps, skipped (average 9.6 fps; threshold uses slowest-frame cadence); exact schedules checked
+tools: Advertised 6 steps, 14.3 fps (slowest-frame cadence 7.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+tools: Used 6 steps, 15.8 fps (slowest-frame cadence 8.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+tools: Never called 5 steps, 17.1 fps (slowest-frame cadence 8.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+tools: Retries 7 steps, 17.4 fps (slowest-frame cadence 8.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+tools: Below SLO 7 steps, 17.7 fps (slowest-frame cadence 8.1); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+tools: 6 tile and 5 card schedules checked, 70 chart owners matched; observed margin 0 ms is diagnostic
+adoption: ordering observed at 6.5 fps, skipped (average 25.0 fps; threshold uses slowest-frame cadence); exact schedules checked
+adoption: DAU 9 steps, 30.1 fps (slowest-frame cadence 11.8); step count checked; schedule, monotonicity and terminal checked
+adoption: WAU 6 steps, 30.8 fps (slowest-frame cadence 18.8); step count checked; schedule, monotonicity and terminal checked
+adoption: MAU 7 steps, 29.9 fps (slowest-frame cadence 18.8); step count checked; schedule, monotonicity and terminal checked
+adoption: Stickiness 8 steps, 29.6 fps (slowest-frame cadence 18.8); step count checked; schedule, monotonicity and terminal checked
+adoption: New users 8 steps, 30.9 fps (slowest-frame cadence 18.8); step count checked; schedule, monotonicity and terminal checked
+adoption: D7 retention 8 steps, 33.7 fps (slowest-frame cadence 18.8); step count checked; schedule, monotonicity and terminal checked
+adoption: 6 tile and 5 card schedules checked, 7 chart owners matched; observed margin 0 ms is diagnostic
+cost: ordering observed at 5.9 fps, skipped (average 17.6 fps; threshold uses slowest-frame cadence); exact schedules checked
+cost: Context tokens 8 steps, 23.8 fps (slowest-frame cadence 9.7); step count checked; schedule, monotonicity and terminal checked
+cost: Per call 9 steps, 23.8 fps (slowest-frame cadence 9.7); step count checked; schedule, monotonicity and terminal checked
+cost: Heaviest tool 8 steps, 25.1 fps (slowest-frame cadence 14.9); step count checked; schedule, monotonicity and terminal checked
+cost: Tenants 6 steps, 26.2 fps (slowest-frame cadence 14.9); step count checked; schedule, monotonicity and terminal checked
+cost: Largest payload 6 steps, 24.0 fps (slowest-frame cadence 14.9); step count checked; schedule, monotonicity and terminal checked
+cost: 6 tile and 4 card schedules checked, 11 chart owners matched; observed margin -79 ms is diagnostic
+series: ordering observed at 3.7 fps, skipped; exact schedules checked
+    0ms tiles 0/6 cards 0/5 charts 13/14 running=22
+  377ms tiles 0/6 cards 0/5 charts 14/14 running=82
+ 1021ms tiles 6/6 cards 5/5 charts 14/14 running=66
+ 1482ms tiles 6/6 cards 5/5 charts 14/14 running=22
+ 1996ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 2520ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 3100ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 3551ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 4010ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 4446ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 4883ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 5349ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 5575ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 5815ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 6183ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 6560ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 6977ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 7375ms tiles 6/6 cards 5/5 charts 14/14 running=0
+Choreography QA passed: tiles at 130+55i ms, cards at 300+85i ms capped at 1100 ms, every chart's draw-in scheduled 180 ms behind its own card or tile, count-ups scheduled for 640 ms at their tile entrance with monotonic samples and terminal values checked; early zero, step counts and observed ordering checked only when sampling permits, one run per navigation with nothing on scroll or resize, a 18-frame nominal 100 ms series in artifacts/v6-r2/choreography-load-1/, and the finished page at once under reduced motion.

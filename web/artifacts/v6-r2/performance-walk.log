@@ -1,0 +1,49 @@
+Run 1 overview → adoption: 151.96 ms aggregate (informational); longest task 36.17 ms (budget < 50 ms)
+Run 1 adoption → tools: 213.60 ms aggregate (informational); longest task 72.06 ms (budget < 50 ms) — OUTLIER, over its 50 ms budget; 1 is tolerated under 70 ms
+Run 1 tools → reliability: 162.08 ms aggregate (informational); longest task 41.22 ms (budget < 50 ms)
+Run 1 reliability → sessions: 188.78 ms aggregate (informational); longest task 45.75 ms (budget < 50 ms)
+Run 1 sessions → cost: 150.33 ms aggregate (informational); longest task 33.94 ms (budget < 50 ms)
+Run 1 cost → protocol: 164.04 ms aggregate (informational); longest task 26.44 ms (budget < 50 ms)
+Run 1 protocol → live: 192.92 ms aggregate (informational); longest task 50.62 ms (budget < 60 ms, documented exception against the 50 ms every other transition keeps: the pre-existing Live mount)
+Run 1 live → overview: 162.33 ms aggregate (informational); longest task 43.29 ms (budget < 50 ms)
+Run 1 overview → adoption: 154.72 ms aggregate (informational); longest task 37.25 ms (budget < 50 ms)
+Run 1 adoption → reliability: 154.40 ms aggregate (informational); longest task 31.65 ms (budget < 50 ms)
+Run 2 overview → adoption: 145.89 ms aggregate (informational); longest task 37.37 ms (budget < 50 ms)
+Run 2 adoption → tools: 181.04 ms aggregate (informational); longest task 47.72 ms (budget < 50 ms)
+Run 2 tools → reliability: 157.26 ms aggregate (informational); longest task 26.17 ms (budget < 50 ms)
+Run 2 reliability → sessions: 185.84 ms aggregate (informational); longest task 45.20 ms (budget < 50 ms)
+Run 2 sessions → cost: 148.32 ms aggregate (informational); longest task 31.37 ms (budget < 50 ms)
+Run 2 cost → protocol: 157.71 ms aggregate (informational); longest task 19.39 ms (budget < 50 ms)
+Run 2 protocol → live: 189.57 ms aggregate (informational); longest task 46.28 ms (budget < 60 ms, documented exception against the 50 ms every other transition keeps: the pre-existing Live mount)
+Run 2 live → overview: 161.24 ms aggregate (informational); longest task 42.09 ms (budget < 50 ms)
+Run 2 overview → adoption: 157.08 ms aggregate (informational); longest task 34.53 ms (budget < 50 ms)
+Run 2 adoption → reliability: 143.90 ms aggregate (informational); longest task 19.68 ms (budget < 50 ms)
+Run 3 overview → adoption: 164.13 ms aggregate (informational); longest task 44.14 ms (budget < 50 ms)
+Run 3 adoption → tools: 172.07 ms aggregate (informational); longest task 40.17 ms (budget < 50 ms)
+Run 3 tools → reliability: 154.95 ms aggregate (informational); longest task 27.87 ms (budget < 50 ms)
+Run 3 reliability → sessions: 173.40 ms aggregate (informational); longest task 44.03 ms (budget < 50 ms)
+Run 3 sessions → cost: 148.51 ms aggregate (informational); longest task 31.51 ms (budget < 50 ms)
+Run 3 cost → protocol: 152.81 ms aggregate (informational); longest task 20.82 ms (budget < 50 ms)
+Run 3 protocol → live: 196.47 ms aggregate (informational); longest task 53.03 ms (budget < 60 ms, documented exception against the 50 ms every other transition keeps: the pre-existing Live mount)
+Run 3 live → overview: 142.01 ms aggregate (informational); longest task 31.83 ms (budget < 50 ms)
+Run 3 overview → adoption: 163.62 ms aggregate (informational); longest task 37.99 ms (budget < 50 ms)
+Run 3 adoption → reliability: 137.04 ms aggregate (informational); longest task 20.16 ms (budget < 50 ms)
+Walk, 30 rows: longest task median 37.31 ms, p90 47.72 ms, range 19.39–72.06 ms; 1 over budget (1 tolerated under 70 ms)
+ 97 |   assert(stats.medianMs<longestTaskBudgetMs,`Median longest task ${stats.medianMs.toFixed(2)} ms is not under ${longestTaskBudgetMs} ms: ${JSON.stringify(stats)}`);
+ 98 |   assert(stats.p90Ms<longestTaskBudgetMs,`90th-percentile longest task ${stats.p90Ms.toFixed(2)} ms is not under ${longestTaskBudgetMs} ms: ${JSON.stringify(stats)}`);
+ 99 |  }
+100 |  // And the one-outlier rule everywhere: a shared host is allowed one bad moment, not two,
+101 |  // and never a stall a reader would notice.
+102 |  for(const row of runs)assert(row.longestTaskMs<outlierCeilingMs,`Longest task reached the ${outlierCeilingMs} ms ceiling: ${JSON.stringify(row)}`);
+                             ^
+AssertionError: Longest task reached the 70 ms ceiling: {"run":1,"step":2,"transition":"adoption → tools","mainThreadMs":213.604,"longestTaskMs":72.056,"recalcStyleMs":30.563999999999993,"nodes":5227,"listeners":600,"longestTaskBudgetMs":50}
+ generatedMessage: false,
+     actual: false,
+   expected: true,
+   operator: "==",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /home/vuk/orca/workspaces/signals-collector/dash-v2/web/scripts/performance-qa.mjs:102:24
+
+Bun v1.4.2 (Linux x64)

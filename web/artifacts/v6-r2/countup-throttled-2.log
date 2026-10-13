@@ -1,0 +1,20 @@
+1x: Tool calls 9 steps, 60.0 fps (slowest-frame cadence 56.2); step count checked; schedule, monotonicity and terminal checked
+1x: Active users 10 steps, 60.0 fps (slowest-frame cadence 56.2); step count checked; schedule, monotonicity and terminal checked
+1x: Sessions 9 steps, 60.0 fps (slowest-frame cadence 56.2); step count checked; schedule, monotonicity and terminal checked
+1x: Tool success 9 steps, 60.0 fps (slowest-frame cadence 56.2); step count checked; schedule, monotonicity and terminal checked
+1x: p95 latency 10 steps, 60.0 fps (slowest-frame cadence 56.2); step count checked; schedule, monotonicity and terminal checked
+1x: Context tokens 9 steps, 59.9 fps (slowest-frame cadence 56.2); step count checked; schedule, monotonicity and terminal checked
+8x: Tool calls 6 steps, 25.9 fps (slowest-frame cadence 5.2); step count checked; schedule, monotonicity and terminal checked
+8x: Active users 8 steps, 27.9 fps (slowest-frame cadence 5.2); step count checked; schedule, monotonicity and terminal checked
+8x: Sessions 7 steps, 37.3 fps (slowest-frame cadence 7.8); step count checked; schedule, monotonicity and terminal checked
+8x: Tool success 9 steps, 38.8 fps (slowest-frame cadence 7.8); step count checked; schedule, monotonicity and terminal checked
+8x: p95 latency 9 steps, 46.3 fps (slowest-frame cadence 12.5); step count checked; schedule, monotonicity and terminal checked
+8x: Context tokens 8 steps, 51.0 fps (slowest-frame cadence 12.5); step count checked; schedule, monotonicity and terminal checked
+20x: Tool calls 2 steps, 2.2 fps (slowest-frame cadence 1.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+20x: Active users 2 steps, 2.2 fps (slowest-frame cadence 1.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+20x: Sessions 2 steps, 2.2 fps (slowest-frame cadence 1.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+20x: Tool success 3 steps, 2.7 fps (slowest-frame cadence 1.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+20x: p95 latency 3 steps, 2.7 fps (slowest-frame cadence 1.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+20x: Context tokens 3 steps, 2.7 fps (slowest-frame cadence 1.8); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+[{"rate":1,"rows":[{"label":"Tool calls","steps":9,"sustained":56.179774678907776,"fps":59.98154413586567},{"label":"Active users","steps":10,"sustained":56.179774678907776,"fps":60.0240095952516},{"label":"Sessions","steps":9,"sustained":56.179774678907776,"fps":60.01846722508757},{"label":"Tool success","steps":9,"sustained":56.179774678907776,"fps":60.01846722508757},{"label":"p95 latency","steps":10,"sustained":56.179774678907776,"fps":59.99700016715692},{"label":"Context tokens","steps":9,"sustained":56.179774678907776,"fps":59.93545414389393}]},{"rate":8,"rows":[{"label":"Tool calls","steps":6,"sustained":5.194805194805195,"fps":25.900025898426563},{"label":"Active users","steps":8,"sustained":5.194805194805195,"fps":27.936353700148317},{"label":"Sessions","steps":7,"sustained":7.8308535601142975,"fps":37.254621013510985},{"label":"Tool success","steps":9,"sustained":7.8308535601142975,"fps":38.7804225753533},{"label":"p95 latency","steps":9,"sustained":12.547051435404141,"fps":46.29629630289002},{"label":"Context tokens","steps":8,"sustained":12.547051435404141,"fps":51.028065439641615}]},{"rate":20,"rows":[{"label":"Tool calls","steps":2,"sustained":1.8416206261510129,"fps":2.2279157846649937},{"label":"Active users","steps":2,"sustained":1.8416206261510129,"fps":2.2279157846649937},{"label":"Sessions","steps":2,"sustained":1.8416206261510129,"fps":2.2279157846649937},{"label":"Tool success","steps":3,"sustained":1.8416206261510129,"fps":2.7183762235042086},{"label":"p95 latency","steps":3,"sustained":1.8416206261510129,"fps":2.7183762235042086},{"label":"Context tokens","steps":3,"sustained":1.8416206261510129,"fps":2.7183762235042086}]}]
+review-v6-r2 countup-frames probe passed

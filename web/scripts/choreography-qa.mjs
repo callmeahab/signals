@@ -81,9 +81,9 @@ const entrances = page => page.evaluate(() => {
 });
 // The count-up is the one part of the choreography that is text rather than motion, so
 // it is sampled rather than read off an animation: a frame loop records a tile's
-// headline whenever it changes, with the timestamp, into `globalThis.__counts`. It is
+// headline whenever it changes, with the timestamp, into a snapshot of connected tiles. It is
 // installed before the document runs, so a cold load is covered from its first frame,
-// and `__countsFrom(ms)` restarts it for a navigation.
+// and `__countsFrom()` restarts it for a navigation.
 const counts = page => page.evaluate(() => globalThis.__countSnapshot());
 // Every chart built, every entrance over: the point at which "nothing is left running".
 const settle = page => page.waitForFunction(() => {
@@ -148,7 +148,7 @@ try {
 
   // One navigation, read as soon as the new screen has mounted.
   for (const screen of ['tools', 'adoption', 'cost']) {
-    await page.evaluate(() => { globalThis.__entrances = []; globalThis.__countsFrom(2400); });
+    await page.evaluate(() => { globalThis.__entrances = []; globalThis.__countsFrom(); });
     await page.locator(`nav a[href="#${screen}"]`).click();
     await mounted(page);
     const { rows, unresolved } = await entrances(page);

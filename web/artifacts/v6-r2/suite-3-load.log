@@ -1,0 +1,181 @@
+$ bun scripts/test.mjs
+Project status QA passed: existing reads drive active/quiet/error states; validation, missing resources and rate limits do not falsely mark the collector unreachable; auth, server and network failures do; recovery and range scoping work.
+sampler unit: Calls 3 steps, 20.0 fps (slowest-frame cadence 20.0); step count checked; schedule, monotonicity and terminal checked
+sampler unit: Calls 1 steps, 1.4 fps (slowest-frame cadence 1.4); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+sampler unit: Calls 2 steps, 20.0 fps (slowest-frame cadence 20.0); step count checked; schedule, monotonicity and terminal checked
+sampler unit: Calls 3 steps, 20.0 fps (slowest-frame cadence 20.0); step count checked; schedule, monotonicity and terminal checked
+sampler unit: Calls 3 steps, 1.4 fps (slowest-frame cadence 1.4); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+sampler unit: Calls 4 steps, 1.4 fps (slowest-frame cadence 1.4); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+sampler unit: Calls 3 steps, 1.4 fps (slowest-frame cadence 1.4); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+Count sampling guards passed: low fps only relaxes observations, never schedules, monotonicity or terminal values.
+Snippet UUID QA passed: randomUUID deleted, UUIDv7 timestamp/version/variant, missing and throwing crypto fallbacks.
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+Demo contract shapes passed: 8 analytics routes × 4 ranges × 3 demo projects (complete, truncated catalogue, fresh window), all session timelines, missing/extra keys and type-drift guards.
+Truncated catalogue QA passed: nullable dead, required completeness, retained calls and safe Tools/Overview rendering.
+Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.
+Client share QA passed: 27 clients, repeated versions, coherent calls/sessions and null shares without calls.
+review-r1 probe passed
+review-r2 probe passed
+
+  VITE v8.3.2  ready in 315 ms
+
+  ➜  Local:   http://127.0.0.1:23330/
+Visual QA passed: v3 chart SVG/table twins on every screen with nothing scrolled, no unpainted card in any capture, unmasked drawer captures, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, 390/1280/1440 widths, three-column tiles, 108px sparklines, full-row entity lists, 27-client legend, zero-call arcs, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+poll: 19 charts had painted, 19 of them still on screen, 19 redrawn parts, all 19 finished
+Live QA passed: 60000 ms refresh observed on the active screen, skeleton held 200/400 ms, nothing while the tab is hidden, an immediate refresh on return and on a range change, no dim, no replayed entrance, no count-up from zero, no freshness badge, and no polling under __SIGNALS_VISUAL_QA__.
+cold #overview: Tool calls 8 steps, 21.0 fps (slowest-frame cadence 9.1); step count checked; schedule, monotonicity and terminal checked
+cold #overview: Active users 8 steps, 22.9 fps (slowest-frame cadence 11.3); step count checked; schedule, monotonicity and terminal checked
+cold #overview: Sessions 8 steps, 23.3 fps (slowest-frame cadence 11.3); step count checked; schedule, monotonicity and terminal checked
+cold #overview: Tool success 8 steps, 26.1 fps (slowest-frame cadence 16.3); step count checked; schedule, monotonicity and terminal checked
+cold #overview: p95 latency 9 steps, 27.7 fps (slowest-frame cadence 16.3); step count checked; schedule, monotonicity and terminal checked
+cold #overview: Context tokens 9 steps, 30.5 fps (slowest-frame cadence 20.4); step count checked; schedule, monotonicity and terminal checked
+tools: ordering observed at 3.2 fps, skipped (average 12.3 fps; threshold uses slowest-frame cadence); exact schedules checked
+tools: Advertised 7 steps, 23.2 fps (slowest-frame cadence 9.1); step count checked; schedule, monotonicity and terminal checked
+tools: Used 8 steps, 26.0 fps (slowest-frame cadence 9.1); step count checked; schedule, monotonicity and terminal checked
+tools: Never called 8 steps, 27.6 fps (slowest-frame cadence 9.1); step count checked; schedule, monotonicity and terminal checked
+tools: Retries 9 steps, 31.6 fps (slowest-frame cadence 11.7); step count checked; schedule, monotonicity and terminal checked
+tools: Below SLO 8 steps, 34.6 fps (slowest-frame cadence 20.8); step count checked; schedule, monotonicity and terminal checked
+tools: 6 tile and 5 card schedules checked, 70 chart owners matched; observed margin -81 ms is diagnostic
+adoption: ordering observed at 5.5 fps, skipped (average 17.0 fps; threshold uses slowest-frame cadence); exact schedules checked
+adoption: DAU 8 steps, 20.9 fps (slowest-frame cadence 9.0); step count checked; schedule, monotonicity and terminal checked
+adoption: WAU 7 steps, 24.1 fps (slowest-frame cadence 12.2); step count checked; schedule, monotonicity and terminal checked
+adoption: MAU 7 steps, 26.3 fps (slowest-frame cadence 12.2); step count checked; schedule, monotonicity and terminal checked
+adoption: Stickiness 9 steps, 27.3 fps (slowest-frame cadence 12.2); step count checked; schedule, monotonicity and terminal checked
+adoption: New users 9 steps, 29.7 fps (slowest-frame cadence 12.2); step count checked; schedule, monotonicity and terminal checked
+adoption: D7 retention 8 steps, 30.6 fps (slowest-frame cadence 12.2); step count checked; schedule, monotonicity and terminal checked
+adoption: 6 tile and 5 card schedules checked, 7 chart owners matched; observed margin 0 ms is diagnostic
+cost: ordering observed at 5.8 fps, skipped (average 18.2 fps; threshold uses slowest-frame cadence); exact schedules checked
+cost: Context tokens 8 steps, 21.6 fps (slowest-frame cadence 13.1); step count checked; schedule, monotonicity and terminal checked
+cost: Per call 8 steps, 22.1 fps (slowest-frame cadence 13.1); step count checked; schedule, monotonicity and terminal checked
+cost: Heaviest tool 8 steps, 22.3 fps (slowest-frame cadence 13.1); step count checked; schedule, monotonicity and terminal checked
+cost: Tenants 6 steps, 23.4 fps (slowest-frame cadence 13.1); step count checked; schedule, monotonicity and terminal checked
+cost: Largest payload 6 steps, 24.4 fps (slowest-frame cadence 13.1); step count checked; schedule, monotonicity and terminal checked
+cost: 6 tile and 4 card schedules checked, 11 chart owners matched; observed margin -86 ms is diagnostic
+series: ordering observed at 3.5 fps, skipped; exact schedules checked
+    0ms tiles 0/6 cards 0/5 charts 13/14 running=22
+  358ms tiles 0/6 cards 0/5 charts 14/14 running=82
+  750ms tiles 4/6 cards 1/5 charts 14/14 running=79
+ 1128ms tiles 6/6 cards 5/5 charts 14/14 running=62
+ 1358ms tiles 6/6 cards 5/5 charts 14/14 running=38
+ 1590ms tiles 6/6 cards 5/5 charts 14/14 running=19
+ 1840ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 2234ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 2714ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 3189ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 3630ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 4034ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 4415ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 4827ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 5277ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 5809ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 6271ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 6692ms tiles 6/6 cards 5/5 charts 14/14 running=0
+Choreography QA passed: tiles at 130+55i ms, cards at 300+85i ms capped at 1100 ms, every chart's draw-in scheduled 180 ms behind its own card or tile, count-ups scheduled for 640 ms at their tile entrance with monotonic samples and terminal values checked; early zero, step counts and observed ordering checked only when sampling permits, one run per navigation with nothing on scroll or resize, a 18-frame nominal 100 ms series in artifacts/v5/choreography/, and the finished page at once under reduced motion.
+Cumulative layout shift: 0.0020 after an ordinary reload, 0.0020 after a hard one (["NAV.","DIV.topbar-actions"], the webfont swap)
+Reload series: 18 frames at ~100 ms into artifacts/v4/reload/, workspace strip [68]px once the webfonts loaded (1 earlier frame(s) mid-swap: [68]px)
+    0ms old  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  354ms new  shell=y strip=y(68px) cards=4 headingTop=37 heading="Overview" panels=0 connecting=no reading=no
+ 1362ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1639ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1875ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2091ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2346ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2506ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2712ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2960ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 3288ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 3559ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 3852ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 4078ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 4316ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 4622ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 4922ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 5201ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+Reload series passed: no Connecting or Reading text screen, no login card, the shell and heading arrive with the content, the workspace strip holds its height once the webfonts have loaded, and an ordinary reload reports zero layout shift.
+v6 QA passed: corner geometry, hover/sticky card fields, typography, unit, mobile sheet, project states, icon size, badge absence, skeleton <=1 and none after content, cold/switch/reload 100 ms series in both themes with no white frames.
+ok   the first project's client mix has 3 legend rows
+ok   Northwind MCP · 27 clients: its client mix is not the previous project's 3 rows (got 0) or the screen says so (3 notices) — a failed adoption read keeps the old project's donut and legend silently
+     selected="Northwind MCP · first week" eyebrow="SIGNALS / northwind-fresh" tool calls 48.2K -> undefined
+ok   Northwind MCP · first week: the Tool calls tile does not still read the previous project's 48.2K while the page says "SIGNALS / northwind-fresh"
+     range="90 days" tool calls 48.2K -> undefined
+ok   range 90 days: the Tool calls tile does not still read the 7-day answer 48.2K
+ok   overview: failed refresh retains this view's headline
+ok   overview: failed refresh dims its retained answer
+ok   overview: failed refresh has a notice
+ok   overview: another failure after changing range discards the held answer
+ok   adoption: failed refresh retains this view's headline
+ok   adoption: failed refresh dims its retained answer
+ok   adoption: failed refresh has a notice
+ok   adoption: another failure after changing range discards the held answer
+review-v6-r1 stale-project probe passed
+ok   1440px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   1251px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   1249px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   1024px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   900px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   768px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   601px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   600px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:grid) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   390px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:grid) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   Tool success: the trend readout has rows ({"headline":"99.1%","readouts":["99.2%","99.1%","99.1%","99.2%","98.7%"]})
+ok   Tool success: the trend readout reads like its own headline "99.1%"; got ["99.2%","99.1%","99.1%"] — unitFormat('%') inserts a space the pct() headline never has
+ok   Context tokens: the trend readout has rows ({"headline":"≈ 25.2M","readouts":["≈ 4.8M","≈ 6.3M","≈ 6.1M","≈ 4.3M","≈ 3.6M"]})
+ok   Context tokens: the trend readout keeps the estimate marker of its headline "≈ 25.2M"; got ["≈ 4.8M","≈ 6.3M","≈ 6.1M"] — docs/analytics.md calls every token figure an estimate, never a provider invoice
+ok   the screen still polls: 5 loads before the interval, 9 after
+ok   focusing the info button opens its hover card
+ok   the info button still opens on focus after a press that was dragged off it (pointerFocus is never cleared without a click)
+ok   1440x620: no hover card is clipped by the viewport; worst is {"over":0,"title":"Alert rules","box":{"x":1092,"y":249,"width":340,"height":362.75}}
+ok   1440x1000: no hover card is clipped by the viewport; worst is {"over":0,"title":"Alert rules","box":{"x":1092,"y":349,"width":340,"height":362.75}}
+ok   390x844: no hover card is clipped by the viewport; worst is {"over":0,"title":"Alert rules","box":{"x":8,"y":473,"width":374,"height":362.75}}
+review-v6-r1 probe passed
+ok   the screen's content is still pending while this is measured (0 cards/tiles)
+ok   the footer is out of the viewport while the screen has no content: strip 68px, footer top 1157px in a 1000px viewport — the -157px of it that are visible become a layout shift the moment the content arrives
+     reload shifts 0.0020: [{"value":0.0019933412905092595,"at":752,"sources":["NAV.","DIV.topbar-actions"]}]
+ok   cumulative layout shift after an ordinary reload is under the 0.01 gate scripts/reload-series.mjs keeps: 0.0020
+review-v6-r1 reload-cls probe passed
+ok   the primary 90-day answer painted (Active users reads "14,066")
+     before: {"Tool calls":"48.2K","Active users":"1,094","Sessions":"6.5K","Tool success":"99.1%","p95 latency":"640 ms","Context tokens":"≈ 25.2M"}
+     after : {"Tool calls":"619.9K","Active users":"14,066","Sessions":"83.3K","Tool success":"99.1%","p95 latency":"640 ms","Context tokens":"≈ 323.7M"}
+ok   Tool calls: the headline the primary overview answer carries survives a failed supporting `tools` read; got "619.9K"
+ok   Tool success: the headline the primary overview answer carries survives a failed supporting `tools` read; got "99.1%"
+ok   Context tokens: the headline the primary overview answer carries survives a failed supporting `tools` read; got "≈ 323.7M"
+review-v6-r2 supporting-blanking probe passed
+     #sessions "Cancelled"
+       body     : "Cancellations are the client's decision, usually about how long it was prepared to wait."
+       computed : "Calls the client abandoned mid-flight in the window."
+     #sessions "With errors"
+       body     : "Sessions containing failed calls."
+       computed : "Sessions in the window containing at least one failed call."
+     #sessions "stdio"
+       body     : "Stdio sessions connect clients to a locally launched server, so network availability probes do not cover them."
+       computed : "Sessions in the window that used stdio, which means a locally launched server: desktop clients and development."
+     #sessions "Open on this page"
+       body     : "Open sessions have no observed end event; they may be long-lived clients or clients that crashed without closing."
+       computed : "Sessions on this page with no session.ended event yet."
+     #reliability "Sessions with errors"
+       body     : "Sessions with errors measures how many conversations included a failed call."
+       computed : "Sessions in the window with at least one failed call, and their share of all sessions."
+     #reliability "Authentication failures"
+       body     : "Authentication failures counts requests rejected before a session could begin."
+       computed : "Requests rejected before a session existed, grouped by reason — invalid, expired, missing or out of scope."
+     #cost "Per call"
+       body     : "Tokens per call estimates the context added by an average tool response."
+       computed : "Estimated tokens the average call adds to the context, that is total estimated tokens divided by calls."
+     #protocol "Elicitation"
+       body     : "Elicitation counts requests for user input; a blank value means the SDKs have not reported elicitation actions yet."
+       computed : "Elicitation requests — your server asking the user for input — observed in the window."
+     #live "Your server, in the moment"
+       body     : "The live event stream shows the latest activity reported by your server."
+       computed : "Every event as it arrives, newest first, capped at the latest 200."
+ok   every hover card's first line says what the number is; 0 open with a pronoun that has no antecedent: []
+ok   no hover card's body is a bare label instead of a sentence: []
+review-v6-r2 hover-copy probe passed
+ok   the 7-day answer is painted first: 3 legend rows, 7 Active users trend rows
+     range="90 days" legend 3 -> 0, donuts 0, Active users trend rows 7 -> 0
+     notices: ["Could not load adoption data. No data available for this view. Injected adoption failure Retry","Could not load adoption data. No data available for this view. Injected adoption failure Retry","Could not load adoption data. No data available for this view. Injected adoption failure Retry"]
+ok   range 90 days: the Client mix card does not still show the 7-day answer (0 legend rows, 0 donuts)
+ok   range 90 days: the Active users trend does not still show the 7-day series (0 rows: [])
+ok   range 90 days: every surface the failed adoption read feeds says so (3 notices)
+ok   range 90 days: no notice offers the previous range's answer: ["Could not load adoption data. No data available for this view. Injected adoption failure Retry","Could not load adoption data. No data available for this view. Injected adoption failure Retry","Could not load adoption data. No data available for this view. Injected adoption failure Retry"]
+ok   range 90 days: the primary answer still paints its own tiles (Tool calls reads "619.9K")
+review-v6-r2 supporting-range probe passed

@@ -1,0 +1,359 @@
+{
+  "theme": "light",
+  "repeats": 3,
+  "longestTaskBudgetMs": 50,
+  "longestTaskExceptionsMs": {
+    "protocol → live": 60
+  },
+  "aggregateInformational": true,
+  "firstSwitchMedianMs": 151.96,
+  "medianMs": 37.3065,
+  "p90Ms": 47.715,
+  "minMs": 19.385,
+  "maxMs": 72.056,
+  "outlierCeilingMs": 70,
+  "outliersAllowed": 1,
+  "outliers": [
+    {
+      "run": 1,
+      "transition": "adoption → tools",
+      "longestTaskMs": 72.056,
+      "longestTaskBudgetMs": 50
+    }
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "step": 1,
+      "transition": "overview → adoption",
+      "mainThreadMs": 151.96,
+      "longestTaskMs": 36.167,
+      "recalcStyleMs": 20.347,
+      "nodes": 3208,
+      "listeners": 421,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 1,
+      "step": 2,
+      "transition": "adoption → tools",
+      "mainThreadMs": 213.604,
+      "longestTaskMs": 72.056,
+      "recalcStyleMs": 30.563999999999993,
+      "nodes": 5227,
+      "listeners": 600,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 1,
+      "step": 3,
+      "transition": "tools → reliability",
+      "mainThreadMs": 162.08299999999997,
+      "longestTaskMs": 41.216,
+      "recalcStyleMs": 32.574000000000005,
+      "nodes": 6375,
+      "listeners": 817,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 1,
+      "step": 4,
+      "transition": "reliability → sessions",
+      "mainThreadMs": 188.78499999999997,
+      "longestTaskMs": 45.749,
+      "recalcStyleMs": 34.67299999999998,
+      "nodes": 7852,
+      "listeners": 1124,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 1,
+      "step": 5,
+      "transition": "sessions → cost",
+      "mainThreadMs": 150.32599999999996,
+      "longestTaskMs": 33.941,
+      "recalcStyleMs": 33.15899999999999,
+      "nodes": 8938,
+      "listeners": 1274,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 1,
+      "step": 6,
+      "transition": "cost → protocol",
+      "mainThreadMs": 164.03900000000004,
+      "longestTaskMs": 26.442,
+      "recalcStyleMs": 46.89499999999997,
+      "nodes": 10091,
+      "listeners": 1490,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 1,
+      "step": 7,
+      "transition": "protocol → live",
+      "mainThreadMs": 192.91900000000007,
+      "longestTaskMs": 50.618,
+      "recalcStyleMs": 15.346000000000027,
+      "nodes": 6676,
+      "listeners": 936,
+      "longestTaskBudgetMs": 60,
+      "budgetException": "pre-existing Live mount, accepted; see \"Pre-existing: Live mount\" in reports/dash-v4-ux.md"
+    },
+    {
+      "run": 1,
+      "step": 8,
+      "transition": "live → overview",
+      "mainThreadMs": 162.32699999999988,
+      "longestTaskMs": 43.293,
+      "recalcStyleMs": 24.29300000000001,
+      "nodes": 8582,
+      "listeners": 1102,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 1,
+      "step": 9,
+      "transition": "overview → adoption",
+      "mainThreadMs": 154.72299999999996,
+      "longestTaskMs": 37.248,
+      "recalcStyleMs": 27.33800000000003,
+      "nodes": 10040,
+      "listeners": 1270,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 1,
+      "step": 10,
+      "transition": "adoption → reliability",
+      "mainThreadMs": 154.4019999999997,
+      "longestTaskMs": 31.651,
+      "recalcStyleMs": 37.383,
+      "nodes": 11187,
+      "listeners": 1489,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 2,
+      "step": 1,
+      "transition": "overview → adoption",
+      "mainThreadMs": 145.88600000000002,
+      "longestTaskMs": 37.365,
+      "recalcStyleMs": 19.183,
+      "nodes": 3206,
+      "listeners": 421,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 2,
+      "step": 2,
+      "transition": "adoption → tools",
+      "mainThreadMs": 181.043,
+      "longestTaskMs": 47.715,
+      "recalcStyleMs": 25.833000000000002,
+      "nodes": 5225,
+      "listeners": 600,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 2,
+      "step": 3,
+      "transition": "tools → reliability",
+      "mainThreadMs": 157.259,
+      "longestTaskMs": 26.172,
+      "recalcStyleMs": 32.769999999999996,
+      "nodes": 6373,
+      "listeners": 817,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 2,
+      "step": 4,
+      "transition": "reliability → sessions",
+      "mainThreadMs": 185.83800000000005,
+      "longestTaskMs": 45.203,
+      "recalcStyleMs": 37.34000000000001,
+      "nodes": 7850,
+      "listeners": 1124,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 2,
+      "step": 5,
+      "transition": "sessions → cost",
+      "mainThreadMs": 148.3200000000001,
+      "longestTaskMs": 31.373,
+      "recalcStyleMs": 33.00500000000001,
+      "nodes": 8936,
+      "listeners": 1274,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 2,
+      "step": 6,
+      "transition": "cost → protocol",
+      "mainThreadMs": 157.70799999999997,
+      "longestTaskMs": 19.385,
+      "recalcStyleMs": 46.95199999999999,
+      "nodes": 10089,
+      "listeners": 1490,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 2,
+      "step": 7,
+      "transition": "protocol → live",
+      "mainThreadMs": 189.57099999999994,
+      "longestTaskMs": 46.28,
+      "recalcStyleMs": 17.793000000000003,
+      "nodes": 8654,
+      "listeners": 1018,
+      "longestTaskBudgetMs": 60,
+      "budgetException": "pre-existing Live mount, accepted; see \"Pre-existing: Live mount\" in reports/dash-v4-ux.md"
+    },
+    {
+      "run": 2,
+      "step": 8,
+      "transition": "live → overview",
+      "mainThreadMs": 161.238,
+      "longestTaskMs": 42.092,
+      "recalcStyleMs": 25.82499999999999,
+      "nodes": 10560,
+      "listeners": 1184,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 2,
+      "step": 9,
+      "transition": "overview → adoption",
+      "mainThreadMs": 157.07899999999998,
+      "longestTaskMs": 34.526,
+      "recalcStyleMs": 28.693000000000023,
+      "nodes": 12018,
+      "listeners": 1352,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 2,
+      "step": 10,
+      "transition": "adoption → reliability",
+      "mainThreadMs": 143.8970000000004,
+      "longestTaskMs": 19.681,
+      "recalcStyleMs": 40.239999999999995,
+      "nodes": 13165,
+      "listeners": 1571,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 3,
+      "step": 1,
+      "transition": "overview → adoption",
+      "mainThreadMs": 164.128,
+      "longestTaskMs": 44.14,
+      "recalcStyleMs": 20.792,
+      "nodes": 3206,
+      "listeners": 421,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 3,
+      "step": 2,
+      "transition": "adoption → tools",
+      "mainThreadMs": 172.072,
+      "longestTaskMs": 40.169,
+      "recalcStyleMs": 27.718,
+      "nodes": 5225,
+      "listeners": 600,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 3,
+      "step": 3,
+      "transition": "tools → reliability",
+      "mainThreadMs": 154.949,
+      "longestTaskMs": 27.866,
+      "recalcStyleMs": 33.04,
+      "nodes": 6373,
+      "listeners": 817,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 3,
+      "step": 4,
+      "transition": "reliability → sessions",
+      "mainThreadMs": 173.39500000000007,
+      "longestTaskMs": 44.027,
+      "recalcStyleMs": 33.419000000000004,
+      "nodes": 7850,
+      "listeners": 1124,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 3,
+      "step": 5,
+      "transition": "sessions → cost",
+      "mainThreadMs": 148.5129999999999,
+      "longestTaskMs": 31.513,
+      "recalcStyleMs": 32.635999999999996,
+      "nodes": 8936,
+      "listeners": 1274,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 3,
+      "step": 6,
+      "transition": "cost → protocol",
+      "mainThreadMs": 152.80700000000013,
+      "longestTaskMs": 20.824,
+      "recalcStyleMs": 44.128,
+      "nodes": 10089,
+      "listeners": 1490,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 3,
+      "step": 7,
+      "transition": "protocol → live",
+      "mainThreadMs": 196.46799999999988,
+      "longestTaskMs": 53.026,
+      "recalcStyleMs": 15.96599999999998,
+      "nodes": 6745,
+      "listeners": 996,
+      "longestTaskBudgetMs": 60,
+      "budgetException": "pre-existing Live mount, accepted; see \"Pre-existing: Live mount\" in reports/dash-v4-ux.md"
+    },
+    {
+      "run": 3,
+      "step": 8,
+      "transition": "live → overview",
+      "mainThreadMs": 142.00500000000017,
+      "longestTaskMs": 31.833,
+      "recalcStyleMs": 22.33199999999996,
+      "nodes": 8651,
+      "listeners": 1162,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 3,
+      "step": 9,
+      "transition": "overview → adoption",
+      "mainThreadMs": 163.624,
+      "longestTaskMs": 37.994,
+      "recalcStyleMs": 28.79499999999996,
+      "nodes": 10109,
+      "listeners": 1330,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 3,
+      "step": 10,
+      "transition": "adoption → reliability",
+      "mainThreadMs": 137.04300000000023,
+      "longestTaskMs": 20.155,
+      "recalcStyleMs": 36.71599999999997,
+      "nodes": 11256,
+      "listeners": 1549,
+      "longestTaskBudgetMs": 50
+    }
+  ]
+}

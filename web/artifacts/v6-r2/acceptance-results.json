@@ -1,0 +1,173 @@
+[
+  {
+    "name": "suite-1",
+    "command": [
+      "bun",
+      "run",
+      "test"
+    ],
+    "environment": {},
+    "exit": 0
+  },
+  {
+    "name": "suite-2",
+    "command": [
+      "bun",
+      "run",
+      "test"
+    ],
+    "environment": {},
+    "exit": 0
+  },
+  {
+    "name": "countup-load-1",
+    "command": [
+      "bun",
+      "test/review-v6-r2/countup-frames.mjs"
+    ],
+    "environment": {
+      "THROTTLE_RATES": "1"
+    },
+    "exit": 0
+  },
+  {
+    "name": "choreography-load-1",
+    "command": [
+      "bun",
+      "scripts/choreography-qa.mjs"
+    ],
+    "environment": {
+      "CHOREOGRAPHY_OUT": "artifacts/v6-r2/choreography-load-1"
+    },
+    "exit": 0
+  },
+  {
+    "name": "countup-load-2",
+    "command": [
+      "bun",
+      "test/review-v6-r2/countup-frames.mjs"
+    ],
+    "environment": {
+      "THROTTLE_RATES": "1"
+    },
+    "exit": 0
+  },
+  {
+    "name": "choreography-load-2",
+    "command": [
+      "bun",
+      "scripts/choreography-qa.mjs"
+    ],
+    "environment": {
+      "CHOREOGRAPHY_OUT": "artifacts/v6-r2/choreography-load-2"
+    },
+    "exit": 0
+  },
+  {
+    "name": "countup-load-3",
+    "command": [
+      "bun",
+      "test/review-v6-r2/countup-frames.mjs"
+    ],
+    "environment": {
+      "THROTTLE_RATES": "1"
+    },
+    "exit": 0
+  },
+  {
+    "name": "choreography-load-3",
+    "command": [
+      "bun",
+      "scripts/choreography-qa.mjs"
+    ],
+    "environment": {
+      "CHOREOGRAPHY_OUT": "artifacts/v6-r2/choreography-load-3"
+    },
+    "exit": 0
+  },
+  {
+    "name": "suite-3-load",
+    "command": [
+      "bun",
+      "run",
+      "test"
+    ],
+    "environment": {},
+    "exit": 0
+  },
+  {
+    "name": "countup-throttled-1",
+    "command": [
+      "bun",
+      "test/review-v6-r2/countup-frames.mjs"
+    ],
+    "environment": {
+      "THROTTLE_RATES": "1,8,20"
+    },
+    "exit": 0
+  },
+  {
+    "name": "countup-throttled-2",
+    "command": [
+      "bun",
+      "test/review-v6-r2/countup-frames.mjs"
+    ],
+    "environment": {
+      "THROTTLE_RATES": "1,8,20"
+    },
+    "exit": 0
+  },
+  {
+    "name": "countup-throttled-3",
+    "command": [
+      "bun",
+      "test/review-v6-r2/countup-frames.mjs"
+    ],
+    "environment": {
+      "THROTTLE_RATES": "1,8,20"
+    },
+    "exit": 0
+  },
+  {
+    "name": "visual-4",
+    "command": [
+      "bun",
+      "scripts/visual-qa.mjs"
+    ],
+    "environment": {},
+    "exit": 0
+  },
+  {
+    "name": "performance-single",
+    "command": [
+      "bun",
+      "scripts/performance-qa.mjs"
+    ],
+    "environment": {
+      "PERFORMANCE_REPEATS": "15"
+    },
+    "exit": 0
+  },
+  {
+    "name": "performance-walk",
+    "command": [
+      "bun",
+      "scripts/performance-qa.mjs",
+      "--walk"
+    ],
+    "environment": {},
+    "exit": 1
+  },
+  {
+    "name": "performance-walk-repeat",
+    "command": [
+      "bun",
+      "scripts/performance-qa.mjs",
+      "--walk"
+    ],
+    "environment": {
+      "PERFORMANCE_TRACE_STEP": "2"
+    },
+    "exit": 0
+  }
+]

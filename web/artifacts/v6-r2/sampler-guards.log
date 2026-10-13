@@ -1,0 +1,8 @@
+sampler unit: Calls 3 steps, 20.0 fps (slowest-frame cadence 20.0); step count checked; schedule, monotonicity and terminal checked
+sampler unit: Calls 1 steps, 1.4 fps (slowest-frame cadence 1.4); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+sampler unit: Calls 2 steps, 20.0 fps (slowest-frame cadence 20.0); step count checked; schedule, monotonicity and terminal checked
+sampler unit: Calls 3 steps, 20.0 fps (slowest-frame cadence 20.0); step count checked; schedule, monotonicity and terminal checked
+sampler unit: Calls 3 steps, 1.4 fps (slowest-frame cadence 1.4); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+sampler unit: Calls 4 steps, 1.4 fps (slowest-frame cadence 1.4); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+sampler unit: Calls 3 steps, 1.4 fps (slowest-frame cadence 1.4); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+Count sampling guards passed: low fps only relaxes observations, never schedules, monotonicity or terminal values.

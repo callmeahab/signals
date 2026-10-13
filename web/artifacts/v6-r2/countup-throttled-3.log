@@ -1,0 +1,20 @@
+1x: Tool calls 9 steps, 60.0 fps (slowest-frame cadence 55.6); step count checked; schedule, monotonicity and terminal checked
+1x: Active users 10 steps, 59.5 fps (slowest-frame cadence 45.7); step count checked; schedule, monotonicity and terminal checked
+1x: Sessions 9 steps, 60.0 fps (slowest-frame cadence 45.7); step count checked; schedule, monotonicity and terminal checked
+1x: Tool success 9 steps, 59.9 fps (slowest-frame cadence 45.7); step count checked; schedule, monotonicity and terminal checked
+1x: p95 latency 10 steps, 59.9 fps (slowest-frame cadence 45.7); step count checked; schedule, monotonicity and terminal checked
+1x: Context tokens 9 steps, 59.9 fps (slowest-frame cadence 45.7); step count checked; schedule, monotonicity and terminal checked
+8x: Tool calls 6 steps, 24.6 fps (slowest-frame cadence 4.9); step count checked; schedule, monotonicity and terminal checked
+8x: Active users 7 steps, 26.7 fps (slowest-frame cadence 4.9); step count checked; schedule, monotonicity and terminal checked
+8x: Sessions 7 steps, 36.4 fps (slowest-frame cadence 8.1); step count checked; schedule, monotonicity and terminal checked
+8x: Tool success 8 steps, 38.0 fps (slowest-frame cadence 8.1); step count checked; schedule, monotonicity and terminal checked
+8x: p95 latency 8 steps, 45.3 fps (slowest-frame cadence 13.0); step count checked; schedule, monotonicity and terminal checked
+8x: Context tokens 8 steps, 50.3 fps (slowest-frame cadence 13.0); step count checked; schedule, monotonicity and terminal checked
+20x: Tool calls 3 steps, 3.6 fps (slowest-frame cadence 2.5); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+20x: Active users 3 steps, 3.6 fps (slowest-frame cadence 2.5); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+20x: Sessions 3 steps, 3.8 fps (slowest-frame cadence 2.5); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+20x: Tool success 4 steps, 3.8 fps (slowest-frame cadence 2.5); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+20x: p95 latency 4 steps, 3.8 fps (slowest-frame cadence 2.5); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+20x: Context tokens 4 steps, 3.8 fps (slowest-frame cadence 2.5); step count skipped below 20 fps; schedule, monotonicity and terminal checked
+[{"rate":1,"rows":[{"label":"Tool calls","steps":9,"sustained":55.55555555555556,"fps":59.98154413586567},{"label":"Active users","steps":10,"sustained":45.6621002577773,"fps":59.478420004825146},{"label":"Sessions","steps":9,"sustained":45.6621002577773,"fps":60.01500375093774},{"label":"Tool success","steps":9,"sustained":45.6621002577773,"fps":59.94466644854726},{"label":"p95 latency","steps":10,"sustained":45.6621002577773,"fps":59.8710469669792},{"label":"Context tokens","steps":9,"sustained":45.6621002577773,"fps":59.90714392263502}]},{"rate":8,"rows":[{"label":"Tool calls","steps":6,"sustained":4.885197849374967,"fps":24.582740333182286},{"label":"Active users","steps":7,"sustained":4.885197849374967,"fps":26.737967915988047},{"label":"Sessions","steps":7,"sustained":8.11030008423949,"fps":36.427218420132576},{"label":"Tool success","steps":8,"sustained":8.11030008423949,"fps":38.04347826086956},{"label":"p95 latency","steps":8,"sustained":12.953367867646831,"fps":45.30353367236448},{"label":"Context tokens","steps":8,"sustained":12.953367867646831,"fps":50.266565118050266}]},{"rate":20,"rows":[{"label":"Tool calls","steps":3,"sustained":2.4691358024691357,"fps":3.64785992281351},{"label":"Active users","steps":3,"sustained":2.4691358024691357,"fps":3.64785992281351},{"label":"Sessions","steps":3,"sustained":2.4691358024691357,"fps":3.7896731406916153},{"label":"Tool success","steps":4,"sustained":2.4691358024691357,"fps":3.7896731406916153},{"label":"p95 latency","steps":4,"sustained":2.4691358024691357,"fps":3.7896731406916153},{"label":"Context tokens","steps":4,"sustained":2.4691358024691357,"fps":3.7896731406916153}]}]
+review-v6-r2 countup-frames probe passed
