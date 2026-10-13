@@ -1,0 +1,65 @@
+{
+  "findings": [],
+  "mismatches": [],
+  "mismatch_count": 0,
+  "timings": {
+    "overview": 155.49,
+    "adoption": 277.89,
+    "tools": 144.86,
+    "reliability": 109.61,
+    "cost": 145.94,
+    "protocol": 85.28,
+    "digest": 152.52,
+    "alerts": 0.71,
+    "timeline": 8.11
+  },
+  "timing_samples": {
+    "overview": [
+      155.49,
+      163.49,
+      146.17
+    ],
+    "adoption": [
+      284.61,
+      277.89,
+      256.04
+    ],
+    "tools": [
+      153.69,
+      117.26,
+      144.86
+    ],
+    "reliability": [
+      108.96,
+      115.03,
+      109.61
+    ],
+    "cost": [
+      137.62,
+      145.94,
+      175.8
+    ],
+    "protocol": [
+      95.08,
+      85.28,
+      75.37
+    ],
+    "digest": [
+      152.52,
+      147.67,
+      161.84
+    ],
+    "alerts": [
+      0.91,
+      0.71,
+      0.63
+    ],
+    "timeline": [
+      7.95,
+      8.11,
+      9.55
+    ]
+  },
+  "latency_budget_ms": 900.0,
+  "latency_statistic": "median_of_three_after_warmup"
+}

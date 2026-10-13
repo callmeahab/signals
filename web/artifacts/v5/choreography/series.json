@@ -22,12 +22,12 @@
       "tilesShown": 6,
       "cards": 5,
       "cardsShown": 5,
-      "running": 1,
+      "running": 0,
       "scrollY": 0
     },
     {
       "frame": 1,
-      "atMs": 120,
+      "atMs": 101,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -40,7 +40,7 @@
     },
     {
       "frame": 2,
-      "atMs": 221,
+      "atMs": 202,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -53,7 +53,7 @@
     },
     {
       "frame": 3,
-      "atMs": 322,
+      "atMs": 302,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -66,7 +66,7 @@
     },
     {
       "frame": 4,
-      "atMs": 423,
+      "atMs": 402,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -79,7 +79,7 @@
     },
     {
       "frame": 5,
-      "atMs": 523,
+      "atMs": 502,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -92,7 +92,7 @@
     },
     {
       "frame": 6,
-      "atMs": 624,
+      "atMs": 603,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -105,33 +105,33 @@
     },
     {
       "frame": 7,
-      "atMs": 727,
+      "atMs": 703,
       "charts": 14,
       "svg": 14,
       "twin": 14,
       "tiles": 6,
-      "tilesShown": 3,
+      "tilesShown": 2,
       "cards": 5,
       "cardsShown": 0,
-      "running": 80,
+      "running": 81,
       "scrollY": 0
     },
     {
       "frame": 8,
-      "atMs": 828,
+      "atMs": 803,
       "charts": 14,
       "svg": 14,
       "twin": 14,
       "tiles": 6,
-      "tilesShown": 5,
+      "tilesShown": 4,
       "cards": 5,
       "cardsShown": 1,
-      "running": 78,
+      "running": 79,
       "scrollY": 0
     },
     {
       "frame": 9,
-      "atMs": 928,
+      "atMs": 904,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -144,7 +144,20 @@
     },
     {
       "frame": 10,
-      "atMs": 1028,
+      "atMs": 1004,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 3,
+      "running": 73,
+      "scrollY": 0
+    },
+    {
+      "frame": 11,
+      "atMs": 1104,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -152,25 +165,12 @@
       "tilesShown": 6,
       "cards": 5,
       "cardsShown": 4,
-      "running": 73,
-      "scrollY": 0
-    },
-    {
-      "frame": 11,
-      "atMs": 1128,
-      "charts": 14,
-      "svg": 14,
-      "twin": 14,
-      "tiles": 6,
-      "tilesShown": 6,
-      "cards": 5,
-      "cardsShown": 5,
       "running": 66,
       "scrollY": 0
     },
     {
       "frame": 12,
-      "atMs": 1229,
+      "atMs": 1204,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -178,12 +178,12 @@
       "tilesShown": 6,
       "cards": 5,
       "cardsShown": 5,
-      "running": 64,
+      "running": 65,
       "scrollY": 0
     },
     {
       "frame": 13,
-      "atMs": 1329,
+      "atMs": 1305,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -191,12 +191,12 @@
       "tilesShown": 6,
       "cards": 5,
       "cardsShown": 5,
-      "running": 55,
+      "running": 57,
       "scrollY": 0
     },
     {
       "frame": 14,
-      "atMs": 1430,
+      "atMs": 1406,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -204,12 +204,12 @@
       "tilesShown": 6,
       "cards": 5,
       "cardsShown": 5,
-      "running": 46,
+      "running": 48,
       "scrollY": 0
     },
     {
       "frame": 15,
-      "atMs": 1530,
+      "atMs": 1510,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -217,12 +217,12 @@
       "tilesShown": 6,
       "cards": 5,
       "cardsShown": 5,
-      "running": 37,
+      "running": 39,
       "scrollY": 0
     },
     {
       "frame": 16,
-      "atMs": 1630,
+      "atMs": 1610,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -230,12 +230,12 @@
       "tilesShown": 6,
       "cards": 5,
       "cardsShown": 5,
-      "running": 28,
+      "running": 30,
       "scrollY": 0
     },
     {
       "frame": 17,
-      "atMs": 1731,
+      "atMs": 1710,
       "charts": 14,
       "svg": 14,
       "twin": 14,
@@ -243,229 +243,224 @@
       "tilesShown": 6,
       "cards": 5,
       "cardsShown": 5,
-      "running": 20,
+      "running": 22,
       "scrollY": 0
     }
   ],
   "counts": [
     {
       "label": "Tool calls",
-      "at": 217,
+      "at": 220,
       "text": "0"
     },
     {
       "label": "Active users",
-      "at": 217,
+      "at": 220,
       "text": "0"
     },
     {
       "label": "Sessions",
-      "at": 217,
+      "at": 220,
       "text": "0"
     },
     {
       "label": "Tool success",
-      "at": 217,
+      "at": 220,
       "text": "0%"
     },
     {
       "label": "p95 latency",
-      "at": 217,
+      "at": 220,
       "text": "0 ms"
     },
     {
       "label": "Context tokens",
-      "at": 217,
+      "at": 220,
       "text": "≈ 0"
     },
     {
       "label": "Tool calls",
-      "at": 404,
-      "text": "3.2K"
+      "at": 407,
+      "text": "3.3K"
     },
     {
       "label": "Active users",
-      "at": 454,
-      "text": "48.5"
+      "at": 457,
+      "text": "50"
     },
     {
       "label": "Tool calls",
-      "at": 487,
-      "text": "18.9K"
+      "at": 490,
+      "text": "19K"
     },
     {
       "label": "Sessions",
-      "at": 504,
-      "text": "138.7"
+      "at": 507,
+      "text": "150.7"
     },
     {
       "label": "Active users",
-      "at": 537,
-      "text": "410.6"
+      "at": 540,
+      "text": "411.7"
     },
     {
       "label": "Tool calls",
-      "at": 571,
+      "at": 573,
       "text": "30.5K"
     },
     {
-      "label": "Tool success",
-      "at": 571,
-      "text": "7.3%"
-    },
-    {
       "label": "Sessions",
-      "at": 587,
+      "at": 590,
       "text": "2.3K"
     },
     {
       "label": "Active users",
-      "at": 621,
-      "text": "677.6"
+      "at": 624,
+      "text": "678.7"
     },
     {
       "label": "p95 latency",
-      "at": 621,
-      "text": "32.7 ms"
-    },
-    {
-      "label": "Tool calls",
-      "at": 654,
-      "text": "38.5K"
+      "at": 624,
+      "text": "34.2 ms"
     },
     {
       "label": "Tool success",
-      "at": 654,
-      "text": "39.4%"
+      "at": 640,
+      "text": "33.8%"
+    },
+    {
+      "label": "Tool calls",
+      "at": 657,
+      "text": "38.5K"
     },
     {
       "label": "Sessions",
-      "at": 671,
+      "at": 674,
       "text": "3.9K"
     },
     {
       "label": "Context tokens",
-      "at": 671,
-      "text": "≈ 724.6K"
+      "at": 674,
+      "text": "≈ 770.8K"
     },
     {
       "label": "Active users",
-      "at": 704,
-      "text": "864.3"
+      "at": 707,
+      "text": "864.8"
     },
     {
       "label": "p95 latency",
-      "at": 704,
-      "text": "243.7 ms"
-    },
-    {
-      "label": "Tool calls",
-      "at": 737,
-      "text": "43.6K"
+      "at": 707,
+      "text": "244.6 ms"
     },
     {
       "label": "Tool success",
-      "at": 737,
-      "text": "63%"
+      "at": 724,
+      "text": "59%"
+    },
+    {
+      "label": "Tool calls",
+      "at": 740,
+      "text": "43.7K"
     },
     {
       "label": "Sessions",
-      "at": 754,
+      "at": 757,
       "text": "5.1K"
     },
     {
       "label": "Context tokens",
-      "at": 754,
+      "at": 757,
       "text": "≈ 9.2M"
     },
     {
       "label": "Active users",
-      "at": 787,
-      "text": "984.7"
+      "at": 790,
+      "text": "984.9"
     },
     {
       "label": "p95 latency",
-      "at": 787,
-      "text": "399.1 ms"
-    },
-    {
-      "label": "Tool calls",
-      "at": 821,
-      "text": "46.5K"
+      "at": 790,
+      "text": "399.6 ms"
     },
     {
       "label": "Tool success",
-      "at": 821,
-      "text": "79.4%"
+      "at": 807,
+      "text": "76.7%"
+    },
+    {
+      "label": "Tool calls",
+      "at": 832,
+      "text": "46.5K"
     },
     {
       "label": "Sessions",
-      "at": 837,
+      "at": 846,
       "text": "5.8K"
     },
     {
       "label": "Context tokens",
-      "at": 837,
+      "at": 846,
       "text": "≈ 15.4M"
     },
     {
       "label": "Active users",
-      "at": 871,
-      "text": "1,053.2"
+      "at": 874,
+      "text": "1,053.4"
     },
     {
       "label": "p95 latency",
-      "at": 871,
-      "text": "507.2 ms"
-    },
-    {
-      "label": "Tool calls",
-      "at": 904,
-      "text": "47.8K"
+      "at": 874,
+      "text": "507.7 ms"
     },
     {
       "label": "Tool success",
-      "at": 904,
-      "text": "89.8%"
+      "at": 890,
+      "text": "88.2%"
+    },
+    {
+      "label": "Tool calls",
+      "at": 907,
+      "text": "47.9K"
     },
     {
       "label": "Sessions",
-      "at": 921,
+      "at": 924,
       "text": "6.2K"
     },
     {
       "label": "Context tokens",
-      "at": 921,
-      "text": "≈ 19.7M"
+      "at": 924,
+      "text": "≈ 19.8M"
     },
     {
       "label": "Active users",
-      "at": 954,
-      "text": "1,084.7"
+      "at": 957,
+      "text": "1,084.8"
     },
     {
       "label": "p95 latency",
-      "at": 954,
-      "text": "577 ms"
-    },
-    {
-      "label": "Tool calls",
-      "at": 987,
-      "text": "48.2K"
+      "at": 957,
+      "text": "577.3 ms"
     },
     {
       "label": "Tool success",
-      "at": 987,
-      "text": "95.7%"
+      "at": 974,
+      "text": "94.9%"
+    },
+    {
+      "label": "Tool calls",
+      "at": 990,
+      "text": "48.2K"
     },
     {
       "label": "Sessions",
-      "at": 1004,
+      "at": 1007,
       "text": "6.4K"
     },
     {
       "label": "Context tokens",
-      "at": 1004,
+      "at": 1007,
       "text": "≈ 22.6M"
     },
     {
@@ -476,56 +471,61 @@
     {
       "label": "p95 latency",
       "at": 1040,
-      "text": "616.7 ms"
+      "text": "616.8 ms"
     },
     {
       "label": "Tool success",
-      "at": 1071,
-      "text": "98.4%"
+      "at": 1057,
+      "text": "98.1%"
     },
     {
       "label": "Active users",
-      "at": 1087,
+      "at": 1090,
       "text": "1,094"
     },
     {
       "label": "Sessions",
-      "at": 1087,
+      "at": 1090,
       "text": "6.5K"
     },
     {
       "label": "Context tokens",
-      "at": 1087,
+      "at": 1090,
       "text": "≈ 24.2M"
     },
     {
       "label": "p95 latency",
-      "at": 1121,
+      "at": 1124,
       "text": "634.8 ms"
     },
     {
       "label": "Tool success",
-      "at": 1154,
-      "text": "99.1%"
+      "at": 1140,
+      "text": "99%"
     },
     {
       "label": "Context tokens",
-      "at": 1171,
+      "at": 1174,
       "text": "≈ 24.9M"
     },
     {
+      "label": "Tool success",
+      "at": 1207,
+      "text": "99.1%"
+    },
+    {
       "label": "p95 latency",
-      "at": 1204,
+      "at": 1207,
       "text": "639.8 ms"
     },
     {
       "label": "p95 latency",
-      "at": 1254,
+      "at": 1257,
       "text": "640 ms"
     },
     {
       "label": "Context tokens",
-      "at": 1254,
+      "at": 1257,
       "text": "≈ 25.2M"
     }
   ],

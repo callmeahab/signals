@@ -1,0 +1,34 @@
+Run 1 overview → adoption: 166.84 ms aggregate (informational); longest task 39.22 ms (budget < 50 ms)
+Run 2 overview → adoption: 173.44 ms aggregate (informational); longest task 46.02 ms (budget < 50 ms)
+Run 3 overview → adoption: 153.87 ms aggregate (informational); longest task 35.16 ms (budget < 50 ms)
+Run 4 overview → adoption: 186.15 ms aggregate (informational); longest task 60.75 ms (budget < 50 ms) — OUTLIER, over its 50 ms budget; 1 is tolerated under 70 ms
+Run 5 overview → adoption: 174.82 ms aggregate (informational); longest task 38.82 ms (budget < 50 ms)
+Run 6 overview → adoption: 155.28 ms aggregate (informational); longest task 36.64 ms (budget < 50 ms)
+Run 7 overview → adoption: 194.94 ms aggregate (informational); longest task 39.70 ms (budget < 50 ms)
+Run 8 overview → adoption: 154.63 ms aggregate (informational); longest task 35.36 ms (budget < 50 ms)
+Run 9 overview → adoption: 155.65 ms aggregate (informational); longest task 36.05 ms (budget < 50 ms)
+Run 10 overview → adoption: 221.34 ms aggregate (informational); longest task 58.23 ms (budget < 50 ms) — OUTLIER, over its 50 ms budget; 1 is tolerated under 70 ms
+Run 11 overview → adoption: 157.58 ms aggregate (informational); longest task 34.38 ms (budget < 50 ms)
+Run 12 overview → adoption: 149.63 ms aggregate (informational); longest task 36.51 ms (budget < 50 ms)
+Run 13 overview → adoption: 161.57 ms aggregate (informational); longest task 40.41 ms (budget < 50 ms)
+Run 14 overview → adoption: 182.38 ms aggregate (informational); longest task 38.70 ms (budget < 50 ms)
+Run 15 overview → adoption: 170.76 ms aggregate (informational); longest task 35.81 ms (budget < 50 ms)
+15 repeats of adoption: longest task median 38.70 ms, p90 58.23 ms, range 34.38–60.75 ms; 2 over budget (1 tolerated under 70 ms)
+93 |  writeFileSync(`artifacts/v3/performance${walk?'-walk':suffix}.json`,JSON.stringify({theme,repeats,longestTaskBudgetMs,longestTaskExceptionsMs,aggregateInformational:true,firstSwitchMedianMs,...stats,runs},null,2)+'\n');
+94 |  console.log(`${walk?`Walk, ${runs.length} rows`:`${repeats} repeats of ${order[0]}`}: longest task median ${stats.medianMs.toFixed(2)} ms, p90 ${stats.p90Ms.toFixed(2)} ms, range ${stats.minMs.toFixed(2)}–${stats.maxMs.toFixed(2)} ms; ${outliers.length} over budget (${outliersAllowed} tolerated under ${outlierCeilingMs} ms)`);
+95 |  // The statistics are the gate in single mode, where every row is the same transition.
+96 |  if(!walk){
+97 |   assert(stats.medianMs<longestTaskBudgetMs,`Median longest task ${stats.medianMs.toFixed(2)} ms is not under ${longestTaskBudgetMs} ms: ${JSON.stringify(stats)}`);
+98 |   assert(stats.p90Ms<longestTaskBudgetMs,`90th-percentile longest task ${stats.p90Ms.toFixed(2)} ms is not under ${longestTaskBudgetMs} ms: ${JSON.stringify(stats)}`);
+       ^
+AssertionError: 90th-percentile longest task 58.23 ms is not under 50 ms: {"medianMs":38.696,"p90Ms":58.229,"minMs":34.378,"maxMs":60.751,"outlierCeilingMs":70,"outliersAllowed":1,"outliers":[{"run":4,"transition":"overview → adoption","longestTaskMs":60.751,"longestTaskBudgetMs":50},{"run":10,"transition":"overview → adoption","longestTaskMs":58.229,"longestTaskBudgetMs":50}]}
+ generatedMessage: false,
+     actual: false,
+   expected: true,
+   operator: "==",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /home/vuk/orca/workspaces/signals-collector/dash-v2/web/scripts/performance-qa.mjs:98:3
+
+Bun v1.4.2 (Linux x64)
