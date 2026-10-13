@@ -149,3 +149,27 @@
     remaining work merge into one task -- measured both ways; `reports/dash-v4-ux.md`
     carries the numbers. Each row's summary carries its event id, so a row is
     addressable without expanding it.
+
+20. **The tab-switch gate reads a sample, not a single switch.** `scripts/performance-qa.mjs`
+    scores a transition by its longest main-thread task, which is the stall a reader
+    feels, and holds every transition to 50 ms with one documented exception,
+    `protocol → live` at 60 ms, for the pre-existing Live mount. In single mode
+    (`PERFORMANCE_REPEATS=n` of one transition) the gate asserts the **median** and the
+    **90th percentile** of the repeats under the budget. One run may go over its budget
+    provided it stays under **70 ms**; it is printed as an outlier and recorded in the
+    artifact. A second outlier fails, and so does any run at or above 70 ms. The walk
+    keeps its per-row budgets and applies the same one-outlier rule across its 30 rows.
+    This box is shared, and a sample of 15 switches put 14 at 32–42 ms and one at
+    55.96 ms: the median and the p90 describe what the screen does, where the maximum
+    describes what the machine was doing at the time.
+
+21. **A chart's keyboard readout opens on keyboard intent, not on focus.** The figure is
+    focusable, so a pointer click focuses it, and the readout must not open then. A
+    document-level `keydown`/`pointerdown` pair in `src/charts/index.tsx` records which
+    kind of input happened last; a `pointerdown` always lands before the focus it causes,
+    so `onFocus` can read that flag rather than depend on the order events arrive in.
+    `:focus-visible` is the fallback only while nothing has been typed or clicked yet,
+    which is the programmatic focus a screen reader or a test arrives with. The hover
+    readout is a separate element (`.chart-key-tooltip--pointer`) with its own 120 ms
+    delay, so a check about clicking has to take the pointer off the plot first or it
+    races that delay.

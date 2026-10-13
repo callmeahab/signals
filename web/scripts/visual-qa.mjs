@@ -160,7 +160,17 @@ try {
        const figure=charts.first();
        await figure.scrollIntoViewIfNeeded();
        await figure.click({position:{x:6,y:6}});
+       // The click is what is under test, so the pointer comes off the plot before the
+       // DOM is read: leaving it resting there is the hover behaviour, which has its own
+       // timing checks further down, and its 120 ms delay raced this round-trip under
+       // load. Then one animation frame, so a readout this click had opened would have
+       // been committed and painted before the count.
+       await page.mouse.move(0,0);
+       await page.evaluate(()=>new Promise(resolve=>globalThis.requestAnimationFrame(()=>resolve())));
        check(await page.locator('.chart-key-tooltip').count()===0,`${screen}: a pointer click opened the chart readout`);
+       // And the keyboard readout stays shut however long the pointer path is given.
+       await page.waitForTimeout(200);
+       check(await page.locator('.chart-key-tooltip:not(.chart-key-tooltip--pointer)').count()===0,`${screen}: a pointer click opened the keyboard readout`);
        await figure.focus();await page.keyboard.press('ArrowRight');
        check(await page.getByRole('tooltip').count()===1,`${screen}: keyboard tooltip shown`);
        const readout=(await page.getByRole('tooltip').first().textContent())??'';

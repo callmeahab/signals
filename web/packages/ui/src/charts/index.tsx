@@ -23,10 +23,15 @@ const cell=(value:number|null|undefined,format:Fmt=plain)=>value==null?null:form
 const dateCell=(labels:string[],index:number)=>labels[index]==null?null:render.axisDate(labels,labels[index]);
 
 // Keyboard inspection must not open on a pointer click, and the figure is focusable, so
-// a click focuses it. `:focus-visible` already excludes a pointer click in current
-// browsers; the shared flag makes the same decision for a programmatic focus that
-// follows a key press, which is how a screen reader or a test arrives.
-let keyboardIntent=false, watching=false;
+// a click focuses it. The flag below is the authority, not the order the events happen
+// to arrive in: a `pointerdown` always lands before the focus it causes, so by the time
+// `onFocus` asks, the last input is known. `:focus-visible` is consulted only while the
+// flag is still `null` -- nothing has been typed or clicked in this document yet -- which
+// is the programmatic focus a screen reader or a test arrives with. Chromium reports
+// `:focus-visible` as false for a click-focus even directly after a key press, but that
+// heuristic differs between engines and has changed between versions, so it is the
+// fallback rather than an alternative way in.
+let keyboardIntent: boolean|null=null, watching=false;
 function watchInput(){
  if(watching||typeof document==='undefined')return;
  watching=true;
@@ -79,7 +84,7 @@ export function Chart({label,kind,draw,headers,rows,height=220}:{label:string;ki
   if(!timer.current)timer.current=window.setTimeout(()=>{timer.current=0;setHover(pending.current);},120);
  };
  const scrolls=kind==='gantt'||kind==='sankey';
- return <div className="table-container">{scrolls&&<p className="table-scroll-hint">Scroll horizontally to inspect the full chart ↔</p>}<div className={scrolls?'table-scroll chart-scroll':undefined} tabIndex={scrolls?0:undefined}><figure ref={figure} className={`v3-chart chartbox chart-${kind}`} data-chart={kind} style={{margin:0,minHeight:height}} tabIndex={0} aria-label={`${label}. Use arrow keys to inspect values.`} aria-describedby={id} onPointerMove={move} onPointerLeave={leave} onFocus={e=>{if(keyboardIntent||e.currentTarget.matches(':focus-visible'))setSelected(0);}} onBlur={()=>setSelected(null)} onKeyDown={e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();setSelected(i=>e.key==='Home'?0:e.key==='End'?rows.length-1:Math.max(0,Math.min(rows.length-1,(i??0)+(e.key==='ArrowRight'?1:-1))));}}}>
+ return <div className="table-container">{scrolls&&<p className="table-scroll-hint">Scroll horizontally to inspect the full chart ↔</p>}<div className={scrolls?'table-scroll chart-scroll':undefined} tabIndex={scrolls?0:undefined}><figure ref={figure} className={`v3-chart chartbox chart-${kind}`} data-chart={kind} style={{margin:0,minHeight:height}} tabIndex={0} aria-label={`${label}. Use arrow keys to inspect values.`} aria-describedby={id} onPointerMove={move} onPointerLeave={leave} onFocus={e=>{if(keyboardIntent??e.currentTarget.matches(':focus-visible'))setSelected(0);}} onBlur={()=>setSelected(null)} onKeyDown={e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();setSelected(i=>e.key==='Home'?0:e.key==='End'?rows.length-1:Math.max(0,Math.min(rows.length-1,(i??0)+(e.key==='ArrowRight'?1:-1))));}}}>
  <div ref={host}/>{selected!==null&&<Readout headers={headers} rows={rows} index={selected}/>}
  {selected===null&&hover&&<div ref={tip} className="chart-tip-layer"><Readout headers={headers} rows={rows} index={hover.index} pointer/></div>}
  <table className="sr-only" id={id}><caption>{label}</caption><thead><tr>{headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{rows.map((row,i)=><tr key={i}>{row.map((value,j)=><td key={j}>{value??'No data yet'}</td>)}</tr>)}</tbody></table>
