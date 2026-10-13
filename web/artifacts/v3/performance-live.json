@@ -1,0 +1,81 @@
+{
+  "theme": "light",
+  "repeats": 5,
+  "longestTaskBudgetMs": 50,
+  "longestTaskExceptionsMs": {
+    "protocol → live": 60
+  },
+  "aggregateInformational": true,
+  "firstSwitchMedianMs": 176.039,
+  "medianMs": 49.54,
+  "p90Ms": 50.601,
+  "minMs": 48.65,
+  "maxMs": 50.601,
+  "outlierCeilingMs": 70,
+  "outliersAllowed": 1,
+  "outliers": [
+    {
+      "run": 1,
+      "transition": "overview → live",
+      "longestTaskMs": 50.601,
+      "longestTaskBudgetMs": 50
+    }
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "step": 1,
+      "transition": "overview → live",
+      "mainThreadMs": 188.27100000000002,
+      "longestTaskMs": 50.601,
+      "recalcStyleMs": 13.388,
+      "nodes": 4692,
+      "listeners": 895,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 2,
+      "step": 1,
+      "transition": "overview → live",
+      "mainThreadMs": 172.31,
+      "longestTaskMs": 49.084,
+      "recalcStyleMs": 12.699,
+      "nodes": 4692,
+      "listeners": 895,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 3,
+      "step": 1,
+      "transition": "overview → live",
+      "mainThreadMs": 176.039,
+      "longestTaskMs": 49.54,
+      "recalcStyleMs": 13.934000000000001,
+      "nodes": 4685,
+      "listeners": 889,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 4,
+      "step": 1,
+      "transition": "overview → live",
+      "mainThreadMs": 168.64100000000002,
+      "longestTaskMs": 48.65,
+      "recalcStyleMs": 12.676,
+      "nodes": 4686,
+      "listeners": 895,
+      "longestTaskBudgetMs": 50
+    },
+    {
+      "run": 5,
+      "step": 1,
+      "transition": "overview → live",
+      "mainThreadMs": 176.2,
+      "longestTaskMs": 49.64,
+      "recalcStyleMs": 13.384,
+      "nodes": 4659,
+      "listeners": 862,
+      "longestTaskBudgetMs": 50
+    }
+  ]
+}
