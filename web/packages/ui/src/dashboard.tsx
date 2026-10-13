@@ -75,6 +75,8 @@ export function useQuery<T>(load: (signal: AbortSignal) => Promise<T>, deps: unk
   useEffect(() => { if (state.value !== undefined && !skeleton) contentPainted.current = true; }, [state.value, skeleton]);
   useEffect(() => {
     if (!contentPainted.current && state.loading && state.value === undefined && !state.error) {
+      // A retry within this navigation must not create a second skeleton episode.
+      if (shownAt.current !== 0) return;
       const timer = setTimeout(() => { shownAt.current = Date.now(); if (!contentPainted.current) setSkeleton(true); }, SKELETON_DELAY_MS);
       return () => clearTimeout(timer);
     }

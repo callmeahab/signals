@@ -61,7 +61,7 @@ function Logo(){return <span className="brand"><svg  xmlns="http://www.w3.org/20
 // One card per project, so the choice is a visible part of the workspace rather than a
 // collapsed select. Cards wrap while they fit; past six projects the row scrolls, with
 // the same hint and focusable region the wide tables use.
-function ProjectCards({projects,selectedId,onSelect}:{projects:Project[];selectedId?:string;onSelect:(id:string)=>void}) {
+function ProjectCards({projects,selectedId,onSelect,range}:{projects:Project[];selectedId?:string;onSelect:(id:string)=>void;range:Range}) {
  const scroller=useRef<HTMLDivElement>(null);
  const [overflow,setOverflow]=useState(false);
  useEffect(()=>{
@@ -78,7 +78,7 @@ function ProjectCards({projects,selectedId,onSelect}:{projects:Project[];selecte
   <div ref={scroller} className="project-cards" tabIndex={overflow?0:undefined} role={overflow?'region':'group'} aria-label="Project">
    {projects.map(p=><button key={p.id} type="button" data-project={p.id} className={`project-card${p.id===selectedId?' is-selected':''}`} aria-pressed={p.id===selectedId} onClick={()=>onSelect(p.id)}>
     <span className="project-card__name">{p.name}</span>
-    <span className={`project-card__status status-${projectStatus(p.id,isDemo)}`} title={statusLabel[projectStatus(p.id,isDemo)]} aria-label={statusLabel[projectStatus(p.id,isDemo)]}><i className="project-status-dot"/><Icon name={projectStatus(p.id,isDemo)} size={14} target=".project-card"/></span>
+    <span className={`project-card__status status-${projectStatus(p.id,isDemo,range)}`} title={statusLabel[projectStatus(p.id,isDemo,range)]} aria-label={statusLabel[projectStatus(p.id,isDemo,range)]}><i className="project-status-dot"/><Icon name={projectStatus(p.id,isDemo,range)} size={14} target=".project-card"/></span>
    </button>)}
   </div>
  </div>;
@@ -128,7 +128,7 @@ function App(){
   const current=nav.find(n=>n.id===screen)!;
   return <div className="app-shell"><a className="skip-link" href="#main">Skip to content</a>
     <header className="topbar"><div className="topbar-inner"><a className="brand-link" href="#overview" aria-label="mcpramen Signals overview"><Logo/></a><nav ref={navRef} className={mobile?'open':''} aria-label="Primary"><span className="nav-thumb"/>{nav.filter(n=>n.id!=='callers').map(n=><a key={n.id} href={`#${n.id}`} aria-current={screen===n.id?'page':undefined}><Icon name={n.id as IconName} size={22} target="a"/>{n.label}</a>)}</nav><div className="topbar-actions"><button className="icon-button" aria-label={dark?'Use light theme':'Use dark theme'} onClick={()=>setDark(v=>!v)}><Icon name={dark?'sun':'moon'} size={22} target="button"/></button><button className="icon-button mobile-menu" aria-label={mobile?'Close navigation':'Open navigation'} onClick={()=>setMobile(v=>!v)}><Glyph name={mobile?'cross':'menu'} size={22}/></button></div></div></header>
-    <main id="main"><div className="workspace-strip"><ProjectCards projects={projects} selectedId={selected?.id} onSelect={setProjectId}/>{!isDemo&&<button className="icon-button" aria-label="Log out" onClick={()=>void logout()}><Icon name="logout" size={22} target="button"/></button>}</div>
+    <main id="main"><div className="workspace-strip"><ProjectCards range={range} projects={projects} selectedId={selected?.id} onSelect={setProjectId}/>{!isDemo&&<button className="icon-button" aria-label="Log out" onClick={()=>void logout()}><Icon name="logout" size={22} target="button"/></button>}</div>
       <div className="page-heading"><div><div className="eyebrow">SIGNALS / {selected?.slug??'WORKSPACE'}</div><h1>{current.label}</h1><p>{current.description}</p></div>{!['settings','setup','live'].includes(screen)&&<div className="range-control" aria-label="Time range"><span className="range-thumb" style={{transform:`translateX(${(['24h','7d','30d','90d'].indexOf(range))*100}%)`}}/>{(['24h','7d','30d','90d'] as Range[]).map(r=><button key={r} aria-pressed={range===r} onClick={()=>setRange(r)}>{r==='24h'?'24 hours':r==='7d'?'7 days':r==='30d'?'30 days':'90 days'}</button>)}</div>}</div>
       {selected?<SignalsDashboard client={isDemo?demoClient:client} project={selected} screen={screen} range={range} onNavigate={navigate} readOnly={account.user.role==='viewer'} onProjectChange={p=>applyAccount({...account,projects:account.projects.map(old=>old.id===p.id?p:old)})}/>:<div className="empty-state"><p>Create a project using the Signals CLI to get started.</p></div>}
       <footer className="app-footer"><span>mcpramen / Signals</span><span>Your data. Your infrastructure.</span></footer>
