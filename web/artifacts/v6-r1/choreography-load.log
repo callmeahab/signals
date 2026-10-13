@@ -1,0 +1,23 @@
+cold #overview: 4 tiles climbed from zero, Tool calls over 587 ms in 9 steps
+tools: 6 tiles 130+55i ms, 5 cards 300+85i ms (last 640 ms), 70/70 chart draw-ins anchored to their card (earliest -10 ms into its own window, 60 ms of slack), 5 tiles climbed from zero (Retries over 606 ms in 10 steps)
+adoption: 6 tiles 130+55i ms, 5 cards 300+85i ms (last 640 ms), 7/7 chart draw-ins anchored to their card (earliest 0 ms into its own window, 60 ms of slack), 6 tiles climbed from zero (DAU over 621 ms in 9 steps)
+cost: 6 tiles 130+55i ms, 4 cards 300+85i ms (last 555 ms), 11/11 chart draw-ins anchored to their card (earliest -35 ms into its own window, 60 ms of slack), 4 tiles climbed from zero (Per call over 607 ms in 10 steps)
+    0ms tiles 0/6 cards 0/5 charts 13/14 running=23
+  163ms tiles 0/6 cards 0/5 charts 14/14 running=82
+  267ms tiles 0/6 cards 0/5 charts 14/14 running=82
+  371ms tiles 0/6 cards 0/5 charts 14/14 running=82
+  520ms tiles 0/6 cards 0/5 charts 14/14 running=81
+  673ms tiles 3/6 cards 0/5 charts 14/14 running=81
+  866ms tiles 6/6 cards 2/5 charts 14/14 running=76
+ 1065ms tiles 6/6 cards 5/5 charts 14/14 running=66
+ 1254ms tiles 6/6 cards 5/5 charts 14/14 running=54
+ 1470ms tiles 6/6 cards 5/5 charts 14/14 running=34
+ 1696ms tiles 6/6 cards 5/5 charts 14/14 running=16
+ 1840ms tiles 6/6 cards 5/5 charts 14/14 running=3
+ 1958ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 2066ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 2264ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 2387ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 2585ms tiles 6/6 cards 5/5 charts 14/14 running=0
+ 2772ms tiles 6/6 cards 5/5 charts 14/14 running=0
+Choreography QA passed: tiles at 130+55i ms, cards at 300+85i ms capped at 1100 ms, every chart's draw-in 180 ms behind its own card or tile, every tile headline climbing from zero over 640 ms from its own entrance on a cold load and on every navigation, one run per navigation with nothing on scroll or resize, a 18-frame 100 ms series in artifacts/v6-r1/choreography-load/, and the finished page at once under reduced motion.

@@ -1,0 +1,21 @@
+Cumulative layout shift: 0.0020 after an ordinary reload, 0.0020 after a hard one (["NAV.","DIV.topbar-actions"], the webfont swap)
+Reload series: 18 frames at ~100 ms into artifacts/v6-r1/reload-repeat-1/, workspace strip [68]px once the webfonts loaded
+    0ms new  shell=n strip=n(undefinedpx) cards=undefined headingTop=undefined heading=undefined panels=undefined connecting=no reading=no
+  129ms new  shell=n strip=n(-1px) cards=0 headingTop=-1 heading=null panels=0 connecting=no reading=no
+  360ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  719ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  866ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1030ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1188ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1354ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1532ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1695ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1862ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2024ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2187ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2347ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2463ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2563ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2708ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2828ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+a frame showed screen content without the shell and heading

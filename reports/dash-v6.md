@@ -285,3 +285,231 @@ exit 0 with no output. The PostgreSQL container and the identified temporary dir
 are removed; the existing shared build cache/target directory is retained. No push,
 tag, deployment or remote CI action was performed. Safari runtime measurement remains
 outside the available Chromium evidence; there is no other unfinished requested work.
+
+## Round 1 fixes
+
+Applied the seven findings from `reviews/dash-v6-r1.md`, starting at `5633b41`.
+
+- **B1 — dependency ownership:** `dashboard.tsx` records the dependency version of
+  each successful answer. A failed project/range/screen change clears it, including
+  when an intervening retry supersedes the original request. Only a refresh of the
+  same successful dependency version can retain data. `analytics-v3.tsx` maps each
+  supporting route to the cards/tiles it feeds: each affected surface displays its
+  own notice and retry, an empty error frame for an unavailable current answer, or
+  a dimmed retained answer after a same-view refresh failure. Primary refresh
+  failures also dim the retained tiles and cards.
+- **B2 — footer geometry:** `shell.css` reserves the main view's minimum height
+  using the viewport less the top bar and workspace strip. The footer stays below
+  the viewport while the initial content is pending; the CLS gate is unchanged.
+- **S1 — units:** `TilesV3` has a separate `infoUnit`; the Overview percentage,
+  estimated-token and latency trends retain their headline formatter. Cost's
+  estimated-token trend also retains its estimate marker. Table twins share those
+  unchanged formatters.
+- **S2 — copy:** the twelve named explanations now put the actual event count,
+  observation window or derivation under computation, and move the former advice
+  or interpretation to body/action. Definitions previously under action move into
+  body for sessions-with-errors, below-SLO, replay and live events-per-second;
+  heaviest-tool's action still directs the reader to trim an output schema.
+- **S3 — truthful status:** `project-status.ts`, `main.tsx` and `shell.css` add a
+  muted unknown state, labelled “Not checked yet”, for an unread project/window.
+  An observed empty window alone is gold. An observed active project stays teal
+  when another project is selected; no request was added.
+- **S4 — pointer/focus:** `info.tsx` clears the pointer-focus latch on release,
+  cancellation and blur, so a dragged-off press cannot disable focus opening.
+- **S5 — coverage:** visual QA now names its focus assertion accurately and
+  actually presses Enter to reopen after Escape returned focus to the trigger.
+  `qa:backend` runs the real-collector project-status probe, as part of the
+  conformance harness. `test.mjs` runs all three demo review probes. The stale-data
+  probe additionally requires all affected adoption surfaces to show a notice and
+  no old legend, and checks primary/supporting same-view refresh retention, dimming,
+  notices, and subsequent range-change failure clearance. The backend probe requires
+  the exact neutral state and tooltip before selection. `DESIGN.md` documents these
+  decisions and the status unit probes expect unknown for unread ranges.
+
+### Commands and evidence
+
+Commands below ran in this worktree; web commands use
+`PATH="$HOME/.cargo/bin:$HOME/.bun/bin:$PATH"` and `PLAYWRIGHT_CHANNEL=chromium`.
+The durable round-1 logs are under `web/artifacts/v6-r1/`.
+
+```sh
+cd web && bun run check && bun run build
+```
+
+Both exited 0 (TypeScript, ESLint, UI packaging, production Vite build):
+
+```text
+✓ 74 modules transformed.
+dist/assets/index-6P4PwXsp.js 397.09 kB │ gzip: 122.56 kB
+✓ built in 199ms
+```
+
+```sh
+cd web && PLAYWRIGHT_CHANNEL=chromium bun run test
+cd web && PLAYWRIGHT_CHANNEL=chromium bun run test:next
+```
+
+Both exited 0. Selected final lines from `suite.log` and `next.log`:
+
+```text
+Live QA passed: 60000 ms refresh observed on the active screen ...
+Choreography QA passed: tiles at 130+55i ms, cards at 300+85i ms capped at 1100 ms ...
+Cumulative layout shift: 0.0020 after an ordinary reload, 0.0020 after a hard one
+v6 QA passed: corner geometry, hover/sticky card fields, typography, unit, mobile sheet, project states, icon size, badge absence, skeleton <=1 and none after content, cold/switch/reload 100 ms series in both themes with no white frames.
+review-v6-r1 stale-project probe passed
+review-v6-r1 probe passed
+review-v6-r1 reload-cls probe passed
+Next host passed: packed ESM/types/CSS, 7 screens, dialog charts and host styles.
+```
+
+Next's packaging rebuild happened while the initial browser suite was running and
+caused Vite HMR messages in that log; the suite still passed. The four subsequent
+static runs use unchanged built UI files, without concurrent packaging. The initial
+added probe lint reported an unqualified browser `Event`; qualifying it as
+`globalThis.Event` fixed it, and `bun --bun eslint test/review-v6-r1` then exited 0.
+
+```sh
+cd web && BASE_URL=http://127.0.0.1:23336 PLAYWRIGHT_CHANNEL=chromium bun test/review-v6-r1/stale-project.mjs
+cd web && BASE_URL=http://127.0.0.1:23336 PLAYWRIGHT_CHANNEL=chromium bun test/review-v6-r1/reload-cls.mjs
+```
+
+Both exited 0. `stale-project.log` records the old 48.2K headline becoming undefined
+on failed project/range changes, zero old legend rows and three adoption notices,
+then successful checks for retained/dimmed/noticed primary and supporting refreshes.
+`reload-cls.log` ends:
+
+```text
+ok   the footer is out of the viewport while the screen has no content: strip 68px, footer top 1157px in a 1000px viewport
+reload shifts 0.0020: sources ["NAV.","DIV.topbar-actions"]
+ok   cumulative layout shift after an ordinary reload is under the 0.01 gate scripts/reload-series.mjs keeps: 0.0020
+review-v6-r1 reload-cls probe passed
+```
+
+```sh
+docker run -d --name dash-v6-r1-pg --shm-size=1g -e POSTGRES_PASSWORD=signals -e POSTGRES_DB=signals -p 127.0.0.1:25576:5432 postgres:17
+PLAYWRIGHT_CHANNEL=chromium DATABASE_URL=postgres://postgres:signals@127.0.0.1:25576/signals ANALYTICS_PG_CONTAINER=dash-v6-r1-pg SIGNALS_URL=http://127.0.0.1:25577 ANALYTICS_REVIEW_URL=http://127.0.0.1:25578 ANALYTICS_REVIEW_PROBE_PORT=25579 SIGNALS_PROBE_LATENCY_BUDGET_MS=900 TMPDIR=/tmp/dash-v6-r1 python3 scripts/ci-conformance.py
+```
+
+The short temporary-directory symlink targeted this worktree's
+`web/artifacts/v6-r1/tmp`, avoiding Chromium's socket-path length limit. The complete
+harness exited 0, including the newly integrated real-collector status probe.
+Selected final output from `conformance.log`:
+
+```text
+identity: 52/52 valid fixtures matched
+identity: 54/54 invalid fixtures matched
+gzip: 52/52 valid fixtures matched
+gzip: 54/54 invalid fixtures matched
+review-v6-r1 project-status backend probe passed
+BENCH overview: median 171.23 ms; samples [170.09, 171.23, 195.5]
+BENCH adoption: median 317.04 ms; samples [400.8, 317.04, 275.59]
+BENCH tools: median 154.14 ms; samples [120.95, 154.75, 154.14]
+BENCH reliability: median 109.56 ms; samples [119.17, 105.73, 109.56]
+BENCH cost: median 171.55 ms; samples [145.45, 171.55, 181.82]
+BENCH protocol: median 80.42 ms; samples [78.5, 80.42, 82.6]
+BENCH digest: median 181.29 ms; samples [181.29, 185.17, 154.79]
+BENCH alerts: median 0.81 ms; samples [0.89, 0.8, 0.81]
+BENCH timeline: median 9.03 ms; samples [12.0, 9.03, 7.51]
+FINDINGS 0 MISMATCHES 0
+```
+
+```sh
+cd web && BASE_URL=http://127.0.0.1:23336 PLAYWRIGHT_CHANNEL=chromium bun scripts/v6-static-qa.mjs
+```
+
+Exit 0; all four runs were fresh (no `STATIC_BASELINE` shortcut). Each ran the
+full 11-screen, light/dark, 390/1280/1440-width contrast/clip audit and the unmasked
+drawer checks. `static.log` ends:
+
+```text
+Static capture run 1: 116 PNGs.
+Static capture run 2: 116 PNGs byte-identical to run 1.
+Static capture run 3: 116 PNGs byte-identical to run 1.
+Static capture run 4: 116 PNGs byte-identical to run 1.
+Four serial static capture runs passed, including the full contrast/clip and unmasked drawer gates.
+```
+
+The four SHA-256 manifests are `web/artifacts/v6/static-{1,2,3,4}.json`, and the
+matching images are in `web/artifacts/v3/`. The old `static-final-confirmation.json`
+belongs to the previous round's historical fifth-run evidence; this round uses the
+four new manifests above. Final `bun run check` and `bun run build` also exited 0
+after the test-lint correction (`check.log`, `build.log`).
+
+Loaded reload verification initially found a separate sampler defect: with 16 busy
+loops, `page.evaluate` sometimes crossed the document replacement and rejected. The
+old sampler converted this into `{detached:true}` with no DOM facts, then asserted
+that its undefined `content` was screen content without a shell. `reload-load-2` and
+`reload-repeat-1` preserve those failures: both ordinary and hard CLS were 0.0020;
+the only failure was the fabricated frame-0 shell assertion. The first loaded run
+had passed before this happened.
+
+`reload-series.mjs` now retries the DOM read once after navigation commits if its
+execution context was destroyed. It does not wait for fonts, content or animation,
+does not skip a frame assertion, and leaves the initial layout-shift observer, all
+assertions and the 0.01 CLS threshold unchanged. A second read failure fails the
+run instead of producing invented facts. Targeted ESLint for this script and the
+review probes exited 0. The resulting loaded runs are recorded below.
+
+A Python subprocess supervisor started **16 copies** of the reviewer's command,
+`timeout 420 bash -c 'while :; do :; done'`, checked all 16 were live before each
+run and recorded their liveness afterwards, then terminated/reaped every owned
+process group in `finally`. It ran these sequentially against the demo Vite server:
+
+```sh
+cd web
+BASE_URL=http://127.0.0.1:23336 PLAYWRIGHT_CHANNEL=chromium RELOAD_OUT=artifacts/v6-r1/reload-final-1 bun scripts/reload-series.mjs
+BASE_URL=http://127.0.0.1:23336 PLAYWRIGHT_CHANNEL=chromium RELOAD_OUT=artifacts/v6-r1/reload-final-2 bun scripts/reload-series.mjs
+BASE_URL=http://127.0.0.1:23336 PLAYWRIGHT_CHANNEL=chromium RELOAD_OUT=artifacts/v6-r1/reload-final-3 bun scripts/reload-series.mjs
+BASE_URL=http://127.0.0.1:23336 PLAYWRIGHT_CHANNEL=chromium CHOREOGRAPHY_OUT=artifacts/v6-r1/choreography-load bun scripts/choreography-qa.mjs
+```
+
+All four exited 0. `load-final-summary.json` records `busyLoops:16` for every run.
+All three reload logs report exactly:
+
+```text
+Cumulative layout shift: 0.0020 after an ordinary reload, 0.0020 after a hard one (["NAV.","DIV.topbar-actions"], the webfont swap)
+```
+
+`choreography-load.log` ends:
+
+```text
+Choreography QA passed: tiles at 130+55i ms, cards at 300+85i ms capped at 1100 ms, every chart's draw-in 180 ms behind its own card or tile, every tile headline climbing from zero over 640 ms from its own entrance on a cold load and on every navigation, one run per navigation with nothing on scroll or resize, a 18-frame 100 ms series in artifacts/v6-r1/choreography-load/, and the finished page at once under reduced motion.
+```
+
+After stopping every load generator, the two unchanged performance gates ran
+serially with no other owned browser test running:
+
+```sh
+cd web && BASE_URL=http://127.0.0.1:23336 PLAYWRIGHT_CHANNEL=chromium PERFORMANCE_REPEATS=15 bun scripts/performance-qa.mjs
+cd web && BASE_URL=http://127.0.0.1:23336 PLAYWRIGHT_CHANNEL=chromium bun scripts/performance-qa.mjs --walk
+```
+
+Both exited 0; `performance-single.log` and `performance-walk.log` end:
+
+```text
+15 repeats of adoption: longest task median 39.58 ms, p90 44.34 ms, range 35.38–47.49 ms; 0 over budget (1 tolerated under 70 ms)
+Walk, 30 rows: longest task median 34.63 ms, p90 45.12 ms, range 19.15–52.33 ms; 0 over budget (1 tolerated under 70 ms)
+```
+
+`git diff --name-only 5633b41 -- web/scripts/performance-qa.mjs` produced no output:
+the 50 ms default, documented 60 ms protocol-to-live exception, and single-outlier
+rule remain unchanged. A final Python SHA-256 check compared all four manifests and
+every current `artifacts/v3/*.png` to run 1 and printed:
+
+```text
+All four manifests and 116 current PNGs match.
+```
+
+Cleanup: the Vite process was stopped; `docker rm -f -v dash-v6-r1-pg` removed the
+owned database container and volume; the exact `/tmp/dash-v6-r1` symlink and its
+owned backing temporary directory were removed. All 16 busy loops were terminated
+and reaped after each load attempt. The final command
+
+```sh
+ss -ltn '( sport = :23330 or sport = :23331 or sport = :23336 or sport = :25576 or sport = :25577 or sport = :25578 or sport = :25579 )'
+```
+
+printed only its header. `git diff --check` passed. The evidence includes the two
+failed detached-context attempts as well as all three final loaded passes; no
+failure was hidden by changing a threshold. No requested finding remains open;
+no remote CI run or Safari runtime measurement is claimed, and nothing was pushed.

@@ -1,0 +1,15 @@
+ok   the first project's client mix has 3 legend rows
+ok   Northwind MCP · 27 clients: its client mix is not the previous project's 3 rows (got 0) or the screen says so (3 notices) — a failed adoption read keeps the old project's donut and legend silently
+     selected="Northwind MCP · first week" eyebrow="SIGNALS / northwind-fresh" tool calls 48.2K -> undefined
+ok   Northwind MCP · first week: the Tool calls tile does not still read the previous project's 48.2K while the page says "SIGNALS / northwind-fresh"
+     range="90 days" tool calls 48.2K -> undefined
+ok   range 90 days: the Tool calls tile does not still read the 7-day answer 48.2K
+ok   overview: failed refresh retains this view's headline
+ok   overview: failed refresh dims its retained answer
+ok   overview: failed refresh has a notice
+ok   overview: another failure after changing range discards the held answer
+ok   adoption: failed refresh retains this view's headline
+ok   adoption: failed refresh dims its retained answer
+ok   adoption: failed refresh has a notice
+ok   adoption: another failure after changing range discards the held answer
+review-v6-r1 stale-project probe passed

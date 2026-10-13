@@ -1,0 +1,21 @@
+Cumulative layout shift: 0.0020 after an ordinary reload, 0.0020 after a hard one (["NAV.","DIV.topbar-actions"], the webfont swap)
+Reload series: 18 frames at ~100 ms into artifacts/v6-r1/reload-final-2/, workspace strip [68]px once the webfonts loaded (1 earlier frame(s) mid-swap: [68]px)
+    0ms old  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  106ms new  shell=n strip=n(-1px) cards=0 headingTop=-1 heading=null panels=0 connecting=no reading=no
+  212ms new  shell=y strip=y(68px) cards=4 headingTop=39 heading="Overview" panels=5 connecting=no reading=no
+  589ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  742ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  896ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1062ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1212ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1356ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1509ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1652ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1753ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1854ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1955ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2055ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2156ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2257ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2357ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+Reload series passed: no Connecting or Reading text screen, no login card, the shell and heading arrive with the content, the workspace strip holds its height once the webfonts have loaded, and an ordinary reload reports zero layout shift.

@@ -1,0 +1,528 @@
+{
+  "base": "http://127.0.0.1:23336",
+  "frames": 18,
+  "timings": {
+    "TILE_FIRST": 130,
+    "TILE_STEP": 55,
+    "CARD_FIRST": 300,
+    "CARD_STEP": 85,
+    "CARD_CAP": 1100,
+    "ENTER_MS": 520,
+    "CHART_AFTER": 180,
+    "COUNT_MS": 640
+  },
+  "series": [
+    {
+      "frame": 0,
+      "atMs": 0,
+      "charts": 14,
+      "svg": 13,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 0,
+      "cards": 5,
+      "cardsShown": 0,
+      "running": 23,
+      "scrollY": 0
+    },
+    {
+      "frame": 1,
+      "atMs": 163,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 0,
+      "cards": 5,
+      "cardsShown": 0,
+      "running": 82,
+      "scrollY": 0
+    },
+    {
+      "frame": 2,
+      "atMs": 267,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 0,
+      "cards": 5,
+      "cardsShown": 0,
+      "running": 82,
+      "scrollY": 0
+    },
+    {
+      "frame": 3,
+      "atMs": 371,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 0,
+      "cards": 5,
+      "cardsShown": 0,
+      "running": 82,
+      "scrollY": 0
+    },
+    {
+      "frame": 4,
+      "atMs": 520,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 0,
+      "cards": 5,
+      "cardsShown": 0,
+      "running": 81,
+      "scrollY": 0
+    },
+    {
+      "frame": 5,
+      "atMs": 673,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 3,
+      "cards": 5,
+      "cardsShown": 0,
+      "running": 81,
+      "scrollY": 0
+    },
+    {
+      "frame": 6,
+      "atMs": 866,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 2,
+      "running": 76,
+      "scrollY": 0
+    },
+    {
+      "frame": 7,
+      "atMs": 1065,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 66,
+      "scrollY": 0
+    },
+    {
+      "frame": 8,
+      "atMs": 1254,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 54,
+      "scrollY": 0
+    },
+    {
+      "frame": 9,
+      "atMs": 1470,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 34,
+      "scrollY": 0
+    },
+    {
+      "frame": 10,
+      "atMs": 1696,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 16,
+      "scrollY": 0
+    },
+    {
+      "frame": 11,
+      "atMs": 1840,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 3,
+      "scrollY": 0
+    },
+    {
+      "frame": 12,
+      "atMs": 1958,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 0,
+      "scrollY": 0
+    },
+    {
+      "frame": 13,
+      "atMs": 2066,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 0,
+      "scrollY": 0
+    },
+    {
+      "frame": 14,
+      "atMs": 2264,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 0,
+      "scrollY": 0
+    },
+    {
+      "frame": 15,
+      "atMs": 2387,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 0,
+      "scrollY": 0
+    },
+    {
+      "frame": 16,
+      "atMs": 2585,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 0,
+      "scrollY": 0
+    },
+    {
+      "frame": 17,
+      "atMs": 2772,
+      "charts": 14,
+      "svg": 14,
+      "twin": 14,
+      "tiles": 6,
+      "tilesShown": 6,
+      "cards": 5,
+      "cardsShown": 5,
+      "running": 0,
+      "scrollY": 0
+    }
+  ],
+  "counts": [
+    {
+      "label": "Tool calls",
+      "at": 529,
+      "text": "0"
+    },
+    {
+      "label": "Active users",
+      "at": 529,
+      "text": "0"
+    },
+    {
+      "label": "Sessions",
+      "at": 529,
+      "text": "0"
+    },
+    {
+      "label": "Tool success",
+      "at": 529,
+      "text": "0%"
+    },
+    {
+      "label": "p95 latency",
+      "at": 529,
+      "text": "0 ms"
+    },
+    {
+      "label": "Context tokens",
+      "at": 529,
+      "text": "≈ 0"
+    },
+    {
+      "label": "Tool calls",
+      "at": 809,
+      "text": "6.6K"
+    },
+    {
+      "label": "Tool calls",
+      "at": 878,
+      "text": "21.4K"
+    },
+    {
+      "label": "Sessions",
+      "at": 878,
+      "text": "111.7"
+    },
+    {
+      "label": "Active users",
+      "at": 894,
+      "text": "343.7"
+    },
+    {
+      "label": "Tool success",
+      "at": 944,
+      "text": "7%"
+    },
+    {
+      "label": "Tool calls",
+      "at": 961,
+      "text": "32.2K"
+    },
+    {
+      "label": "Sessions",
+      "at": 961,
+      "text": "2.3K"
+    },
+    {
+      "label": "Active users",
+      "at": 978,
+      "text": "629.3"
+    },
+    {
+      "label": "p95 latency",
+      "at": 1001,
+      "text": "29.5 ms"
+    },
+    {
+      "label": "Tool success",
+      "at": 1033,
+      "text": "39.1%"
+    },
+    {
+      "label": "Tool calls",
+      "at": 1045,
+      "text": "39.7K"
+    },
+    {
+      "label": "Sessions",
+      "at": 1045,
+      "text": "3.9K"
+    },
+    {
+      "label": "Active users",
+      "at": 1062,
+      "text": "831.3"
+    },
+    {
+      "label": "p95 latency",
+      "at": 1081,
+      "text": "240.9 ms"
+    },
+    {
+      "label": "Tool success",
+      "at": 1111,
+      "text": "62.8%"
+    },
+    {
+      "label": "Context tokens",
+      "at": 1111,
+      "text": "≈ 7.5M"
+    },
+    {
+      "label": "Tool calls",
+      "at": 1128,
+      "text": "44.3K"
+    },
+    {
+      "label": "Sessions",
+      "at": 1128,
+      "text": "5.1K"
+    },
+    {
+      "label": "Active users",
+      "at": 1144,
+      "text": "964.2"
+    },
+    {
+      "label": "p95 latency",
+      "at": 1161,
+      "text": "397.1 ms"
+    },
+    {
+      "label": "Tool success",
+      "at": 1193,
+      "text": "79.2%"
+    },
+    {
+      "label": "Context tokens",
+      "at": 1193,
+      "text": "≈ 14.2M"
+    },
+    {
+      "label": "Tool calls",
+      "at": 1210,
+      "text": "46.9K"
+    },
+    {
+      "label": "Sessions",
+      "at": 1210,
+      "text": "5.8K"
+    },
+    {
+      "label": "Active users",
+      "at": 1227,
+      "text": "1,042.5"
+    },
+    {
+      "label": "p95 latency",
+      "at": 1244,
+      "text": "505.9 ms"
+    },
+    {
+      "label": "Tool success",
+      "at": 1277,
+      "text": "89.7%"
+    },
+    {
+      "label": "Context tokens",
+      "at": 1277,
+      "text": "≈ 18.9M"
+    },
+    {
+      "label": "Tool calls",
+      "at": 1293,
+      "text": "48K"
+    },
+    {
+      "label": "Sessions",
+      "at": 1293,
+      "text": "6.2K"
+    },
+    {
+      "label": "Active users",
+      "at": 1310,
+      "text": "1,080.5"
+    },
+    {
+      "label": "p95 latency",
+      "at": 1327,
+      "text": "576.2 ms"
+    },
+    {
+      "label": "Tool success",
+      "at": 1360,
+      "text": "95.7%"
+    },
+    {
+      "label": "Context tokens",
+      "at": 1360,
+      "text": "≈ 22.1M"
+    },
+    {
+      "label": "Tool calls",
+      "at": 1377,
+      "text": "48.2K"
+    },
+    {
+      "label": "Sessions",
+      "at": 1377,
+      "text": "6.4K"
+    },
+    {
+      "label": "Active users",
+      "at": 1393,
+      "text": "1,092.9"
+    },
+    {
+      "label": "p95 latency",
+      "at": 1410,
+      "text": "616.3 ms"
+    },
+    {
+      "label": "Tool success",
+      "at": 1453,
+      "text": "98.4%"
+    },
+    {
+      "label": "Context tokens",
+      "at": 1453,
+      "text": "≈ 23.9M"
+    },
+    {
+      "label": "Active users",
+      "at": 1465,
+      "text": "1,094"
+    },
+    {
+      "label": "Sessions",
+      "at": 1465,
+      "text": "6.5K"
+    },
+    {
+      "label": "p95 latency",
+      "at": 1493,
+      "text": "634.6 ms"
+    },
+    {
+      "label": "Tool success",
+      "at": 1527,
+      "text": "99.1%"
+    },
+    {
+      "label": "Context tokens",
+      "at": 1527,
+      "text": "≈ 24.8M"
+    },
+    {
+      "label": "p95 latency",
+      "at": 1579,
+      "text": "639.7 ms"
+    },
+    {
+      "label": "Context tokens",
+      "at": 1611,
+      "text": "≈ 25.1M"
+    },
+    {
+      "label": "p95 latency",
+      "at": 1628,
+      "text": "640 ms"
+    },
+    {
+      "label": "Context tokens",
+      "at": 1695,
+      "text": "≈ 25.2M"
+    }
+  ],
+  "failures": []
+}

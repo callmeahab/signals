@@ -1,0 +1,21 @@
+Cumulative layout shift: 0.0020 after an ordinary reload, 0.0020 after a hard one (["NAV.","DIV.topbar-actions"], the webfont swap)
+Reload series: 18 frames at ~100 ms into artifacts/v6-r1/reload-load-2/, workspace strip [68]px once the webfonts loaded (1 earlier frame(s) mid-swap: [68]px)
+    0ms new  shell=n strip=n(undefinedpx) cards=undefined headingTop=undefined heading=undefined panels=undefined connecting=no reading=no
+  110ms new  shell=n strip=n(-1px) cards=0 headingTop=-1 heading=null panels=0 connecting=no reading=no
+  300ms new  shell=y strip=y(68px) cards=4 headingTop=39 heading="Overview" panels=5 connecting=no reading=no
+  595ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  717ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  817ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  917ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1017ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1117ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1217ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1318ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1471ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1626ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1779ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1934ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2082ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2242ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 2384ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+a frame showed screen content without the shell and heading

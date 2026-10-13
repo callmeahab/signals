@@ -1,0 +1,7 @@
+[
+  {
+    "name": "reload-repeat-1",
+    "exit": 1,
+    "busyLoops": 16
+  }
+]

@@ -1,0 +1,5 @@
+ok   the screen's content is still pending while this is measured (0 cards/tiles)
+ok   the footer is out of the viewport while the screen has no content: strip 68px, footer top 1157px in a 1000px viewport — the -157px of it that are visible become a layout shift the moment the content arrives
+     reload shifts 0.0020: [{"value":0.0019933412905092595,"at":215,"sources":["NAV.","DIV.topbar-actions"]}]
+ok   cumulative layout shift after an ordinary reload is under the 0.01 gate scripts/reload-series.mjs keeps: 0.0020
+review-v6-r1 reload-cls probe passed

@@ -1,0 +1,192 @@
+$ bun scripts/test.mjs
+Project status QA passed: existing reads drive active/quiet/error states; validation, missing resources and rate limits do not falsely mark the collector unreachable; auth, server and network failures do; recovery and range scoping work.
+Snippet UUID QA passed: randomUUID deleted, UUIDv7 timestamp/version/variant, missing and throwing crypto fallbacks.
+Spec fixture QA passed: all 10 event types, UUIDv7, attrs, client/source, search and error/tool filters.
+Demo contract shapes passed: 8 analytics routes × 4 ranges × 3 demo projects (complete, truncated catalogue, fresh window), all session timelines, missing/extra keys and type-drift guards.
+Truncated catalogue QA passed: nullable dead, required completeness, retained calls and safe Tools/Overview rendering.
+Analytics QA passed: 8 routes × 4 ranges, coherent totals, nulls, filters, ordered timeline, token divisor and alert persistence.
+Client share QA passed: 27 clients, repeated versions, coherent calls/sessions and null shares without calls.
+review-r1 probe passed
+review-r2 probe passed
+
+  VITE v8.3.2  ready in 89 ms
+
+  ➜  Local:   http://127.0.0.1:23330/
+1:00:54 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js
+1:00:54 PM [vite] (client) hmr update /src/main.tsx
+1:00:54 PM [vite] (client) hmr update /src/main.tsx
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/table-scroll.js
+1:00:54 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/charts/index.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/charts/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/charts/index.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/charts.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js
+1:00:54 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/info.js
+1:00:54 PM [vite] (client) [console.error] You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.
+1:00:54 PM [vite] (client) [console.error] You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.
+1:00:54 PM [vite] (client) hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:54 PM [vite] (client) page reload src/main.tsx
+1:00:54 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js Could not Fast Refresh ("useQuery" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:54 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/info.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js
+1:00:54 PM [vite] (client) hmr update /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:54 PM [vite] (client) hmr update /src/main.tsx
+1:00:54 PM [vite] (client) [console.error] You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.
+1:00:54 PM [vite] (client) [console.error] You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.
+1:00:54 PM [vite] (client) [console.error] You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.
+1:00:54 PM [vite] (client) [console.error] You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.
+1:00:54 PM [vite] (client) hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:54 PM [vite] (client) page reload src/main.tsx
+1:00:54 PM [vite] (client) [console.error] You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.
+1:00:54 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js Could not Fast Refresh ("format" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:54 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:54 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js Could not Fast Refresh ("format" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:54 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:54 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js Could not Fast Refresh ("useQuery" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:54 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:54 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js Could not Fast Refresh ("useQuery" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:54 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:54 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/icons/index.js Could not Fast Refresh ("pillIcon" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:54 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/info.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/charts/index.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js
+1:00:55 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/charts/index.js Could not Fast Refresh ("clientColor" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:55 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js Could not Fast Refresh ("format" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:55 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js Could not Fast Refresh ("format" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:55 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js Could not Fast Refresh ("useQuery" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:55 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js Could not Fast Refresh ("useQuery" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:55 PM [vite] (client) hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) page reload src/main.tsx
+1:00:55 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/info.js Could not Fast Refresh ("infoContent" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:55 PM [vite] (client) hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) page reload src/main.tsx
+1:00:55 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js Could not Fast Refresh ("format" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) page reload /home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js (circular import invalidate)
+1:00:55 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js Could not Fast Refresh ("useQuery" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) hmr update /src/main.tsx, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics.js, /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/analytics-v3.js
+1:00:55 PM [vite] (client) hmr invalidate /src/main.tsx Could not Fast Refresh ("true" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) page reload src/main.tsx
+1:00:55 PM [vite] (client) [console.error] You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.
+1:00:55 PM [vite] (client) [console.error] You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.
+1:00:55 PM [vite] (client) hmr invalidate /@fs/home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js Could not Fast Refresh ("useQuery" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+1:00:55 PM [vite] (client) page reload /home/vuk/orca/workspaces/signals-collector/dash-v2/web/packages/ui/dist/dashboard.js (circular import invalidate)
+Visual QA passed: v3 chart SVG/table twins on every screen with nothing scrolled, no unpainted card in any capture, unmasked drawer captures, painted funnel with a null day-7 step and a conversion curve that ends at the last counted step, both drawer captures; 11 screens, light/dark, 390/1280/1440 widths, three-column tiles, 108px sparklines, full-row entity lists, 27-client legend, zero-call arcs, fonts, dialogs, live controls, spec events, SDK setup snippets, keys.
+poll: 9 charts had painted, 9 of them still on screen, 19 redrawn parts, all 19 finished
+Live QA passed: 60000 ms refresh observed on the active screen, skeleton held 200/400 ms, nothing while the tab is hidden, an immediate refresh on return and on a range change, no dim, no replayed entrance, no count-up from zero, no freshness badge, and no polling under __SIGNALS_VISUAL_QA__.
+cold #overview: 4 tiles climbed from zero, Active users over 665 ms in 10 steps
+tools: 6 tiles 130+55i ms, 5 cards 300+85i ms (last 640 ms), 70/70 chart draw-ins anchored to their card (earliest 25 ms into its own window, 60 ms of slack), 5 tiles climbed from zero (Retries over 655 ms in 10 steps)
+adoption: 6 tiles 130+55i ms, 5 cards 300+85i ms (last 640 ms), 7/7 chart draw-ins anchored to their card (earliest 0 ms into its own window, 60 ms of slack), 6 tiles climbed from zero (DAU over 654 ms in 10 steps)
+cost: 6 tiles 130+55i ms, 4 cards 300+85i ms (last 555 ms), 11/11 chart draw-ins anchored to their card (earliest 0 ms into its own window, 60 ms of slack), 4 tiles climbed from zero (Per call over 649 ms in 10 steps)
+    0ms tiles 6/6 cards 5/5 charts 19/19 running=0
+  120ms tiles 0/6 cards 0/5 charts 14/14 running=83
+  221ms tiles 0/6 cards 0/5 charts 14/14 running=83
+  322ms tiles 0/6 cards 0/5 charts 14/14 running=82
+  422ms tiles 0/6 cards 0/5 charts 14/14 running=82
+  523ms tiles 0/6 cards 0/5 charts 14/14 running=81
+  624ms tiles 1/6 cards 0/5 charts 14/14 running=81
+  732ms tiles 3/6 cards 0/5 charts 14/14 running=80
+  833ms tiles 5/6 cards 1/5 charts 14/14 running=78
+  934ms tiles 6/6 cards 2/5 charts 14/14 running=76
+ 1035ms tiles 6/6 cards 4/5 charts 14/14 running=73
+ 1135ms tiles 6/6 cards 5/5 charts 14/14 running=66
+ 1240ms tiles 6/6 cards 5/5 charts 14/14 running=63
+ 1340ms tiles 6/6 cards 5/5 charts 14/14 running=54
+ 1440ms tiles 6/6 cards 5/5 charts 14/14 running=44
+ 1540ms tiles 6/6 cards 5/5 charts 14/14 running=35
+ 1641ms tiles 6/6 cards 5/5 charts 14/14 running=27
+ 1742ms tiles 6/6 cards 5/5 charts 14/14 running=18
+Choreography QA passed: tiles at 130+55i ms, cards at 300+85i ms capped at 1100 ms, every chart's draw-in 180 ms behind its own card or tile, every tile headline climbing from zero over 640 ms from its own entrance on a cold load and on every navigation, one run per navigation with nothing on scroll or resize, a 18-frame 100 ms series in artifacts/v5/choreography/, and the finished page at once under reduced motion.
+Cumulative layout shift: 0.0020 after an ordinary reload, 0.0020 after a hard one (["NAV.","DIV.topbar-actions"], the webfont swap)
+Reload series: 18 frames at ~100 ms into artifacts/v4/reload/, workspace strip [68]px once the webfonts loaded
+    0ms old  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  101ms new  shell=n strip=n(-1px) cards=0 headingTop=-1 heading=null panels=0 connecting=no reading=no
+  202ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  362ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  462ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  563ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  663ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  763ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  864ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+  964ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1064ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1164ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1264ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1365ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1465ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1566ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1667ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+ 1767ms new  shell=y strip=y(68px) cards=4 headingTop=172 heading="Overview" panels=5 connecting=no reading=no
+Reload series passed: no Connecting or Reading text screen, no login card, the shell and heading arrive with the content, the workspace strip holds its height once the webfonts have loaded, and an ordinary reload reports zero layout shift.
+v6 QA passed: corner geometry, hover/sticky card fields, typography, unit, mobile sheet, project states, icon size, badge absence, skeleton <=1 and none after content, cold/switch/reload 100 ms series in both themes with no white frames.
+ok   the first project's client mix has 3 legend rows
+ok   Northwind MCP · 27 clients: its client mix is not the previous project's 3 rows (got 0) or the screen says so (3 notices) — a failed adoption read keeps the old project's donut and legend silently
+     selected="Northwind MCP · first week" eyebrow="SIGNALS / northwind-fresh" tool calls 48.2K -> undefined
+ok   Northwind MCP · first week: the Tool calls tile does not still read the previous project's 48.2K while the page says "SIGNALS / northwind-fresh"
+     range="90 days" tool calls 48.2K -> undefined
+ok   range 90 days: the Tool calls tile does not still read the 7-day answer 48.2K
+ok   overview: failed refresh retains this view's headline
+ok   overview: failed refresh dims its retained answer
+ok   overview: failed refresh has a notice
+ok   overview: another failure after changing range discards the held answer
+ok   adoption: failed refresh retains this view's headline
+ok   adoption: failed refresh dims its retained answer
+ok   adoption: failed refresh has a notice
+ok   adoption: another failure after changing range discards the held answer
+review-v6-r1 stale-project probe passed
+ok   1440px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   1251px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   1249px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   1024px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   900px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   768px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   601px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:none) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   600px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:grid) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   390px: navigation is reachable (tab row display:flex with 10 visible tabs, .mobile-menu display:grid) — v6 brief item 4 keeps the mobile menu glyph, it does not remove the only navigation
+ok   Tool success: the trend readout has rows ({"headline":"99.1%","readouts":["99.2%","99.1%","99.1%","99.2%","98.7%"]})
+ok   Tool success: the trend readout reads like its own headline "99.1%"; got ["99.2%","99.1%","99.1%"] — unitFormat('%') inserts a space the pct() headline never has
+ok   Context tokens: the trend readout has rows ({"headline":"≈ 25.2M","readouts":["≈ 4.8M","≈ 6.3M","≈ 6.1M","≈ 4.3M","≈ 3.6M"]})
+ok   Context tokens: the trend readout keeps the estimate marker of its headline "≈ 25.2M"; got ["≈ 4.8M","≈ 6.3M","≈ 6.1M"] — docs/analytics.md calls every token figure an estimate, never a provider invoice
+ok   the screen still polls: 5 loads before the interval, 9 after
+ok   focusing the info button opens its hover card
+ok   the info button still opens on focus after a press that was dragged off it (pointerFocus is never cleared without a click)
+ok   1440x620: no hover card is clipped by the viewport; worst is {"over":0,"title":"Alert rules","box":{"x":1092,"y":249,"width":340,"height":362.75}}
+ok   1440x1000: no hover card is clipped by the viewport; worst is {"over":0,"title":"Alert rules","box":{"x":1092,"y":349,"width":340,"height":362.75}}
+ok   390x844: no hover card is clipped by the viewport; worst is {"over":0,"title":"Alert rules","box":{"x":8,"y":473,"width":374,"height":362.75}}
+review-v6-r1 probe passed
+ok   the screen's content is still pending while this is measured (0 cards/tiles)
+ok   the footer is out of the viewport while the screen has no content: strip 68px, footer top 1155px in a 1000px viewport — the -155px of it that are visible become a layout shift the moment the content arrives
+     reload shifts 0.0020: [{"value":0.0019933412905092595,"at":150,"sources":["NAV.","DIV.topbar-actions"]}]
+ok   cumulative layout shift after an ordinary reload is under the 0.01 gate scripts/reload-series.mjs keeps: 0.0020
+review-v6-r1 reload-cls probe passed

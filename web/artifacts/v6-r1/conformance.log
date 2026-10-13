@@ -1,0 +1,220 @@
+UPDATE 1
+identity: 52/52 valid fixtures matched
+identity: 54/54 invalid fixtures matched
+gzip: 52/52 valid fixtures matched
+gzip: 54/54 invalid fixtures matched
+PASS auth-before-body, media/encoding, gzip/decoded limits, UTF-8, Bearer whitespace/case, replay, whoami scopes, NUL repair, source/client persistence, caller IP hashing
+$ bun scripts/backend-qa.mjs && bun test/review-v6-r1/project-status-backend.mjs
+Login style QA passed: theme tokens, loaded fonts, card/button/form styles, light/dark and 320/390/1440px.
+Backend browser QA passed: real v3 analytics, project cards that survive a reload, a 60-second refresh of the active screen alone that stops while the tab is hidden, a skeleton held back 200 ms and kept 400 ms, painted funnel with a null day-7 step, adoption session/WAU/MAU trend series, latency histogram count sums and window-aligned band/sparkline, complete catalogue/dead/hallucinated tool filtering, no-catalogue called names, empty/null states, batch/replay-derived tiles/tools/timeline/callers/cost, project switch, login, keys, Live, persisted settings that carry saved SLO targets into the Tools tile and the overview caption, hour-stamped sparkline readouts on a 24-hour window, 400 message, CSRF, logout.
+ok   a project with five tool calls in the window is not shown as gold before it is selected: {"cls":"project-card__status status-unknown","title":"Not checked yet","dot":"oklch(0.46 0.027 72)","icon":"li"} — gold means "connected but no events in the window", which is not what is known here
+ok   a project with events in the window is teal: {"cls":"project-card__status status-healthy","title":"Connected · receiving events in this window","dot":"oklch(0.44 0.075 189)","icon":"li"}
+ok   a project with no events in the window is gold: {"cls":"project-card__status status-warn","title":"Connected · no events observed in this window","dot":"oklch(0.5 0.125 68)","icon":"li"}
+ok   the busy project keeps its teal state while another project is selected: {"cls":"project-card__status status-healthy","title":"Connected · receiving events in this window","dot":"oklch(0.44 0.075 189)","icon":"li"}
+ok   a project whose reads fail with 503 is ember: {"cls":"project-card__status status-error","title":"Unreachable or authentication failing","dot":"oklch(0.62 0.2 34)","icon":"li"}
+ok   selecting a project adds no per-project status request: []
+ok   the freshness badge and collector pulse are gone
+ok   polling is observed in the collector's request log: 4 analytics requests before the interval, 8 after
+review-v6-r1 project-status backend probe passed
+   Compiling signals-server v0.1.0 (/home/vuk/orca/workspaces/signals-collector/dash-v2/crates/signals-server)
+    Finished `release` profile [optimized] target(s) in 35.97s
+generated 525 events
+E2E catalogue/progress assertions complete
+rejection probe 202 ['unknown_type', 'schema']
+accepted 525 rejected batches 0
+identities {'strong': 13, 'key': 6, 'network': 4} distinct 23
+waiting for rollup past 2026-10-13 13:02:57.030344+00:00
+rollup idempotence ok
+restart aggregates stable
+cursor 2026-10-13 13:04:55.546237+00 -> 2026-10-13 13:04:56.738877+00
+late ingest 202 {'accepted': 1, 'rejected': []}
+late hour 2026-10-03 00:00:00+00:00 62 -> 63
+explicit overview method exact span 5:00:00
+sessions sum ?range=24h 17 tile 17
+sessions sum ?range=7d 50 tile 50
+sessions sum ?range=30d 75 tile 75
+sessions sum ?range=90d 75 tile 75
+sessions sum ?from=2026-10-13T10:05:00.000Z&to=2026-10-13T15:05:00.000Z 17 tile 17
+sessions sum ?from=2026-10-03T00:30:00.000Z&to=2026-10-13T13:02:53.000Z&client=Claude 53 tile 53
+sessions sum ?from=2026-10-03T00:30:00.000Z&to=2026-10-13T13:02:53.000Z&tool=get_product 72 tile 72
+sessions sum ?from=2026-10-03T00:30:00.000Z&to=2026-10-13T13:02:53.000Z&caller=user-strong-00 5 tile 5
+sessions sum ?from=2026-10-03T00:30:00.000Z&to=2026-10-13T13:02:53.000Z&transport=stdio 4 tile 4
+empty returned_day_7 None catalog known empty-window catalog {'advertised': 10, 'advertised_count': 10, 'catalog_hash': 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', 'complete': True, 'dead': ['Get_Thing', 'book_flight', 'cancel_booking', 'get_admin', 'get_product', 'list_orders', 'lookup_sku', 'refund', 'search_products', 'set_status'], 'known': True, 'truncated': False, 'updated_at': '2026-10-03T00:30:02Z', 'used': 0}
+24h funnel connected 4 returned_day_7 None
+zed dead ['cancel_booking', 'list_orders', 'lookup_sku', 'refund', 'search_products', 'set_status'] used 4 unfiltered used 8
+d1 api 85.7 expected 85.7 anniversary-ended 85.7 eligible 7
+classes mutate mutate mutate read mutate
+alert ingest 174 []
+alerts
+alerts
+alerts
+alerts
+alerts
+alerts
+alerts
+alerts
+alerts
+alerts
+alerts
+alerts
+alerts burn=firing:1 | destructive=firing:1 | errors=no_data:1 | latency=firing:1 | volume=firing:1
+errors after sustained backdate firing
+probe row true 2
+populated daily partition fixture 31
+loading 100k events
+perf facts 100000
+Latency budget: 900 ms; warmup then median of three
+BENCH overview: median 171.23 ms; samples [170.09, 171.23, 195.5]
+BENCH adoption: median 317.04 ms; samples [400.8, 317.04, 275.59]
+BENCH tools: median 154.14 ms; samples [120.95, 154.75, 154.14]
+BENCH reliability: median 109.56 ms; samples [119.17, 105.73, 109.56]
+BENCH cost: median 171.55 ms; samples [145.45, 171.55, 181.82]
+BENCH protocol: median 80.42 ms; samples [78.5, 80.42, 82.6]
+BENCH digest: median 181.29 ms; samples [181.29, 185.17, 154.79]
+BENCH alerts: median 0.81 ms; samples [0.89, 0.8, 0.81]
+BENCH timeline: median 9.03 ms; samples [12.0, 9.03, 7.51]
+EXPLAIN facts
+ Seq Scan on analytics_facts  (cost=0.00..6497.68 rows=100009 width=36)
+  Filter: ((project_id = 'c7ec2593-f756-4abd-baf7-c2b2554c86a2'::uuid) AND (ts < now()))
+EXPLAIN hourly
+ [
+  {
+    "Plan": {
+      "Node Type": "Hash Join",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Join Type": "Right Anti",
+      "Startup Cost": 7.74,
+      "Total Cost": 10.42,
+      "Plan Rows": 1,
+      "Plan Width": 50,
+      "Actual Startup Time": 0.105,
+      "Actual Total Time": 0.106,
+      "Actual Rows": 0,
+      "Actual Loops": 1,
+      "Inner Unique": false,
+      "Hash Cond": "(a.hour = r.hour)",
+      "Shared Hit Blocks": 16,
+      "Shared Read Blocks": 0,
+      "Shared Dirtied Blocks": 0,
+      "Shared Written Blocks": 0,
+      "Local Hit Blocks": 0,
+      "Local Read Blocks": 0,
+      "Local Dirtied Blocks": 0,
+      "Local Written Blocks": 0,
+      "Temp Read Blocks": 0,
+      "Temp Written Blocks": 0,
+      "Plans": [
+        {
+          "Node Type": "Seq Scan",
+          "Parent Relationship": "Outer",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Relation Name": "analytics_hourly_arrivals",
+          "Alias": "a",
+          "Startup Cost": 0.00,
+          "Total Cost": 2.56,
+          "Plan Rows": 28,
+          "Plan Width": 24,
+          "Actual Startup Time": 0.006,
+          "Actual Total Time": 0.007,
+          "Actual Rows": 28,
+          "Actual Loops": 1,
+          "Filter": "((received_at > '1970-01-01 00:00:00+00'::timestamp with time zone) AND (project_id = 'c7ec2593-f756-4abd-baf7-c2b2554c86a2'::uuid))",
+          "Rows Removed by Filter": 76,
+          "Shared Hit Blocks": 1,
+          "Shared Read Blocks": 0,
+          "Shared Dirtied Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Dirtied Blocks": 0,
+          "Local Written Blocks": 0,
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0
+        },
+        {
+          "Node Type": "Hash",
+          "Parent Relationship": "Inner",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 7.73,
+          "Total Cost": 7.73,
+          "Plan Rows": 1,
+          "Plan Width": 1395,
+          "Actual Startup Time": 0.087,
+          "Actual Total Time": 0.087,
+          "Actual Rows": 56,
+          "Actual Loops": 1,
+          "Hash Buckets": 1024,
+          "Original Hash Buckets": 1024,
+          "Hash Batches": 1,
+          "Original Hash Batches": 1,
+          "Peak Memory Usage": 86,
+          "Shared Hit Blocks": 15,
+          "Shared Read Blocks": 0,
+          "Shared Dirtied Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Dirtied Blocks": 0,
+          "Local Written Blocks": 0,
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0,
+          "Plans": [
+            {
+              "Node Type": "Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Scan Direction": "Forward",
+              "Index Name": "analytics_hourly_pkey",
+              "Relation Name": "analytics_hourly",
+              "Alias": "r",
+              "Startup Cost": 0.28,
+              "Total Cost": 7.73,
+              "Plan Rows": 1,
+              "Plan Width": 1395,
+              "Actual Startup Time": 0.013,
+              "Actual Total Time": 0.052,
+              "Actual Rows": 56,
+              "Actual Loops": 1,
+              "Index Cond": "((project_id = 'c7ec2593-f756-4abd-baf7-c2b2554c86a2'::uuid) AND (hour >= (now() - '7 days'::interval)))",
+              "Rows Removed by Index Recheck": 0,
+              "Filter": "((hour + '01:00:00'::interval) <= now())",
+              "Rows Removed by Filter": 0,
+              "Shared Hit Blocks": 15,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "Local Hit Blocks": 0,
+              "Local Read Blocks": 0,
+              "Local Dirtied Blocks": 0,
+              "Local Written Blocks": 0,
+              "Temp Read Blocks": 0,
+              "Temp Written Blocks": 0
+            }
+          ]
+        }
+      ]
+    },
+    "Planning": {
+      "Shared Hit Blocks": 369,
+      "Shared Read Blocks": 0,
+      "Shared Dirtied Blocks": 0,
+      "Shared Written Blocks": 0,
+      "Local Hit Blocks": 0,
+      "Local Read Blocks": 0,
+      "Local Dirtied Blocks": 0,
+      "Local Written Blocks": 0,
+      "Temp Read Blocks": 0,
+      "Temp Written Blocks": 0
+    },
+    "Planning Time": 0.443,
+    "Triggers": [
+    ],
+    "Execution Time": 0.129
+  }
+]
+subject_kind breakdown {'key': 1, 'network': 1, 'strong': 0} status 200
+FINDINGS 0 MISMATCHES 0

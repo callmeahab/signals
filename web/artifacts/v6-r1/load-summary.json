@@ -1,0 +1,12 @@
+[
+  {
+    "name": "reload-load-1",
+    "exit": 0,
+    "busyLoops": 16
+  },
+  {
+    "name": "reload-load-2",
+    "exit": 1,
+    "busyLoops": 16
+  }
+]
