@@ -791,3 +791,21 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
    the dashboard keeps the page its height, so the footer does not jump down when the
    first data lands. */
 .signals-ui:empty,.signals-ui>.loading-state{min-height:70vh}
+
+/* Drawers 2026-10-13 (v5) ---------------------------------------------------
+   The drawer header carried a divider that read, under the title, as a rule
+   drawn across the top of the three tiles; nothing else in this design separates
+   a title from its own content with a line, so the header keeps its spacing and
+   loses the border. Both drawers share the header, so both are covered. */
+.drawer .drawer-header{border-bottom:0}
+/* A dialog must not blur the page behind it. The backdrop is a plain translucent
+   scrim: the hard ink at 28% in light and at 40% in dark. `.dark` remaps
+   `--ink-hard` to the gold accent it draws focal-card edges with, so the dark rule
+   names the same hard ink the light theme resolves `--ink-hard` to rather than the
+   accent. A blurred backdrop also made the top bar rasterise differently run to
+   run, which the capture scripts used to mask; with no filter anywhere the capture
+   depends only on what is on the page. */
+.drawer::backdrop{background:color-mix(in oklch,var(--ink-hard) 28%,transparent);backdrop-filter:none}
+.dark .drawer::backdrop{background:color-mix(in oklch,oklch(0.220 0.013 70) 40%,transparent)}
+.scrim{background:color-mix(in oklch,var(--ink-hard) 28%,transparent);backdrop-filter:none}
+.dark .scrim{background:color-mix(in oklch,oklch(0.220 0.013 70) 40%,transparent)}

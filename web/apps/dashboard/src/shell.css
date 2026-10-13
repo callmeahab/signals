@@ -53,3 +53,53 @@ lord-icon{display:inline-block;vertical-align:middle;flex:none;--lord-icon-prima
 .demo-badge{align-self:center;flex-shrink:0}
 @media(max-width:600px){.workspace-strip{flex-wrap:wrap}.project-cards{flex-direction:column;align-items:stretch}.project-card{max-width:none;width:100%}.project-strip--many .project-cards{flex-direction:row}.project-strip--many .project-card{width:auto;max-width:240px}.demo-badge{align-self:flex-start}}
 @media(prefers-reduced-motion:reduce){.project-card{transition:none}.signal-dot.pulse{animation:none}}
+
+/* Navigation 2026-10-13 (v5): the tab group is centred on the bar, and bigger.
+
+   Centring. The wordmark and the action group are both `flex:1 1 0` with a
+   `max-content` floor, so the free space is split equally between them and the two
+   side groups come out the same width -- which is what puts the tab group's centre on
+   the bar's centre, rather than merely between the groups. Neither side may shrink
+   past its own content, so once ten tabs no longer fit the tab row is the only thing
+   that gives: it then spans the whole gap between the two groups, an equal gutter
+   from each, and scrolls. That happens below 1014 px and nowhere above it.
+
+   Size. The icon is 22 px at every width and the tab is the bar's full 64 px. Ten
+   tabs cost 699.8 px before any padding at a 15 px label (479.8 px of label, 22 px of
+   icon each), and true centring needs twice the wordmark plus the row plus the
+   gutters to fit inside the viewport, so the bar sheds in a fixed order as it
+   narrows: the app name beside the wordmark, then the wordmark's height, the bar's
+   padding, the gap between the groups, and last the tab's own padding. Below 1280 px
+   even a padless row of 15 px tabs cannot stand beside a legible wordmark at 1024 px
+   (699.8 + 132 + 34 + 52 of gutters > 1024), so the label there keeps its previous
+   13 px and ten tabs still fit with nothing scrolling. reports/dash-v5.md carries the
+   arithmetic and the measured centre per band. */
+.topbar-inner{height:64px;padding:0 16px;gap:10px}
+.brand-link{flex:1 1 0;min-width:max-content}
+.topbar-actions{flex:1 1 0;min-width:max-content;display:flex;align-items:center;justify-content:flex-end;gap:4px}
+.topbar nav{flex:0 1 auto;gap:0;height:64px}
+.topbar nav a{height:64px;font-size:13px;padding:0 6px;gap:4px}
+.brand-separator,.brand-app{display:none}
+.brand svg{height:12px}
+.nav-thumb{height:3px}
+@media(min-width:1280px){
+ .topbar nav a{font-size:15px;padding:0 8px;gap:5px}
+}
+@media(min-width:1440px){
+ .topbar-inner{padding:0 20px;gap:12px}
+ .brand svg{height:14px}
+ .topbar nav a{padding:0 12px;gap:6px}
+}
+@media(min-width:1680px){
+ .topbar-inner{padding:0 24px;gap:14px}
+ .brand-separator,.brand-app{display:revert}
+ .brand svg{height:15px}
+ .topbar nav a{padding:0 14px;gap:7px}
+}
+@media(max-width:1250px){.topbar nav.open{top:64px}}
+
+/* The top bar's own backdrop-filter samples the page under it, and while a dialog
+   is open that sampling is what rasterised differently from run to run. With a
+   dialog open the bar drops the filter and paints its own background: the page
+   behind the drawer stays sharp, and nothing on the page is filtered. */
+html:has(dialog[open]) .topbar{backdrop-filter:none;background:var(--background)}
