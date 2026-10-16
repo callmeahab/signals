@@ -113,7 +113,9 @@ export function Waiting({event='SDK events'}:{event?:string;shape?:'bars'|'line'
 export type SparkPoint = {t:string;value:number|null|undefined};
 export function Sparkline({points,series='Value',format=plain,label='Trend',color='var(--chart-1)',height=38}:{height?:number;points:SparkPoint[];series?:string;format?:Fmt;label?:string;color?:string}){
  const labels=points.map(p=>p.t);
- return points.length&&points.some(p=>p.value!=null)
+ // Isolated observations have no line to draw; the endpoint alone looks like a stray dot.
+ const hasTrend=points.some((p,i)=>i>0&&p.value!=null&&points[i-1].value!=null);
+ return hasTrend
   ?<Chart kind="sparkline" label={label} height={height} draw={render.sparkline({values:points.map(p=>p.value) as number[],color,h:height})}
     headers={['Date',series]}
     rows={points.map((p,i)=>[dateCell(labels,i),cell(p.value,format)])}/>
